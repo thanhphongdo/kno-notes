@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { IconButton } from '@/components/ui/icon-button';
+import { Input } from '@/components/ui/input';
 
 export interface NoteImage {
   id: string;
@@ -13,16 +14,62 @@ export interface NoteImage {
 const STRIPE_DETAIL = 'repeating-linear-gradient(135deg, var(--surface2) 0 10px, var(--bg) 10px 20px)';
 const STRIPE_EDITOR = 'repeating-linear-gradient(135deg, var(--surface2) 0 8px, var(--bg) 8px 16px)';
 
+export const ALT_PLACEHOLDER = 'Mô tả ảnh (alt)';
+
 export interface ImageThumbProps {
   image: NoteImage;
-  /** `detail` = aspect 4/3, r10, caption below · `editor` = aspect 1, r8, remove button. */
-  variant?: 'detail' | 'editor';
+  /**
+   * `detail` = aspect 4/3, r10, caption below · `editor` = aspect 1, r8,
+   * remove button · `row` = 44px thumb + ô nhập alt + nút gỡ, dùng ở rail của
+   * trình soạn thảo nơi mỗi ảnh cần chỗ để gõ alt.
+   */
+  variant?: 'detail' | 'editor' | 'row';
   onOpen?: () => void;
   onRemove?: () => void;
+  /** Chỉ `row`: alt vừa là chú thích dưới ảnh, vừa là thứ tìm kiếm soi tới. */
+  onLabelChange?: (label: string) => void;
   className?: string;
 }
 
-export function ImageThumb({ image, variant = 'detail', onOpen, onRemove, className }: ImageThumbProps) {
+export function ImageThumb({
+  image, variant = 'detail', onOpen, onRemove, onLabelChange, className,
+}: ImageThumbProps) {
+  if (variant === 'row') {
+    return (
+      <div data-image-thumb="" className={cn('flex items-center gap-10', className)}>
+        <span
+          className="flex h-44 w-44 shrink-0 items-center justify-center overflow-hidden rounded-8 border border-line"
+          style={{ background: STRIPE_EDITOR }}
+        >
+          {image.src ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image.src} alt={image.label} className="block h-full w-full object-cover" />
+          ) : null}
+        </span>
+        <Input
+          value={image.label}
+          placeholder={ALT_PLACEHOLDER}
+          aria-label={`Mô tả ảnh ${image.label || 'chưa đặt tên'}`}
+          onChange={(e) => onLabelChange?.(e.target.value)}
+          className="flex-1"
+        />
+        {onRemove ? (
+          <IconButton
+            icon="close"
+            label={`Gỡ ảnh ${image.label || 'chưa đặt tên'}`}
+            size={30}
+            radius="6"
+            iconSize={12}
+            strokeWidth={2.2}
+            tone="faint"
+            hoverTone="hi"
+            onClick={onRemove}
+          />
+        ) : null}
+      </div>
+    );
+  }
+
   if (variant === 'editor') {
     return (
       <div

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState } from 'react';
 import { uploadImages } from '@/components/features/editor/upload';
-import type { RichTextEditorHandle } from '@/components/shared';
+import type { ImagePosition, RichTextEditorHandle } from '@/components/shared';
 import { useToast } from '@/components/ui';
 import { dashboardPath, notePath } from '@/lib/nav/paths';
 import type { NoteImage, Priority } from '@/lib/types';
@@ -56,13 +56,53 @@ export function useNoteEditor({ initial, nextVersion }: UseNoteEditorOptions) {
     [flash],
   );
 
-  /** Gallery pick/drop: the uploaded images are appended to the attachments. */
-  const attachFiles = useCallback(
-    async (files: File[]) => {
+  /**
+   * Một ảnh của ghi chú sống ở ĐÚNG MỘT danh sách (`draft.images`) nhưng hiện
+   * ở hai chỗ: lồng trong bài và trong thư viện cuối bài. Nên mọi đường thêm
+   * ảnh đều làm cả hai việc — khác đi thì ảnh chèn từ thanh công cụ sẽ biến
+   * mất khỏi thư viện, còn ảnh kéo thả sẽ không bao giờ nằm trong bài.
+   */
+  const addImages = useCallback(
+    async (files: File[], position: ImagePosition) => {
       const images = await pickFiles(files);
-      if (images.length > 0) setDraft((d) => ({ ...d, images: [...d.images, ...images] }));
+      if (images.length === 0) return;
+      setDraft((d) => ({ ...d, images: [...d.images, ...images] }));
+      for (const image of images) handleRef.current?.insertImage(image.src, image.label, position);
     },
     [pickFiles],
+  );
+
+  /** Nút "Ảnh" trên thanh công cụ: chèn ngay tại chỗ người dùng đang gõ. */
+  const insertFiles = useCallback((files: File[]) => addImages(files, 'cursor'), [addImages]);
+
+  /** Kéo thả vào khung đính kèm: không có con trỏ, nên ảnh rơi xuống cuối bài. */
+  const attachFiles = useCallback((files: File[]) => addImages(files, 'end'), [addImages]);
+
+  /**
+   * Alt là thứ người đọc nghe được thay cho tấm ảnh — và từ nay cũng là thứ
+   * tìm kiếm soi tới. Sửa ở thư viện thì `<img>` trong bài phải đổi theo, nếu
+   * không sẽ có hai alt khác nhau cho cùng một tấm ảnh.
+   */
+  const setImageLabel = useCallback(
+    (id: string, label: string) => {
+      const image = draft.images.find((im) => im.id === id);
+      if (image) handleRef.current?.setImageAlt(image.src, label);
+      setDraft((d) => ({
+        ...d,
+        images: d.images.map((im) => (im.id === id ? { ...im, label } : im)),
+      }));
+    },
+    [draft.images],
+  );
+
+  /** Gỡ ảnh: khỏi thư viện VÀ khỏi bài — vẫn là một tấm ảnh duy nhất. */
+  const removeImage = useCallback(
+    (id: string) => {
+      const image = draft.images.find((im) => im.id === id);
+      if (image) handleRef.current?.removeImage(image.src);
+      setDraft((d) => ({ ...d, images: d.images.filter((im) => im.id !== id) }));
+    },
+    [draft.images],
   );
 
   const save = useCallback(async () => {
@@ -115,7 +155,10 @@ export function useNoteEditor({ initial, nextVersion }: UseNoteEditorOptions) {
     save,
     cancel,
     pickFiles,
+    insertFiles,
     attachFiles,
+    setImageLabel,
+    removeImage,
     saveLabel: saveLabelFor(nextVersion),
     versionHint: versionHintFor(Boolean(initial.id), nextVersion),
   };

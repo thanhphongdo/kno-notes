@@ -13,9 +13,9 @@ import type { SearchDoc } from './types';
 import { installFakeIndexedDb, uninstallFakeIndexedDb } from './fake-idb.fixture';
 
 const docs: SearchDoc[] = [
-  { noteId: 'n1', title: 'a', desc: '', tags: [], priority: 'high', updated: '2026-01-05T12:00:00.000Z', contentSha: 'sha1', plain: '', highlights: []  },
-  { noteId: 'n2', title: 'b', desc: '', tags: [], priority: 'medium', updated: '2026-01-06T12:00:00.000Z', contentSha: 'sha2', plain: '', highlights: []  },
-  { noteId: 'n3', title: 'c', desc: '', tags: [], priority: 'low', updated: '2026-01-07T12:00:00.000Z', contentSha: 'sha3', plain: '', highlights: []  },
+  { noteId: 'n1', title: 'a', desc: '', tags: [], priority: 'high', updated: '2026-01-05T12:00:00.000Z', contentSha: 'sha1', plain: '', highlights: [], imageAlts: []  },
+  { noteId: 'n2', title: 'b', desc: '', tags: [], priority: 'medium', updated: '2026-01-06T12:00:00.000Z', contentSha: 'sha2', plain: '', highlights: [], imageAlts: []  },
+  { noteId: 'n3', title: 'c', desc: '', tags: [], priority: 'low', updated: '2026-01-07T12:00:00.000Z', contentSha: 'sha3', plain: '', highlights: [], imageAlts: []  },
 ];
 
 const stored = (noteId: string, contentSha: string): StoredVector => ({

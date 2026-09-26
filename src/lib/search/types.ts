@@ -23,6 +23,8 @@ export interface SearchDoc {
   plain: string;
   /** The note's highlighted passages — capped and clipped by the server. */
   highlights: string[];
+  /** Alt text of the note's images — attachment labels plus inline `<img alt>`. */
+  imageAlts: string[];
 }
 
 /** The payload of `GET /api/search/index`. */
@@ -42,6 +44,11 @@ export interface RankableNote {
    * only note metadata still type-checks; absent and empty rank identically.
    */
   highlights?: readonly string[];
+  /**
+   * Alt của ảnh — nhãn ảnh đính kèm và alt của ảnh lồng trong bài. Tuỳ chọn
+   * vì cùng lý do như `highlights`.
+   */
+  imageAlts?: readonly string[];
 }
 
 /** A ranked document: the input row, widened with its three scores. */

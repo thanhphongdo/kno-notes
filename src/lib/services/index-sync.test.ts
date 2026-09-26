@@ -36,6 +36,21 @@ describe('derivedIndexValues', () => {
     expect(derivedIndexValues(note).highlights).toEqual([]);
   });
 
+  it('derives image alts from the attachments and from the body', () => {
+    const note = makeNote('n1');
+    const withImages = {
+      ...note,
+      content: '<p><img src="/api/images/u/i2" alt="Bảng liều"></p>',
+      images: [{ id: 'i1', label: 'Sơ đồ bậc điều trị', src: '/api/images/u/i1' }],
+    };
+    expect(derivedIndexValues(withImages).imageAlts).toEqual(['Sơ đồ bậc điều trị', 'Bảng liều']);
+  });
+
+  it('leaves image alts empty when no image carries one', () => {
+    const note = makeNote('n1');
+    expect(derivedIndexValues({ ...note, images: [], content: '<img src="/x">' }).imageAlts).toEqual([]);
+  });
+
   it('keeps contentSha stable while highlights change, and the column in step', () => {
     const note = makeNote('n1');
     const marked = { ...note, content: `<mark data-hl="h1">${note.content}</mark>` };

@@ -57,7 +57,7 @@ export function EditorClient({ draft: initial, nextVersion, allTags }: EditorCli
             initialHtml={initial.content}
             isMobile={isMobile}
             handleRef={editor.handleRef}
-            onPickFiles={editor.pickFiles}
+            onInsertFiles={editor.insertFiles}
           />
         </div>
 
@@ -68,7 +68,8 @@ export function EditorClient({ draft: initial, nextVersion, allTags }: EditorCli
           onTagsChange={(tags) => patch({ tags })}
           allTags={allTags}
           images={draft.images}
-          onImagesChange={(images) => patch({ images })}
+          onImageLabelChange={editor.setImageLabel}
+          onImageRemove={editor.removeImage}
           changeNote={draft.changeNote}
           onChangeNoteChange={(changeNote) => patch({ changeNote })}
           versionHint={editor.versionHint}

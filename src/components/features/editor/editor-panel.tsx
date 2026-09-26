@@ -16,7 +16,8 @@ export interface EditorPanelProps {
   /** Every tag the user already has, most used first. */
   allTags: readonly string[];
   images: NoteImage[];
-  onImagesChange: (images: NoteImage[]) => void;
+  onImageLabelChange: (id: string, label: string) => void;
+  onImageRemove: (id: string) => void;
   changeNote: string;
   onChangeNoteChange: (value: string) => void;
   versionHint: string;
@@ -27,7 +28,7 @@ export interface EditorPanelProps {
 export function EditorPanel({
   priority, onPriorityChange,
   tags, onTagsChange, allTags,
-  images, onImagesChange,
+  images, onImageLabelChange, onImageRemove,
   changeNote, onChangeNoteChange,
   versionHint, onAttachFiles,
 }: EditorPanelProps) {
@@ -54,13 +55,18 @@ export function EditorPanel({
         <TagSuggestions tags={suggestions} onAdd={tagDraft.add} />
       </RailSection>
 
-      <RailSection first label="Hình ảnh đính kèm">
+      <RailSection first label="Hình ảnh trong bài">
         <ImageGrid
           images={images}
-          variant="editor"
-          onRemove={(id) => onImagesChange(images.filter((im) => im.id !== id))}
+          variant="row"
+          onRemove={onImageRemove}
+          onLabelChange={onImageLabelChange}
         />
         <ImageDropzone onFiles={(files) => onAttachFiles(Array.from(files))} />
+        <div className="text-12 leading-[1.5] text-faint">
+          Ảnh thêm ở đây nằm cuối bài; nút Ảnh chèn ngay tại chỗ đang gõ.
+          Mô tả (alt) giúp tìm lại ảnh bằng ô tìm kiếm.
+        </div>
       </RailSection>
 
       <RailSection first label="Ghi chú phiên bản">

@@ -29,12 +29,15 @@ export const notFound = () => new HttpError(404, 'NOT_FOUND', 'Không tìm thấ
  * Tóm tắt kèm các đoạn đã đánh dấu. `highlights` là tuỳ chọn vì phần lớn nơi
  * gọi chỉ có metadata; thiếu và rỗng cho kết quả lọc như nhau.
  */
-export type FilterableNote = NoteSummary & { highlights?: readonly string[] };
+export type FilterableNote = NoteSummary & {
+  highlights?: readonly string[];
+  imageAlts?: readonly string[];
+};
 
 /**
  * Lọc — port `getList()` của prototype, mở rộng thêm ĐÚNG một điều: câu truy
- * vấn thường cũng soi các đoạn đã đánh dấu. Truy vấn `#thẻ` thì KHÔNG — nó
- * vẫn chỉ hỏi thẻ, đúng như prototype.
+ * vấn thường cũng soi các đoạn đã đánh dấu và alt của ảnh. Truy vấn `#thẻ`
+ * thì KHÔNG — nó vẫn chỉ hỏi thẻ, đúng như prototype.
  *
  * Generic để giữ nguyên kiểu hàng đi vào: gọi với `NoteSummary[]` vẫn trả
  * `NoteSummary[]`.
@@ -54,7 +57,8 @@ export function applyFilters<T extends FilterableNote>(rows: T[], f: NoteFilters
       norm(n.title).includes(q) ||
       norm(n.desc).includes(q) ||
       n.tags.some((x) => norm(x).includes(q)) ||
-      (n.highlights ?? []).some((x) => norm(x).includes(q))
+      (n.highlights ?? []).some((x) => norm(x).includes(q)) ||
+      (n.imageAlts ?? []).some((x) => norm(x).includes(q))
     );
   });
 }
@@ -108,14 +112,15 @@ export async function listNotes(
     .where(and(...where))
     .limit(MAX_SCAN);
 
-  // Các đoạn đánh dấu chỉ phục vụ việc LỌC. Chúng bị bỏ đi ngay sau đó nên
-  // `NoteListResult` gửi xuống trình duyệt không hề nặng thêm.
+  // Đoạn đánh dấu và alt ảnh chỉ phục vụ việc LỌC. Chúng bị bỏ đi ngay sau đó
+  // nên `NoteListResult` gửi xuống trình duyệt không hề nặng thêm.
   const summaries: FilterableNote[] = rows.map((r) => ({
     ...rowToSummary(r),
     highlights: r.highlights,
+    imageAlts: r.imageAlts,
   }));
   const matched = applyFilters(summaries, filters).map(
-    ({ highlights: _highlights, ...summary }) => summary,
+    ({ highlights: _highlights, imageAlts: _imageAlts, ...summary }) => summary,
   );
   return paginate(sortNotes(matched, filters.sort ?? 'updated'), filters);
 }

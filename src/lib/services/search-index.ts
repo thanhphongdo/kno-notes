@@ -2,7 +2,7 @@
 import { eq } from 'drizzle-orm';
 import { db, noteIndex } from '@/lib/db';
 import { getStorage } from '@/lib/storage';
-import { highlightTexts } from '@/lib/text';
+import { highlightTexts, imageAltTexts } from '@/lib/text';
 import { stripHtml } from '@/lib/text/server';
 import type { Note, Priority, SearchDoc } from '@/lib/types';
 import { computeContentSha } from './index-sync';
@@ -61,5 +61,6 @@ export async function buildSearchDocs(userId: string): Promise<SearchDoc[]> {
       // Lấy thẳng từ nội dung ghi chú chứ không đọc lại cột `note_index`:
       // suy ra ở đây thì gợi ý tìm kiếm đúng ngay cả khi hàng chỉ mục còn cũ.
       highlights: highlightTexts(n.content),
+      imageAlts: imageAltTexts(n.content, n.images.map((im) => im.label)),
     }));
 }

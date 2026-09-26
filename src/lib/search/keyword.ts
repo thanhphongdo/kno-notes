@@ -9,16 +9,20 @@ import type { RankableNote } from './types';
  *   0.90  the title starts with the query
  *   0.80  a tag equals the query
  *   0.75  the title contains the query
- *   0.70  every query token appears somewhere (title + desc + tags + highlights)
+ *   0.70  every query token appears somewhere (title + desc + tags + highlights
+ *         + image alts)
  *   0.60  a tag contains the query
  *   0.55  a highlighted passage contains the query
+ *   0.50  an image's alt text contains the query
  *   0.45  the description contains the query
  *   0.00  otherwise
  *
  * Highlights sit between tags and description on purpose. A highlight is the
  * one piece of a note the reader chose by hand, so it outranks the description
  * — which is often boilerplate — but it is a fragment of prose rather than a
- * label, so a deliberate tag still wins.
+ * label, so a deliberate tag still wins. An alt sits just under it: also
+ * written by hand, but describing a picture beside the argument rather than a
+ * sentence the reader singled out of it.
  *
  * The multi-token rung is deliberately all-or-nothing. A partial token match
  * ("phản ứng dị nguyên" hitting only "phản"/"dị") is noise, not a keyword
@@ -34,6 +38,7 @@ export const SCORE_TITLE_SUBSTRING = 0.75;
 export const SCORE_ALL_TOKENS = 0.7;
 export const SCORE_TAG_SUBSTRING = 0.6;
 export const SCORE_HIGHLIGHT_SUBSTRING = 0.55;
+export const SCORE_IMAGE_ALT_SUBSTRING = 0.5;
 export const SCORE_DESC_SUBSTRING = 0.45;
 
 /** A `#`-prefixed query is tag-only and never consults vectors. */
@@ -61,6 +66,7 @@ export function keywordScore(query: string, note: RankableNote): number {
   const desc = normCollapsed(note.desc);
   const tags = note.tags.map((t) => normCollapsed(t));
   const highlights = (note.highlights ?? []).map((h) => normCollapsed(h));
+  const imageAlts = (note.imageAlts ?? []).map((a) => normCollapsed(a));
 
   let score = 0;
 
@@ -73,11 +79,13 @@ export function keywordScore(query: string, note: RankableNote): number {
 
   if (highlights.some((h) => h.includes(q))) score = Math.max(score, SCORE_HIGHLIGHT_SUBSTRING);
 
+  if (imageAlts.some((a) => a.includes(q))) score = Math.max(score, SCORE_IMAGE_ALT_SUBSTRING);
+
   if (desc.includes(q)) score = Math.max(score, SCORE_DESC_SUBSTRING);
 
   const queryTokens = tokens(q);
   if (queryTokens.length > 1) {
-    const haystack = `${title} ${desc} ${tags.join(' ')} ${highlights.join(' ')}`;
+    const haystack = `${title} ${desc} ${tags.join(' ')} ${highlights.join(' ')} ${imageAlts.join(' ')}`;
     if (queryTokens.every((t) => haystack.includes(t))) score = Math.max(score, SCORE_ALL_TOKENS);
   }
 

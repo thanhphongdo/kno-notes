@@ -1,0 +1,1 @@
+ALTER TABLE "note_index" ADD COLUMN "image_alts" text[] DEFAULT '{}' NOT NULL;

@@ -87,6 +87,11 @@ export const noteIndex = pgTable(
      * filter can match a marked passage without opening every note file.
      */
     highlights: text('highlights').array().notNull().default([]),
+    /**
+     * Alt của ảnh: nhãn ảnh đính kèm + alt của `<img>` lồng trong bài. Cùng lý
+     * do denormalise như `highlights` — lọc `?q=` không phải mở từng file.
+     */
+    imageAlts: text('image_alts').array().notNull().default([]),
   },
   (t) => [
     uniqueIndex('note_index_user_note_unique').on(t.userId, t.noteId),

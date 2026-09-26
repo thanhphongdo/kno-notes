@@ -18,7 +18,7 @@ export { HighlightSnippet, type HighlightSnippetProps } from './highlight-snippe
 export { HighlightPopup, clampHighlightPosition, type HighlightPopupProps } from './highlight-popup';
 export { ImageDropzone, type ImageDropzoneProps } from './image-dropzone';
 export { ImageGrid, type ImageGridProps } from './image-grid';
-export { ImageThumb, type ImageThumbProps, type NoteImage } from './image-thumb';
+export { ImageThumb, ALT_PLACEHOLDER, type ImageThumbProps, type NoteImage } from './image-thumb';
 export { InfoGrid, type InfoGridItem, type InfoGridProps } from './info-grid';
 export { Lightbox, type LightboxProps } from './lightbox';
 export {
@@ -53,7 +53,7 @@ export {
 export { Rail, RailSection, type RailProps, type RailSectionProps } from './rail';
 export {
   RichTextEditor, EDITOR_PLACEHOLDER,
-  type RichTextEditorHandle, type RichTextEditorProps,
+  type ImagePosition, type RichTextEditorHandle, type RichTextEditorProps,
 } from './rich-text-editor';
 export {
   SearchBox, SEARCH_PLACEHOLDER,

@@ -55,17 +55,33 @@ export function DetailClient({ data }: { data: DetailViewData }) {
     router.refresh();
   }, [flash, note.id, router, selectedVersion]);
 
+  /**
+   * Một ảnh trong bài và cùng ảnh đó trong thư viện cuối bài là MỘT. Nên bấm
+   * vào ảnh giữa bài mở lightbox của cả bộ, đúng vị trí của nó — vuốt sang
+   * trái phải là đi tiếp các ảnh khác của ghi chú, không phải cụt một tấm.
+   *
+   * `img.src` đã được trình duyệt nới thành URL tuyệt đối, còn `note.images`
+   * giữ đường dẫn tương đối, nên phải so bằng `getAttribute('src')`.
+   */
   const onProseClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const target = e.target as HTMLElement;
       if (target.tagName === 'IMG') {
         const img = target as HTMLImageElement;
-        setLightbox({ images: [{ id: 'inline', label: INLINE_IMAGE_LABEL, src: img.src }], index: 0 });
+        const src = img.getAttribute('src') ?? img.src;
+        const index = note.images.findIndex((im) => im.src === src);
+        if (index >= 0) {
+          setLightbox({ images: note.images, index });
+        } else {
+          // Ảnh dán thẳng vào HTML, không nằm trong danh sách ảnh của ghi chú.
+          const label = (img.getAttribute('alt') || '').trim() || INLINE_IMAGE_LABEL;
+          setLightbox({ images: [{ id: 'inline', label, src: img.src }], index: 0 });
+        }
         return;
       }
       highlight.onProseClick(e);
     },
-    [highlight],
+    [highlight, note.images],
   );
 
   return (

@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, noteIndex, tags, type NoteIndexDbRow } from '@/lib/db';
-import { highlightTexts, norm, slugify } from '@/lib/text';
+import { highlightTexts, imageAltTexts, norm, slugify } from '@/lib/text';
 import { stripHtml } from '@/lib/text/server';
 import type { Note, NoteSummary, Priority } from '@/lib/types';
 
@@ -58,6 +58,7 @@ export function derivedIndexValues(note: Note) {
     // đổi cột này, nếu không đoạn vừa bôi sẽ không tìm được cho tới lần sửa
     // nội dung kế tiếp.
     highlights: highlightTexts(note.content),
+    imageAlts: imageAltTexts(note.content, note.images.map((im) => im.label)),
   };
 }
 

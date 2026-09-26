@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   keywordScore, isTagQuery, tagNeedle, matchesTag, matchedHighlight,
   SCORE_ALL_TOKENS, SCORE_DESC_SUBSTRING, SCORE_HIGHLIGHT_SUBSTRING,
-  SCORE_TAG_SUBSTRING, SCORE_TITLE_EXACT,
+  SCORE_IMAGE_ALT_SUBSTRING, SCORE_TAG_SUBSTRING, SCORE_TITLE_EXACT,
 } from './keyword';
 import type { RankableNote } from './types';
 
@@ -148,5 +148,41 @@ describe('matchedHighlight', () => {
     expect(matchedHighlight('CT scan', marked)).toBeNull();
     expect(matchedHighlight('  ', marked)).toBeNull();
     expect(matchedHighlight('sáng', { ...marked, highlights: undefined })).toBeNull();
+  });
+});
+
+describe('keywordScore over image alt text', () => {
+  const illustrated: RankableNote = {
+    noteId: 'n5',
+    title: 'Phác đồ tăng huyết áp',
+    desc: 'Ngưỡng chẩn đoán',
+    tags: ['Tim mạch'],
+    imageAlts: ['Sơ đồ bậc điều trị', 'Bảng liều thuốc hạ áp'],
+  };
+
+  it('finds a note by a word that only exists in an image alt', () => {
+    expect(keywordScore('bậc', illustrated)).toBe(SCORE_IMAGE_ALT_SUBSTRING);
+  });
+
+  it('ignores diacritics and case in alts too', () => {
+    expect(keywordScore('BAC', illustrated)).toBe(SCORE_IMAGE_ALT_SUBSTRING);
+  });
+
+  it('ranks an alt hit below a marked passage and above the description', () => {
+    expect(SCORE_IMAGE_ALT_SUBSTRING).toBeLessThan(SCORE_HIGHLIGHT_SUBSTRING);
+    expect(SCORE_IMAGE_ALT_SUBSTRING).toBeGreaterThan(SCORE_DESC_SUBSTRING);
+  });
+
+  it('lets alts satisfy the all-tokens rung', () => {
+    expect(keywordScore('bảng thuốc', illustrated)).toBe(SCORE_ALL_TOKENS);
+  });
+
+  it('is 0 for a note whose images carry no alt', () => {
+    expect(keywordScore('bậc', { ...illustrated, imageAlts: [] })).toBe(0);
+    expect(keywordScore('bậc', { ...illustrated, imageAlts: undefined })).toBe(0);
+  });
+
+  it('never lowers a score the title already earned', () => {
+    expect(keywordScore('Phác đồ tăng huyết áp', illustrated)).toBe(SCORE_TITLE_EXACT);
   });
 });

@@ -2,7 +2,6 @@
 
 import { useRef, type ChangeEvent, type RefObject } from 'react';
 import { RichTextEditor, type RichTextEditorHandle } from '@/components/shared';
-import type { NoteImage } from '@/lib/types';
 
 export interface EditorCanvasProps {
   /** Seeded into the surface once; never a controlled value, or the caret jumps. */
@@ -11,8 +10,12 @@ export interface EditorCanvasProps {
   /** The save handler reads the HTML back through this handle. */
   handleRef: RefObject<RichTextEditorHandle | null>;
   onChange?: (html: string) => void;
-  /** Uploads the picked files and returns the stored images. */
-  onPickFiles: (files: File[]) => Promise<NoteImage[]>;
+  /**
+   * Uploads the picked files, registers them as the note's images and inserts
+   * them at the caret. The canvas only supplies the files — where an image
+   * ends up is one decision, made in `useNoteEditor` for every entry point.
+   */
+  onInsertFiles: (files: File[]) => Promise<void>;
 }
 
 /**
@@ -22,7 +25,7 @@ export interface EditorCanvasProps {
  * an image lands where the user last was even though the file dialog stole focus.
  */
 export function EditorCanvas({
-  initialHtml, isMobile, handleRef, onChange, onPickFiles,
+  initialHtml, isMobile, handleRef, onChange, onInsertFiles,
 }: EditorCanvasProps) {
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -30,8 +33,7 @@ export function EditorCanvas({
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
     if (files.length === 0) return;
-    const images = await onPickFiles(files);
-    for (const image of images) handleRef.current?.insertImageAtCursor(image.src, image.label);
+    await onInsertFiles(files);
   }
 
   return (

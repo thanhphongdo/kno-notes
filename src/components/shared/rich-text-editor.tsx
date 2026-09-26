@@ -6,11 +6,22 @@ import { EditorToolbar, type EditorCommand } from './editor-toolbar';
 
 export const EDITOR_PLACEHOLDER = 'Bắt đầu ghi chép…';
 
+/**
+ * `cursor` — nơi người dùng đang gõ (nút Ảnh trên thanh công cụ).
+ * `end` — cuối bài (kéo thả vào khung "Hình ảnh đính kèm", lúc đó không có
+ * con trỏ nào trong nội dung để mà chèn vào).
+ */
+export type ImagePosition = 'cursor' | 'end';
+
 export interface RichTextEditorHandle {
   getHtml(): string;
   setHtml(html: string): void;
   focus(): void;
-  insertImageAtCursor(src: string, alt: string): void;
+  insertImage(src: string, alt: string, position?: ImagePosition): void;
+  /** Đổi alt của mọi `<img>` cùng `src` — giữ ảnh trong bài khớp với thư viện. */
+  setImageAlt(src: string, alt: string): void;
+  /** Gỡ mọi `<img>` cùng `src` khỏi nội dung. */
+  removeImage(src: string): void;
   exec(command: EditorCommand, value?: string): void;
 }
 
@@ -131,11 +142,11 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
         }
       },
       focus: () => surfaceRef.current?.focus(),
-      insertImageAtCursor: (src: string, alt: string) => {
+      insertImage: (src: string, alt: string, position: ImagePosition = 'cursor') => {
         const img = document.createElement('img');
         img.src = src;
         img.alt = alt;
-        const range = rangeRef.current;
+        const range = position === 'cursor' ? rangeRef.current : null;
         if (range) {
           range.deleteContents();
           range.insertNode(img);
@@ -145,6 +156,28 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorPro
           surfaceRef.current?.appendChild(img);
         }
         emit();
+      },
+      setImageAlt: (src: string, alt: string) => {
+        const surface = surfaceRef.current;
+        if (!surface) return;
+        let changed = false;
+        surface.querySelectorAll('img').forEach((img) => {
+          if (img.getAttribute('src') !== src) return;
+          img.setAttribute('alt', alt);
+          changed = true;
+        });
+        if (changed) emit();
+      },
+      removeImage: (src: string) => {
+        const surface = surfaceRef.current;
+        if (!surface) return;
+        let changed = false;
+        surface.querySelectorAll('img').forEach((img) => {
+          if (img.getAttribute('src') !== src) return;
+          img.remove();
+          changed = true;
+        });
+        if (changed) emit();
       },
       exec,
     }),

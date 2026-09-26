@@ -161,6 +161,8 @@ export interface SearchDoc {
   plain: string;
   /** Văn bản các đoạn đã đánh dấu, server đã chặn số lượng và độ dài. */
   highlights: string[];
+  /** Alt của ảnh: nhãn ảnh đính kèm + alt của ảnh lồng trong bài. */
+  imageAlts: string[];
 }
 
 export interface UserPrefs {

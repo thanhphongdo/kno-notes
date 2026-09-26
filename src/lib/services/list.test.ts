@@ -203,3 +203,23 @@ describe('applyFilters over highlighted passages', () => {
     expect(ids(applyFilters(marked, { query: '#đối diện' }))).toEqual([]);
   });
 });
+
+describe('applyFilters over image alt text', () => {
+  const illustrated = [
+    { ...summary({ id: 'i1', title: 'Phác đồ tăng huyết áp', desc: 'Ngưỡng' }),
+      imageAlts: ['Sơ đồ bậc điều trị'] },
+    { ...summary({ id: 'i2', title: 'Đọc ECG', desc: 'Trình tự' }) },
+  ];
+
+  it('matches a note whose query text only exists in an image alt', () => {
+    expect(ids(applyFilters(illustrated, { query: 'bậc điều trị' }))).toEqual(['i1']);
+  });
+
+  it('ignores diacritics in alts, like every other field', () => {
+    expect(ids(applyFilters(illustrated, { query: 'SO DO BAC' }))).toEqual(['i1']);
+  });
+
+  it('does not let an alt satisfy a #tag query', () => {
+    expect(ids(applyFilters(illustrated, { query: '#sơ đồ' }))).toEqual([]);
+  });
+});

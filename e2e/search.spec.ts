@@ -470,3 +470,39 @@ test.describe('tìm theo đoạn đã đánh dấu', () => {
     await expect(page.getByText('Phác đồ điều trị tăng huyết áp')).toBeVisible();
   });
 });
+
+/**
+ * Tìm theo alt của ảnh.
+ *
+ * Ghi chú seed `n1` có hai ảnh đính kèm tên "Sơ đồ bậc điều trị" và "Bảng liều
+ * thuốc hạ áp". Cụm "bậc điều trị" không nằm trong tiêu đề, mô tả hay thẻ của
+ * bất kỳ ghi chú nào — tìm ra được thì chỉ có thể nhờ alt.
+ */
+test.describe('tìm theo alt của ảnh', () => {
+  const ALT = 'bậc điều trị';
+
+  test('gợi ý ra ghi chú mang tấm ảnh đó', async ({ page }) => {
+    await box(page).click();
+    await type(page, ALT);
+    await expect(
+      panel(page).getByRole('button').filter({ hasText: 'Phác đồ điều trị tăng huyết áp' }),
+    ).toBeVisible();
+  });
+
+  test('bỏ dấu vẫn tìm được', async ({ page }) => {
+    await box(page).click();
+    await type(page, 'BANG LIEU THUOC');
+    await expect(
+      panel(page).getByRole('button').filter({ hasText: 'Phác đồ điều trị tăng huyết áp' }),
+    ).toBeVisible();
+  });
+
+  test('Enter đưa tới dashboard và server cũng lọc theo alt', async ({ page }) => {
+    await box(page).click();
+    await type(page, ALT);
+    await submitAndPersist(page);
+
+    await expect(page.getByRole('heading', { name: 'Kết quả tìm kiếm', level: 1 })).toBeVisible();
+    await expect(page.getByText('Phác đồ điều trị tăng huyết áp')).toBeVisible();
+  });
+});

@@ -116,6 +116,7 @@ data/users/<userId>/index.json               // (tuỳ chọn) snapshot để re
 - Lưu embedding vào IndexedDB: key `userId:noteId`, value `{sha, vector Float32Array}`. Chỉ tính lại khi `sha` đổi.
 - Search = **hybrid**: `score = 0.6 * keyword + 0.4 * cosine`, keyword dùng thuật toán chuẩn hoá tiếng Việt hiện có (NFD, bỏ dấu, `đ→d`).
 - Keyword soi cả **đoạn đã đánh dấu** (`<mark data-hl>`), nấc 0.55 — trên mô tả (0.45), dưới thẻ (0.6): đoạn bôi là thứ người đọc tự chọn nên đáng hơn mô tả, nhưng vẫn là mảnh văn xuôi chứ không phải nhãn. Hàng gợi ý hiện đúng đoạn đã khớp trên nền `--hl` để kết quả không vô cớ.
+- Keyword soi cả **alt của ảnh** (nhãn ảnh đính kèm + `<img alt>` trong bài), nấc 0.50 — dưới đoạn đánh dấu, trên mô tả. Ảnh không có alt thì không đóng góp gì.
 - Trong lúc model chưa sẵn sàng → dùng keyword-only (không chặn UI). Prefix `#` vẫn chỉ tìm trong tag (không dùng vector).
 - Model cache qua Cache API; kích thước tải một lần, sau đó offline.
 
@@ -147,7 +148,8 @@ Mọi hàm/logic dưới đây phải giữ đúng ngữ nghĩa:
 | `rel()` thời gian tương đối | < 1' "vừa xong"; < 60' "x phút trước"; < 24h "x giờ trước"; < 7d "x ngày trước"; còn lại `dd/mm/yyyy` |
 | `fmt()` ngày | `dd/mm/yyyy` |
 | Sort | `updated` desc · `priority` (high→low rồi updated desc) · `title` `localeCompare(…, 'vi')` |
-| Lọc | nav(all/fav) + priority + tag + query; query thường soi cả đoạn đã đánh dấu; `#` prefix → chỉ tag |
+| Lọc | nav(all/fav) + priority + tag + query; query thường soi cả đoạn đã đánh dấu và alt ảnh; `#` prefix → chỉ tag |
+| Ảnh | một ảnh = một mục trong `note.images`, hiện ở HAI chỗ: lồng trong bài (`<img>` trong `content`) và thư viện cuối bài. Nút Ảnh chèn tại con trỏ, kéo thả chèn cuối bài; sửa alt hoặc gỡ ảnh đồng bộ cả hai chỗ. Bấm ảnh trong bài mở lightbox của cả bộ, đúng vị trí ảnh đó |
 | Phân trang | pageSize 6 mặc định; đổi filter → page 1; đổi trang → scroll top |
 | Version | v1 khi tạo; +1 khi `html !== content || title !== n.title`; note mặc định "Cập nhật nội dung" / "Tạo ghi chú"; restore tạo version mới "Khôi phục từ vN" |
 | Highlight | `wrapRange()` + `unwrapHl()` nguyên văn; commit vào `content` **và** version cuối; **không** tạo version mới; văn bản đoạn bôi được dẫn xuất vào `note_index.highlights` + `SearchDoc.highlights` để tìm kiếm |

@@ -18,7 +18,7 @@ describe('EditorCanvas', () => {
       <EditorCanvas
         initialHtml="<p>Nội dung cũ</p>"
         handleRef={handleRef}
-        onPickFiles={vi.fn().mockResolvedValue([])}
+        onInsertFiles={vi.fn().mockResolvedValue(undefined)}
       />,
     );
     expect(screen.getByRole('textbox', { name: 'Nội dung ghi chú' })).toHaveTextContent('Nội dung cũ');
@@ -27,7 +27,7 @@ describe('EditorCanvas', () => {
 
   it('renders the shared toolbar rather than its own markup', () => {
     render(
-      <EditorCanvas initialHtml="" handleRef={createRef()} onPickFiles={vi.fn().mockResolvedValue([])} />,
+      <EditorCanvas initialHtml="" handleRef={createRef()} onInsertFiles={vi.fn().mockResolvedValue(undefined)} />,
     );
     expect(screen.getByRole('button', { name: 'Đậm' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Trích dẫn' })).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('EditorCanvas', () => {
 
   it('opens the hidden picker when the toolbar image button is pressed', () => {
     const { container } = render(
-      <EditorCanvas initialHtml="" handleRef={createRef()} onPickFiles={vi.fn().mockResolvedValue([])} />,
+      <EditorCanvas initialHtml="" handleRef={createRef()} onInsertFiles={vi.fn().mockResolvedValue(undefined)} />,
     );
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     const click = vi.spyOn(input, 'click');
@@ -44,34 +44,26 @@ describe('EditorCanvas', () => {
     expect(click).toHaveBeenCalled();
   });
 
-  it('uploads the picked files and inserts every returned image at the caret', async () => {
-    const handleRef = createRef<RichTextEditorHandle>();
-    const onPickFiles = vi.fn().mockResolvedValue([
-      { id: 'i1', label: 'a.png', src: '/api/images/u/i1' },
-      { id: 'i2', label: 'b.png', src: '/api/images/u/i2' },
-    ]);
+  it('hands the picked files over once; placement is the editor hook\'s call', async () => {
+    const onInsertFiles = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
-      <EditorCanvas initialHtml="<p>x</p>" handleRef={handleRef} onPickFiles={onPickFiles} />,
+      <EditorCanvas initialHtml="<p>x</p>" handleRef={createRef()} onInsertFiles={onInsertFiles} />,
     );
 
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
-    pick(input, [png('a.png'), png('b.png')]);
+    const files = [png('a.png'), png('b.png')];
+    pick(input, files);
 
-    await waitFor(() => expect(onPickFiles).toHaveBeenCalledTimes(1));
-    await waitFor(() => {
-      const imgs = screen.getByRole('textbox', { name: 'Nội dung ghi chú' }).querySelectorAll('img');
-      expect(imgs).toHaveLength(2);
-      expect(imgs[0]!.getAttribute('src')).toBe('/api/images/u/i1');
-      expect(imgs[0]!.getAttribute('alt')).toBe('a.png');
-    });
+    await waitFor(() => expect(onInsertFiles).toHaveBeenCalledTimes(1));
+    expect(onInsertFiles.mock.calls[0]![0]).toHaveLength(2);
   });
 
   it('does nothing when the picker is dismissed with no file', () => {
-    const onPickFiles = vi.fn();
+    const onInsertFiles = vi.fn();
     const { container } = render(
-      <EditorCanvas initialHtml="" handleRef={createRef()} onPickFiles={onPickFiles} />,
+      <EditorCanvas initialHtml="" handleRef={createRef()} onInsertFiles={onInsertFiles} />,
     );
     pick(container.querySelector('input[type="file"]') as HTMLInputElement, []);
-    expect(onPickFiles).not.toHaveBeenCalled();
+    expect(onInsertFiles).not.toHaveBeenCalled();
   });
 });

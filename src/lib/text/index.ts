@@ -15,3 +15,6 @@ export {
   collectHighlights, highlightTexts, HIGHLIGHT_INDEX_CHARS, HIGHLIGHT_INDEX_MAX,
   type CollectedHighlight,
 } from './highlights';
+export {
+  imageAltTexts, inlineImageAlts, IMAGE_ALT_INDEX_CHARS, IMAGE_ALT_INDEX_MAX,
+} from './image-alts';

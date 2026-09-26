@@ -150,3 +150,85 @@ describe('EditorClient', () => {
     expect(screen.queryByRole('button', { name: 'Gỡ ảnh a.png' })).toBeNull();
   });
 });
+
+/**
+ * Một ảnh, hai chỗ hiện: lồng trong bài và trong danh sách ở rail. Các test
+ * dưới đây giữ cho hai chỗ đó không bao giờ rời nhau.
+ */
+describe('EditorClient — ảnh lồng trong bài', () => {
+  const uploaded = { id: 'i9', label: 'ct-scan.png', src: '/api/images/u/i9' };
+
+  const surface = () => screen.getByRole('textbox', { name: 'Nội dung ghi chú' });
+  const bodyImages = () => [...surface().querySelectorAll('img')];
+
+  beforeEach(() => {
+    push.mockClear();
+    vi.unstubAllGlobals();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => ({ image: uploaded }) }),
+    );
+  });
+
+  async function drop(user: ReturnType<typeof userEvent.setup>) {
+    const zone = screen.getByRole('button', { name: 'Kéo thả ảnh vào đây hoặc chọn từ máy' });
+    const input = zone.parentElement!.querySelector('input[type="file"]') as HTMLInputElement;
+    await user.upload(input, new File([new Uint8Array([1])], 'ct-scan.png', { type: 'image/png' }));
+  }
+
+  it('drops an image into the body as well as the attachment list', async () => {
+    const user = userEvent.setup();
+    setup({ ...newDraft, content: '<p>x</p>' }, 1);
+    await drop(user);
+
+    await waitFor(() => expect(bodyImages()).toHaveLength(1));
+    expect(bodyImages()[0]!.getAttribute('src')).toBe(uploaded.src);
+    expect(screen.getByRole('button', { name: 'Gỡ ảnh ct-scan.png' })).toBeInTheDocument();
+  });
+
+  it('writes the alt the user types onto the image inside the body', async () => {
+    const user = userEvent.setup();
+    setup({ ...newDraft, content: '<p>x</p>' }, 1);
+    await drop(user);
+    await waitFor(() => expect(bodyImages()).toHaveLength(1));
+
+    const alt = screen.getByRole('textbox', { name: 'Mô tả ảnh ct-scan.png' });
+    await user.clear(alt);
+    await user.type(alt, 'CT sọ não');
+
+    await waitFor(() => expect(bodyImages()[0]!.getAttribute('alt')).toBe('CT sọ não'));
+  });
+
+  it('saves the body image and its alt together', async () => {
+    const user = userEvent.setup();
+    setup({ ...newDraft, title: 'T', content: '<p>x</p>' }, 1);
+    await drop(user);
+    await waitFor(() => expect(bodyImages()).toHaveLength(1));
+
+    const alt = screen.getByRole('textbox', { name: 'Mô tả ảnh ct-scan.png' });
+    await user.clear(alt);
+    await user.type(alt, 'CT sọ não');
+    await waitFor(() => expect(bodyImages()[0]!.getAttribute('alt')).toBe('CT sọ não'));
+
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true, status: 201, json: async () => ({ note: { id: 'n9' }, version: 1 }),
+    });
+    await user.click(screen.getByRole('button', { name: 'Lưu v1' }));
+
+    await waitFor(() => expect(push).toHaveBeenCalled());
+    const body = lastBody();
+    expect(body.images).toEqual([{ ...uploaded, label: 'CT sọ não' }]);
+    expect(String(body.content)).toContain('alt="CT sọ não"');
+  });
+
+  it('takes the image out of the body when it is removed from the list', async () => {
+    const user = userEvent.setup();
+    setup({ ...newDraft, content: '<p>x</p>' }, 1);
+    await drop(user);
+    await waitFor(() => expect(bodyImages()).toHaveLength(1));
+
+    await user.click(screen.getByRole('button', { name: 'Gỡ ảnh ct-scan.png' }));
+    await waitFor(() => expect(bodyImages()).toHaveLength(0));
+    expect(screen.queryByRole('button', { name: 'Gỡ ảnh ct-scan.png' })).toBeNull();
+  });
+});

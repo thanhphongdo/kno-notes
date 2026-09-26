@@ -19,11 +19,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 const items: SearchDoc[] = [
-  { noteId: 'n1', title: 'Xử trí sốc phản vệ', desc: 'Adrenalin', tags: ['Cấp cứu'], priority: 'high', updated: '2026-01-05T12:00:00.000Z', contentSha: 's1', plain: '', highlights: []  },
-  { noteId: 'n2', title: 'Đọc ECG trong 10 bước', desc: 'Trình tự', tags: ['ECG'], priority: 'low', updated: '2026-02-14T12:00:00.000Z', contentSha: 's2', plain: '', highlights: []  },
-  { noteId: 'n3', title: 'Kháng sinh dự phòng', desc: 'Liều nạp', tags: ['Nhiễm khuẩn'], priority: 'medium', updated: '2026-03-02T12:00:00.000Z', contentSha: 's3', plain: '', highlights: []  },
-  { noteId: 'n4', title: 'Bù dịch sốt xuất huyết', desc: 'Dịch truyền', tags: ['Nhi'], priority: 'high', updated: '2026-04-09T12:00:00.000Z', contentSha: 's4', plain: '', highlights: []  },
-  { noteId: 'n5', title: 'Hồi sức ngừng tuần hoàn', desc: 'Ép tim', tags: ['Hồi sức'], priority: 'low', updated: '2026-05-21T12:00:00.000Z', contentSha: 's5', plain: '', highlights: []  },
+  { noteId: 'n1', title: 'Xử trí sốc phản vệ', desc: 'Adrenalin', tags: ['Cấp cứu'], priority: 'high', updated: '2026-01-05T12:00:00.000Z', contentSha: 's1', plain: '', highlights: [], imageAlts: []  },
+  { noteId: 'n2', title: 'Đọc ECG trong 10 bước', desc: 'Trình tự', tags: ['ECG'], priority: 'low', updated: '2026-02-14T12:00:00.000Z', contentSha: 's2', plain: '', highlights: [], imageAlts: []  },
+  { noteId: 'n3', title: 'Kháng sinh dự phòng', desc: 'Liều nạp', tags: ['Nhiễm khuẩn'], priority: 'medium', updated: '2026-03-02T12:00:00.000Z', contentSha: 's3', plain: '', highlights: [], imageAlts: []  },
+  { noteId: 'n4', title: 'Bù dịch sốt xuất huyết', desc: 'Dịch truyền', tags: ['Nhi'], priority: 'high', updated: '2026-04-09T12:00:00.000Z', contentSha: 's4', plain: '', highlights: [], imageAlts: []  },
+  { noteId: 'n5', title: 'Hồi sức ngừng tuần hoàn', desc: 'Ép tim', tags: ['Hồi sức'], priority: 'low', updated: '2026-05-21T12:00:00.000Z', contentSha: 's5', plain: '', highlights: [], imageAlts: []  },
 ];
 
 let semantic: SemanticSearch;
@@ -348,6 +348,7 @@ describe('SearchContainer — marked passages', () => {
           contentSha: 's9',
           plain: '',
           highlights: ['toàn bộ chiều sâu là các đường kẻ ngang song song'],
+          imageAlts: [],
         },
       ],
       vectors: null,

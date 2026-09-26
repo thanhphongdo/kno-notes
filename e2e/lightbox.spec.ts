@@ -33,12 +33,12 @@ const ATTACHED = [
 ] as const;
 
 const INLINE_SRC = swatch('P', '5b4636');
-/** `DetailClient.INLINE_IMAGE_LABEL` — a prose image has no label of its own. */
-const INLINE_LABEL = 'Ảnh trong nội dung';
+/** Alt của ảnh dán thẳng vào nội dung — chính nó là chú thích trong lightbox. */
+const INLINE_ALT = 'Sơ đồ trong nội dung';
 
 const CONTENT =
   '<h2>Nội dung</h2><p>Đoạn văn trước ảnh.</p>' +
-  `<p><img src="${INLINE_SRC}" alt="Sơ đồ trong nội dung"></p>` +
+  `<p><img src="${INLINE_SRC}" alt="${INLINE_ALT}"></p>` +
   '<p>Đoạn văn sau ảnh.</p>';
 
 const lightbox = (page: Page) => page.locator('[data-lightbox]');
@@ -110,12 +110,16 @@ test.describe('Lightbox', () => {
     await expect(lightboxImage(page)).toHaveAttribute('alt', ATTACHED[1].label);
   });
 
+  /**
+   * Ảnh này được dán thẳng vào HTML nên không nằm trong `note.images` — mở
+   * riêng một mình, và chú thích lấy từ chính alt của nó.
+   */
   test('opens from an inline image in the prose, as a gallery of one', async ({ page }) => {
     await page.locator('[data-prose] img').click();
 
     await expect(lightbox(page)).toBeVisible();
     await expect(counter(page)).toHaveText('1 / 1');
-    await expect(lightbox(page)).toContainText(INLINE_LABEL);
+    await expect(lightbox(page)).toContainText(INLINE_ALT);
     await expect(lightboxImage(page)).toHaveAttribute('src', INLINE_SRC);
     // One image: nothing to step to.
     await expect(page.getByRole('button', { name: 'Ảnh sau' })).toHaveCount(0);

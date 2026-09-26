@@ -67,10 +67,73 @@ describe('RichTextEditor', () => {
   it('inserts an image at the end when there is no saved caret', () => {
     const ref = createRef<RichTextEditorHandle>();
     const { container } = render(<RichTextEditor ref={ref} initialHtml="<p>A</p>" onPickImage={() => {}} />);
-    ref.current?.insertImageAtCursor('blob:x', 'ECG mẫu');
+    ref.current?.insertImage('blob:x', 'ECG mẫu');
     const img = container.querySelector('[data-prose] img') as HTMLImageElement;
     expect(img).not.toBeNull();
     expect(img.getAttribute('alt')).toBe('ECG mẫu');
+  });
+
+  it('puts an end-positioned image at the end even when a caret is saved', () => {
+    const ref = createRef<RichTextEditorHandle>();
+    const { container } = render(<RichTextEditor ref={ref} initialHtml="<p>A</p>" onPickImage={() => {}} />);
+    const surface = container.querySelector('[data-prose]') as HTMLElement;
+
+    const range = document.createRange();
+    range.setStart(surface.firstChild!.firstChild!, 0);
+    range.collapse(true);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+    fireEvent.mouseUp(surface);
+
+    ref.current?.insertImage('blob:end', 'cuối bài', 'end');
+    expect(surface.lastElementChild?.tagName).toBe('IMG');
+  });
+
+  it('retitles every copy of one image and reports the change', () => {
+    const ref = createRef<RichTextEditorHandle>();
+    const onChange = vi.fn();
+    const { container } = render(
+      <RichTextEditor
+        ref={ref}
+        initialHtml='<img src="/a" alt="cũ"><img src="/b" alt="khác"><img src="/a" alt="cũ">'
+        onPickImage={() => {}}
+        onChange={onChange}
+      />,
+    );
+    ref.current?.setImageAlt('/a', 'mới');
+
+    const alts = [...container.querySelectorAll('[data-prose] img')].map((i) => i.getAttribute('alt'));
+    expect(alts).toEqual(['mới', 'khác', 'mới']);
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  it('removes every copy of one image and leaves the others', () => {
+    const ref = createRef<RichTextEditorHandle>();
+    const { container } = render(
+      <RichTextEditor
+        ref={ref}
+        initialHtml='<img src="/a" alt="a"><img src="/b" alt="b"><img src="/a" alt="a">'
+        onPickImage={() => {}}
+      />,
+    );
+    ref.current?.removeImage('/a');
+
+    const srcs = [...container.querySelectorAll('[data-prose] img')].map((i) => i.getAttribute('src'));
+    expect(srcs).toEqual(['/b']);
+  });
+
+  it('does nothing for a src the note does not have', () => {
+    const ref = createRef<RichTextEditorHandle>();
+    const onChange = vi.fn();
+    const { container } = render(
+      <RichTextEditor ref={ref} initialHtml='<img src="/a" alt="a">' onPickImage={() => {}} onChange={onChange} />,
+    );
+    onChange.mockClear();
+    ref.current?.setImageAlt('/zzz', 'x');
+    ref.current?.removeImage('/zzz');
+    expect(container.querySelectorAll('[data-prose] img')).toHaveLength(1);
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('relays the toolbar image button', () => {
