@@ -11,7 +11,17 @@ export const TEST_USER = {
 } as const;
 
 /** Where `global-setup` writes the signed-in session cookie. */
-export const STORAGE_STATE = 'e2e/.auth/user.json';
+/**
+ * Signed-in browser state, isolated per `E2E_SLOT`.
+ *
+ * Playwright re-reads this file for every test context, so a shared path lets
+ * one slot's global-setup overwrite another's session. Because every slot uses
+ * the same AUTH_SECRET the stolen JWT still verifies, and the run proceeds as a
+ * user that does not exist in its own database — surfacing much later as a
+ * foreign-key violation on the first write rather than as an auth failure.
+ */
+const SLOT = (process.env.E2E_SLOT ?? '').trim();
+export const STORAGE_STATE = SLOT ? `e2e/.auth/user-${SLOT}.json` : 'e2e/.auth/user.json';
 
 /**
  * Drives the real login form. Used once by `global-setup` to mint

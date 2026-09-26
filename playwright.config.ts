@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { config as loadEnv } from 'dotenv';
 import { defineConfig, devices } from '@playwright/test';
+import { STORAGE_STATE } from './e2e/fixtures/auth';
 
 /**
  * Playwright harness (plan task A19 — configuration only; the specs belong to a
@@ -76,7 +77,7 @@ export default defineConfig({
 
   use: {
     baseURL,
-    storageState: 'e2e/.auth/user.json',
+    storageState: STORAGE_STATE,
     trace: 'on-first-retry',
     video: 'on-first-retry',
     // Playwright has no `on-first-retry` for screenshots; this is the closest
