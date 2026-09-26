@@ -1,4 +1,5 @@
 import { test, expect, type Page } from './fixtures/auth';
+import { PAGE_SIZE } from './helpers/app';
 import {
   QUIZ_GENERATE_ROUTE, QUIZ_SAVE_ROUTE, QUIZ_STUB, THEMES, applyThemePrefs, expectTheme, shoot,
   themedContext, type Theme,
@@ -58,13 +59,13 @@ test.describe('ảnh chụp đối chiếu Design Spec', () => {
   visual('dashboard-grid', async (page) => {
     await page.goto('/?view=grid');
     await expect(page.locator('[data-note-card]').first()).toBeVisible();
-    await expect(page.locator('[data-note-card]')).toHaveCount(6);
+    await expect(page.locator('[data-note-card]')).toHaveCount(PAGE_SIZE);
   });
 
   visual('dashboard-list', async (page) => {
     await page.goto('/?view=list');
     await expect(page.locator('[data-note-row]').first()).toBeVisible();
-    await expect(page.locator('[data-note-row]')).toHaveCount(6);
+    await expect(page.locator('[data-note-row]')).toHaveCount(PAGE_SIZE);
   });
 
   visual('detail', async (page) => {

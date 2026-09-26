@@ -138,9 +138,15 @@ test.describe('Ngoại tuyến', () => {
       const rows = page.locator('[data-note-brief]');
       await expect(rows.first()).toBeVisible({ timeout: 20_000 });
 
-      await rows.first().click();
+      // Chọn đúng một ghi chú mẫu chứ không phải "dòng đầu tiên": thứ tự phụ
+      // thuộc ghi chú mà các spec khác vừa tạo, và nội dung của chúng không
+      // phải điều bài test này muốn nói.
+      const seeded = rows.filter({ hasText: 'Phác đồ điều trị tăng huyết áp' }).first();
+      await expect(seeded).toBeVisible();
+      await seeded.click();
+
       await expect(page.locator('[data-offline-note]')).toBeVisible();
-      await expect(page.locator('[data-prose]')).not.toBeEmpty();
+      await expect(page.locator('[data-prose]')).toContainText('Ngưỡng chẩn đoán');
     } finally {
       await context.setOffline(false);
     }
@@ -173,12 +179,26 @@ test.describe('Ngoại tuyến', () => {
   test('thao tác lúc mất mạng được gửi lên khi có mạng lại', async () => {
     // Bài này chờ hai nhịp mạng thật (rớt, rồi lên lại) nên cần rộng hơn mặc định.
     test.setTimeout(120_000);
+    // Ghi chú riêng của bài test: dữ liệu mẫu là của chung, đổi trạng thái
+    // yêu thích của nó sẽ làm các spec khác đọc thấy một dashboard khác.
+    const title = `Ghi chú E2E ngoại tuyến ${Date.now().toString(36)}`;
+    const created = await page.evaluate(async (noteTitle) => {
+      const res = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: noteTitle, desc: 'Do e2e tạo', tags: [], priority: 'medium',
+          content: '<p>Nội dung ngoại tuyến.</p>', images: [], changeNote: '',
+        }),
+      });
+      return ((await res.json()) as { note: { id: string } }).note.id;
+    }, title);
+
     await page.goto('/');
     await waitForCache(page, 3);
 
-    const card = page.locator('[data-note-card]').first();
+    const card = page.locator('[data-note-card]').filter({ hasText: title }).first();
     await expect(card).toBeVisible();
-    const title = (await card.locator('[data-note-title]').innerText()).trim();
 
     const star = card.getByRole('button', { name: 'Yêu thích' });
     const wasOn = (await star.getAttribute('aria-pressed')) === 'true';
@@ -203,5 +223,10 @@ test.describe('Ngoại tuyến', () => {
       return body.notes.find((n) => n.title.trim() === wanted)?.fav ?? null;
     }, title);
     expect(favourited).toBe(!wasOn);
+
+    await page.evaluate(
+      (id) => fetch(`/api/notes/${id}`, { method: 'DELETE' }).then(() => undefined),
+      created,
+    );
   });
 });

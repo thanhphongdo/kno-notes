@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
 import { listCachedNotes } from '@/lib/offline/cache';
 import { enqueue, pendingWrites, type NewQueuedWrite } from '@/lib/offline/queue';
 import { IMAGE_PREFIX, META_PREFIX, NOTE_PREFIX, QUEUE_PREFIX, scopePrefix } from '@/lib/offline/keys';
@@ -18,7 +18,8 @@ const IDLE_FALLBACK_MS = 3000;
 
 export type SyncPhase = 'idle' | 'syncing' | 'ready' | 'offline';
 
-export interface OfflineSync {
+/** Ảnh chụp trạng thái, thứ duy nhất giao diện cần đọc. */
+export interface OfflineSnapshot {
   online: boolean;
   phase: SyncPhase;
   /** Số ghi chú đã có sẵn để đọc khi mất mạng. */
@@ -27,6 +28,20 @@ export interface OfflineSync {
   total: number;
   /** Số thao tác đã làm lúc ngoại tuyến, đang chờ gửi lên. */
   pending: number;
+}
+
+/**
+ * Bộ điều khiển đồng bộ. Mọi thành viên đều ỔN ĐỊNH qua các lần render.
+ *
+ * Đây là điểm mấu chốt, không phải chi tiết phong cách: provider bọc quanh
+ * TOÀN BỘ cây trang. Nếu nó giữ state React, mỗi nhịp nền — dò user, đếm lại
+ * kho, đổi phase — lại render lại cả app; giữa một lần điều hướng (App Router
+ * đi bằng transition) điều đó khiến React giữ luôn trang cũ trên màn hình bên
+ * cạnh trang mới. Nên: trạng thái nằm ngoài React, ai cần thì `subscribe`.
+ */
+export interface OfflineSync {
+  subscribe: (listener: () => void) => () => void;
+  getSnapshot: () => OfflineSnapshot;
   /** Đồng bộ ngay, không chờ lúc rảnh. */
   syncNow: () => void;
   /** Xếp một thao tác vào hàng đợi để gửi khi có mạng. `false` nếu không xếp được. */
@@ -77,11 +92,20 @@ function readStoredUser(): string | null {
 export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync {
   const { enabled = true, fetcher } = options;
 
-  const [online, setOnline] = useState(true);
-  const [phase, setPhase] = useState<SyncPhase>('idle');
-  const [cached, setCached] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [pending, setPending] = useState(0);
+  const snapshot = useRef<OfflineSnapshot>({
+    online: true, phase: 'idle', cached: 0, total: 0, pending: 0,
+  });
+  const listeners = useRef(new Set<() => void>());
+
+  const update = useCallback((part: Partial<OfflineSnapshot>) => {
+    const next = { ...snapshot.current, ...part };
+    const changed = (Object.keys(next) as (keyof OfflineSnapshot)[]).some(
+      (k) => next[k] !== snapshot.current[k],
+    );
+    if (!changed) return;
+    snapshot.current = next;
+    listeners.current.forEach((fn) => fn());
+  }, []);
 
   const userId = useRef<string | null>(null);
   const running = useRef(false);
@@ -89,10 +113,9 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
 
   const refreshCounts = useCallback(async (id: string) => {
     const [notes, queue] = await Promise.all([listCachedNotes(id), pendingWrites(id)]);
-    setCached(notes.length);
-    setPending(queue.length);
+    update({ cached: notes.length, pending: queue.length });
     return notes.length;
-  }, []);
+  }, [update]);
 
   const resolveUser = useCallback(async (): Promise<string | null> => {
     if (userId.current) return userId.current;
@@ -125,13 +148,13 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
       if (typeof navigator !== 'undefined' && navigator.onLine === false) {
         const id = await resolveUser();
         if (id) await refreshCounts(id);
-        setPhase('offline');
+        update({ phase: 'offline' });
         return;
       }
       if (!force && Date.now() - lastSync.current < RESYNC_AFTER_MS) return;
 
       running.current = true;
-      setPhase('syncing');
+      update({ phase: 'syncing' });
       try {
         const id = await resolveUser();
         if (!id) return;
@@ -139,33 +162,39 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
         // Đẩy trước, kéo sau — xem chú thích ở đầu hàm.
         await replayQueue(id, fetcher);
         const result = await prefetchNotes(id, fetcher);
-        setTotal(result.total);
+        update({ total: result.total });
         await refreshCounts(id);
         if (!result.interrupted) lastSync.current = Date.now();
-        setPhase(result.interrupted ? 'idle' : 'ready');
+        update({ phase: result.interrupted ? 'idle' : 'ready' });
       } catch {
-        setPhase('idle');
+        update({ phase: 'idle' });
       } finally {
         running.current = false;
       }
     },
-    [fetcher, refreshCounts, resolveUser],
+    [fetcher, refreshCounts, resolveUser, update],
   );
 
   useEffect(() => {
     if (!enabled || typeof window === 'undefined') return;
 
-    setOnline(navigator.onLine !== false);
+    update({ online: navigator.onLine !== false });
 
-    const cancelIdle = onIdle(() => void run(true));
+    // Chỉ bắt đầu sau `load` rồi mới chờ lúc rảnh: tải trước cả cuốn sổ trong
+    // khi React còn đang hydrate là cướp luồng chính đúng lúc nó bận nhất.
+    let cancelIdle = () => {};
+    const start = () => {
+      cancelIdle = onIdle(() => void run(true));
+    };
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
 
     const onOnline = () => {
-      setOnline(true);
+      update({ online: true });
       void run(true); // vừa có mạng lại là lúc đáng đẩy hàng đợi lên nhất
     };
     const onOffline = () => {
-      setOnline(false);
-      setPhase('offline');
+      update({ online: false, phase: 'offline' });
     };
     const onVisible = () => {
       if (document.visibilityState === 'visible') void run(false);
@@ -177,11 +206,12 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
 
     return () => {
       cancelIdle();
+      window.removeEventListener('load', start);
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [enabled, run]);
+  }, [enabled, run, update]);
 
   const syncNow = useCallback(() => void run(true), [run]);
 
@@ -208,16 +238,38 @@ export function useOfflineSync(options: UseOfflineSyncOptions = {}): OfflineSync
       }
     }
     userId.current = null;
-    setCached(0);
-    setPending(0);
-    setTotal(0);
-    setPhase('idle');
+    update({ cached: 0, pending: 0, total: 0, phase: 'idle' });
     try {
       localStorage.removeItem(OFFLINE_USER_KEY);
     } catch {
       /* không xoá được thì cũng không chặn việc đăng xuất */
     }
+  }, [update]);
+
+  const subscribe = useCallback((listener: () => void) => {
+    const set = listeners.current;
+    set.add(listener);
+    return () => {
+      set.delete(listener);
+    };
   }, []);
 
-  return { online, phase, cached, total, pending, syncNow, queueWrite, forget };
+  const getSnapshot = useCallback(() => snapshot.current, []);
+
+  return useMemo(
+    () => ({ subscribe, getSnapshot, syncNow, queueWrite, forget }),
+    [forget, getSnapshot, queueWrite, subscribe, syncNow],
+  );
+}
+
+/** Đọc trạng thái hiện tại; CHỈ component gọi nó mới render lại. */
+export function useOfflineSnapshot(sync: OfflineSync | null): OfflineSnapshot {
+  const fallback = useRef<OfflineSnapshot>({
+    online: true, phase: 'idle', cached: 0, total: 0, pending: 0,
+  });
+  return useSyncExternalStore(
+    sync?.subscribe ?? (() => () => {}),
+    sync?.getSnapshot ?? (() => fallback.current),
+    () => fallback.current,
+  );
 }

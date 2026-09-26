@@ -219,7 +219,7 @@ describe('prefetchNotes', () => {
       return ok({ note: note(url.endsWith('n1') ? 'n1' : 'n2') });
     }) as unknown as typeof fetch;
 
-    const result = await prefetchNotes(USER, fetcher);
+    const result = await prefetchNotes(USER, fetcher, { paceMs: 0 });
     expect(result).toMatchObject({ notes: 2, total: 2, interrupted: false });
     expect((await listCachedNotes(USER)).map((r) => r.noteId).sort()).toEqual(['n1', 'n2']);
   });
@@ -231,7 +231,7 @@ describe('prefetchNotes', () => {
       return ok({ note: note('n1') });
     }) as unknown as typeof fetch;
 
-    const result = await prefetchNotes(USER, fetcher);
+    const result = await prefetchNotes(USER, fetcher, { paceMs: 0 });
     expect(result.notes).toBe(0);
     expect((fetcher as unknown as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(1);
   });
@@ -243,7 +243,7 @@ describe('prefetchNotes', () => {
       return ok({ note: note('n1', { title: 'Đã sửa', versions: at(2) }) });
     }) as unknown as typeof fetch;
 
-    await prefetchNotes(USER, fetcher);
+    await prefetchNotes(USER, fetcher, { paceMs: 0 });
     expect((await getCachedNote(USER, 'n1'))?.title).toBe('Đã sửa');
   });
 
@@ -257,7 +257,7 @@ describe('prefetchNotes', () => {
       return ok({ note: withImage });
     }) as unknown as typeof fetch;
 
-    const result = await prefetchNotes(USER, fetcher);
+    const result = await prefetchNotes(USER, fetcher, { paceMs: 0 });
     expect(result.images).toBe(1);
     expect(await getCachedImage(USER, 'img1')).not.toBeNull();
   });
@@ -271,7 +271,7 @@ describe('prefetchNotes', () => {
       return ok({ note: note('n1') });
     }) as unknown as typeof fetch;
 
-    const result = await prefetchNotes(USER, fetcher);
+    const result = await prefetchNotes(USER, fetcher, { paceMs: 0 });
     expect(result).toMatchObject({ notes: 1, interrupted: true });
     expect((await listCachedNotes(USER)).map((r) => r.noteId)).toEqual(['n1']);
   });
@@ -283,7 +283,7 @@ describe('prefetchNotes', () => {
       return ok({ note: note('n2') });
     }) as unknown as typeof fetch;
 
-    const result = await prefetchNotes(USER, fetcher);
+    const result = await prefetchNotes(USER, fetcher, { paceMs: 0 });
     expect(result.notes).toBe(1);
     expect(result.interrupted).toBe(false);
   });
@@ -295,7 +295,7 @@ describe('prefetchNotes', () => {
       return ok({ note: note('n1') });
     }) as unknown as typeof fetch;
 
-    await prefetchNotes(USER, fetcher);
+    await prefetchNotes(USER, fetcher, { paceMs: 0 });
     expect((await listCachedNotes(USER)).map((r) => r.noteId)).toEqual(['n1']);
   });
 });

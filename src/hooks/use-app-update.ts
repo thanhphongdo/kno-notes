@@ -34,6 +34,10 @@ export interface UseAppUpdateOptions {
  *  2. Gọi `registration.update()` mỗi khi tab được nhìn lại. App đã cài thường
  *     sống hàng tuần không reload; đây là lúc nó kiểm tra.
  *  3. Thêm một nhịp kiểm tra mỗi giờ cho tab mở lâu.
+ *
+ * Mọi thứ chỉ bắt đầu SAU sự kiện `load`. Đăng ký service worker trong lúc
+ * React còn đang hydrate là giành mất luồng chính đúng lúc nó bận nhất, và
+ * trang phải dựng lại — ràng buộc này có từ bản đầu, đừng gỡ.
  */
 export function useAppUpdate(options: UseAppUpdateOptions = {}): AppUpdate {
   const {
@@ -51,6 +55,7 @@ export function useAppUpdate(options: UseAppUpdateOptions = {}): AppUpdate {
 
     let cancelled = false;
     const container = navigator.serviceWorker;
+    let cleanupTimer: (() => void) | undefined;
 
     /** Một worker vừa cài xong TRONG KHI đã có worker đang chạy = bản mới. */
     const watchInstalling = (worker: ServiceWorker | null) => {
@@ -64,19 +69,30 @@ export function useAppUpdate(options: UseAppUpdateOptions = {}): AppUpdate {
       onState();
     };
 
-    void container
-      .register(serviceWorkerUrl(buildId ?? ''), { scope: '/' })
-      .then((reg) => {
-        if (cancelled) return;
-        registration.current = reg;
-        // Bản mới có thể đã chờ sẵn từ lần mở trước.
-        if (reg.waiting && container.controller) setReady(true);
-        watchInstalling(reg.installing);
-        reg.addEventListener('updatefound', () => watchInstalling(reg.installing));
-      })
-      .catch(() => {
-        /* PWA là lớp phụ: hỏng thì app vẫn chạy bình thường */
-      });
+    const register = () => {
+      if (cancelled) return;
+      void container
+        .register(serviceWorkerUrl(buildId ?? ''), { scope: '/' })
+        .then((reg) => {
+          if (cancelled) return;
+          registration.current = reg;
+          // Bản mới có thể đã chờ sẵn từ lần mở trước.
+          if (reg.waiting && container.controller) setReady(true);
+          watchInstalling(reg.installing);
+          reg.addEventListener('updatefound', () => watchInstalling(reg.installing));
+        })
+        .catch(() => {
+          /* PWA là lớp phụ: hỏng thì app vẫn chạy bình thường */
+        });
+    };
+
+    if (document.readyState === 'complete') {
+      const id = window.setTimeout(register, 0);
+      cleanupTimer = () => window.clearTimeout(id);
+    } else {
+      window.addEventListener('load', register, { once: true });
+      cleanupTimer = () => window.removeEventListener('load', register);
+    }
 
     const check = () => {
       void registration.current?.update().catch(() => undefined);
@@ -89,6 +105,7 @@ export function useAppUpdate(options: UseAppUpdateOptions = {}): AppUpdate {
 
     return () => {
       cancelled = true;
+      cleanupTimer?.();
       document.removeEventListener('visibilitychange', onVisible);
       window.clearInterval(timer);
     };

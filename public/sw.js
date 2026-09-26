@@ -118,11 +118,34 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-/** Network-first for documents; the response is used, never stored. */
+/**
+ * Network-first for documents; the response is used, never stored.
+ *
+ * Khi mạng hỏng thì CHUYỂN HƯỚNG tới /offline chứ không trả thân trang đó cho
+ * URL đang xin. Trả thân trang là cách cũ, và nó sai: tài liệu nhận được là
+ * trang /offline trong khi thanh địa chỉ vẫn là /notes/xyz, nên Next hydrate
+ * theo route /notes/xyz, không khớp với HTML máy chủ, rồi dựng thêm một cây
+ * DOM thứ hai bên cạnh cây đã có — hai trang chồng lên nhau.
+ *
+ * Chuyển hướng thì tài liệu và URL khớp nhau, Back vẫn đúng, và lần điều
+ * hướng tới chính /offline mới đọc từ cache (nếu không sẽ lặp vô hạn).
+ */
 async function navigateWithOfflineFallback(request) {
   try {
     return await fetch(request);
   } catch {
+    let pathname = '';
+    try {
+      pathname = new URL(request.url).pathname;
+    } catch {
+      /* URL lạ: coi như không phải /offline */
+    }
+    // `Response.redirect` CHỈ nhận URL tuyệt đối; đưa đường dẫn tương đối vào
+    // là nó ném TypeError và điều hướng chết hẳn thay vì hiện trang ngoại tuyến.
+    if (pathname !== OFFLINE_URL) {
+      return Response.redirect(new URL(OFFLINE_URL, self.location.origin).href, 302);
+    }
+
     const cached = await caches.match(OFFLINE_URL, { cacheName: SHELL_CACHE });
     return (
       cached ||

@@ -4,10 +4,11 @@ import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useVerifiedNavigate } from '@/lib/nav/navigate';
 import {
-  AppHeader, AppShell, OfflineStatus, PRIORITIES, PRIORITY_CLASS, PRIORITY_LABEL,
+  AppHeader, AppShell, PRIORITIES, PRIORITY_CLASS, PRIORITY_LABEL,
   SettingsPopover, Sidebar, SidebarNavItem, SidebarSection,
 } from '@/components/shared';
 import { useOffline } from '@/components/providers/offline-provider';
+import { OfflineStatusPanel } from '@/components/features/offline/offline-status-panel';
 import { usePrefs } from '@/hooks/use-prefs';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useNoteFilters } from '@/hooks/use-note-filters';
@@ -196,18 +197,7 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
               fontSize={fontSize}
               onFontSizeChange={setFontSize}
               onLogout={logout}
-              offline={
-                offline ? (
-                  <OfflineStatus
-                    online={offline.online}
-                    phase={offline.phase}
-                    cached={offline.cached}
-                    total={offline.total}
-                    pending={offline.pending}
-                    onSyncNow={offline.syncNow}
-                  />
-                ) : null
-              }
+              offline={<OfflineStatusPanel />}
             />
           }
         />

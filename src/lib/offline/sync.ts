@@ -20,6 +20,23 @@ import {
 
 export type Fetcher = typeof fetch;
 
+/**
+ * Khoảng nghỉ giữa hai lần tải.
+ *
+ * Tải trước là việc nền, và nó phải cư xử như việc nền. Không có khoảng nghỉ,
+ * vòng lặp này chiếm sạch các kết nối song song của trình duyệt; request RSC
+ * của lần điều hướng kế tiếp phải xếp hàng sau nó, và vì App Router điều
+ * hướng bằng transition, React giữ nguyên trang CŨ trên màn hình tới khi
+ * trang mới sẵn sàng — người dùng bấm vào một ghi chú và thấy trang đứng im
+ * vài giây. Nghỉ một nhịp giữa mỗi lần tải là đủ để luôn còn kết nối trống.
+ */
+export const PREFETCH_PACE_MS = 250;
+
+const wait = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
 /** Trang lớn nhất máy chủ cho phép (`MAX_PAGE_SIZE`). */
 const LIST_PAGE_SIZE = 100;
 
@@ -64,11 +81,18 @@ export async function fetchAllSummaries(fetcher: Fetcher): Promise<NoteSummary[]
  * chúng. Mất mạng giữa chừng thì dừng lại và báo `interrupted` — những gì đã
  * tải vẫn nằm trong kho, lần sau chỉ tải phần còn lại.
  */
+export interface PrefetchOptions {
+  onProgress?: (done: number, total: number) => void;
+  /** Khoảng nghỉ giữa hai lần tải; test truyền 0. */
+  paceMs?: number;
+}
+
 export async function prefetchNotes(
   userId: string,
   fetcher: Fetcher = fetch,
-  onProgress?: (done: number, total: number) => void,
+  options: PrefetchOptions = {},
 ): Promise<PrefetchResult> {
+  const { onProgress, paceMs = PREFETCH_PACE_MS } = options;
   const summaries = await fetchAllSummaries(fetcher);
   await pruneNotes(userId, summaries.map((s) => s.id));
 
@@ -104,6 +128,7 @@ export async function prefetchNotes(
       // 404: ghi chú vừa bị xoá ở máy khác. Bỏ qua, danh sách lần sau sẽ đúng.
     }
     onProgress?.(result.notes, stale.length);
+    if (paceMs > 0) await wait(paceMs);
   }
 
   if (!result.interrupted) {
@@ -116,6 +141,7 @@ export async function prefetchNotes(
         if (bytes.byteLength > MAX_OFFLINE_IMAGE_BYTES) continue;
         await putImage(userId, id, bytes, res.headers.get('Content-Type') ?? 'image/png');
         result.images += 1;
+        if (paceMs > 0) await wait(paceMs);
       } catch (error) {
         if (isNetworkFailure(error)) {
           result.interrupted = true;
