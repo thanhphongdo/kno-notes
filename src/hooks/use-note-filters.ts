@@ -1,111 +1,22 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { useRouter, useSearchParams, type ReadonlyURLSearchParams } from 'next/navigation';
-import { usePrefs } from '@/hooks/use-prefs';
-import { buildDashboardHref, type PriorityKey, type SortKey, type ViewKey } from '@/lib/nav/paths';
-import { DEFAULT_PAGE_SIZE, PRIORITY_LABEL } from '@/lib/types';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { FilterChipDescriptor } from '@/components/shared';
+import { usePrefs } from '@/hooks/use-prefs';
+import {
+  filtersTitle, nextFilters, parseNoteFilters, toHref,
+  type FilterPatch, type NoteFilters,
+} from '@/lib/nav/filters';
+import type { ViewKey } from '@/lib/nav/paths';
+import { PRIORITY_LABEL } from '@/lib/types';
 
 /**
- * The dashboard's whole filter state is the query string (contracts §4).
- *
- * Nothing here is allowed to throw on a hand-edited URL: every enum falls back
- * to its default and `page` is clamped, so `/?page=999&sort=bogus&priority=purple&view=table`
- * renders the first page of the default sort instead of a 500.
+ * The navigation half of the dashboard filter state. The parsing half lives in
+ * `@/lib/nav/filters`, which has no `'use client'` marker so the server
+ * component can call it; importing it from here would put it behind the client
+ * boundary and break SSR.
  */
-
-/** Matches `DEFAULT_PAGE_SIZE` in `@/lib/types` — the server paginates by the same number. */
-export const PAGE_SIZE = DEFAULT_PAGE_SIZE;
-
-export interface NoteFilters {
-  q: string;
-  tag: string | null;
-  priority: PriorityKey | null;
-  fav: boolean;
-  sort: SortKey;
-  page: number;
-  view: ViewKey;
-}
-
-export const DEFAULT_FILTERS: NoteFilters = {
-  q: '',
-  tag: null,
-  priority: null,
-  fav: false,
-  sort: 'updated',
-  page: 1,
-  view: 'grid',
-};
-
-const SORTS: readonly string[] = ['updated', 'priority', 'title'];
-const PRIORITIES: readonly string[] = ['high', 'medium', 'low'];
-const VIEWS: readonly string[] = ['grid', 'list'];
-
-/** Anything with `URLSearchParams.get` — the real thing, or Next's readonly wrapper. */
-export type ReadableParams = URLSearchParams | ReadonlyURLSearchParams;
-
-/**
- * `URLSearchParams.get()` — never `decodeURIComponent` — because
- * `buildDashboardHref` serialises a space as `+`, which only the former
- * decodes. Getting that wrong silently breaks every Vietnamese tag filter.
- */
-export function parseNoteFilters(sp: ReadableParams, prefView?: ViewKey): NoteFilters {
-  const rawSort = sp.get('sort') ?? '';
-  const rawPriority = sp.get('priority') ?? '';
-  const rawView = sp.get('view') ?? '';
-  const rawPage = Number.parseInt(sp.get('page') ?? '', 10);
-  const tag = (sp.get('tag') ?? '').trim();
-
-  return {
-    q: (sp.get('q') ?? '').trim(),
-    tag: tag || null,
-    priority: PRIORITIES.includes(rawPriority) ? (rawPriority as PriorityKey) : null,
-    fav: sp.get('fav') === '1',
-    sort: SORTS.includes(rawSort) ? (rawSort as SortKey) : DEFAULT_FILTERS.sort,
-    page: Number.isFinite(rawPage) && rawPage >= 1 ? rawPage : DEFAULT_FILTERS.page,
-    view: VIEWS.includes(rawView) ? (rawView as ViewKey) : (prefView ?? DEFAULT_FILTERS.view),
-  };
-}
-
-/** Server helper: Next hands a page `Record`, not a `URLSearchParams`. */
-export function searchParamsFrom(raw: Record<string, string | string[] | undefined>): URLSearchParams {
-  const sp = new URLSearchParams();
-  for (const [key, value] of Object.entries(raw)) {
-    if (typeof value === 'string') sp.set(key, value);
-    else if (Array.isArray(value) && typeof value[0] === 'string') sp.set(key, value[0]);
-  }
-  return sp;
-}
-
-export type FilterPatch = Partial<NoteFilters>;
-
-/** Narrowing the result set always sends the reader back to page 1. */
-const NARROWING_KEYS = ['q', 'tag', 'priority', 'fav', 'sort'] as const;
-
-export function nextFilters(current: NoteFilters, patch: FilterPatch): NoteFilters {
-  const merged: NoteFilters = { ...current, ...patch };
-  const narrowed = NARROWING_KEYS.some((k) => k in patch && patch[k] !== current[k]);
-  if (narrowed && !('page' in patch)) merged.page = 1;
-  return merged;
-}
-
-/** The single serialiser — `buildDashboardHref` owns the param order and defaults. */
-export function toHref(f: NoteFilters): string {
-  return buildDashboardHref({
-    q: f.q, tag: f.tag, priority: f.priority, fav: f.fav, sort: f.sort, page: f.page, view: f.view,
-  });
-}
-
-/** The prototype's `viewTitle`, verbatim. */
-export function filtersTitle(f: NoteFilters): string {
-  if (f.q.trim()) return 'Kết quả tìm kiếm';
-  if (f.tag) return `#${f.tag}`;
-  if (f.priority) return `Ưu tiên ${PRIORITY_LABEL[f.priority].toLowerCase()}`;
-  if (f.fav) return 'Yêu thích';
-  return 'Tất cả ghi chú';
-}
-
 export interface UseNoteFilters {
   filters: NoteFilters;
   /** Discrete control → `push`, so Back undoes exactly one deliberate action. */

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildDashboardHref } from '@/lib/nav/paths';
+import { buildDashboardHref } from './paths';
 import {
   DEFAULT_FILTERS, PAGE_SIZE, filtersTitle, nextFilters, parseNoteFilters, toHref,
-} from './use-note-filters';
+} from './filters';
 
 const sp = (s: string) => new URLSearchParams(s);
 

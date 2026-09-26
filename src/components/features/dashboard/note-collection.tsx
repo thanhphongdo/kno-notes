@@ -6,7 +6,8 @@ import {
   EmptyState, NoteGrid, NoteList, Pagination, type NoteSummary,
 } from '@/components/shared';
 import { useIsMobile } from '@/hooks/use-is-mobile';
-import { PAGE_SIZE, useNoteFilters } from '@/hooks/use-note-filters';
+import { useNoteFilters } from '@/hooks/use-note-filters';
+import { PAGE_SIZE } from '@/lib/nav/filters';
 import { notePath } from '@/lib/nav/paths';
 
 export interface NoteCollectionProps {

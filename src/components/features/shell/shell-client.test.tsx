@@ -166,7 +166,8 @@ describe('ShellClient', () => {
     await user.click(screen.getByRole('searchbox'));
     await user.keyboard('sốc{Enter}');
 
-    expect(replace).toHaveBeenLastCalledWith('/?q=s%E1%BB%91c');
+    // A6 commits the query with `{ scroll: false }` so typing never jumps the page.
+    expect(replace).toHaveBeenLastCalledWith('/?q=s%E1%BB%91c', { scroll: false });
     expect(decodeURIComponent(document.cookie)).toContain('sốc');
   });
 });
