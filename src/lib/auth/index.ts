@@ -2,3 +2,11 @@
 export { hashPassword, verifyPassword } from './password';
 export { SESSION_COOKIE, SESSION_MAX_AGE, signSession, verifySession } from './jwt';
 export { getSession, requireUser, setSessionCookie, clearSessionCookie } from './session';
+export {
+  generateApiKey,
+  hashApiKey,
+  createApiKey,
+  listApiKeys,
+  revokeApiKey,
+  resolveApiKey,
+} from './api-keys';
