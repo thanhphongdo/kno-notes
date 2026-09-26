@@ -7,7 +7,7 @@ import {
 } from '@/components/shared';
 import { fmt, rel } from '@/lib/text';
 import type { Note } from '@/lib/types';
-import { notePath, noteVersionPath } from './routes';
+import { notePath, noteVersionPath } from '@/lib/nav/paths';
 
 export interface DetailRailProps {
   note: Note;

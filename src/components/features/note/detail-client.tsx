@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import {
-  ImageGrid, Lightbox, PriorityPill, Prose, SectionLabel, TagChip, VersionBanner,
+  HighlightPopup, ImageGrid, Lightbox, PriorityPill, Prose, SectionLabel, TagChip, VersionBanner,
 } from '@/components/shared';
 import { Icon, useToast } from '@/components/ui';
+import { useHighlight } from '@/hooks/use-highlight';
 import { fmt, rel } from '@/lib/text';
 import type { Note, NoteImage } from '@/lib/types';
-import { dashboardPath, notePath, tagPath } from './routes';
+import { buildDashboardHref, dashboardPath, notePath } from '@/lib/nav/paths';
 import { CommentsSection } from './comments-section';
 import { DetailActions } from './detail-actions';
 import { DetailRail } from './detail-rail';
@@ -31,6 +32,7 @@ export function DetailClient({ data }: { data: DetailViewData }) {
   const router = useRouter();
   const { flash } = useToast();
   const [lightbox, setLightbox] = useState<{ images: NoteImage[]; index: number } | null>(null);
+  const highlight = useHighlight({ noteId: note.id, content: shownContent, disabled: viewingOld });
 
   const selected = note.versions.find((v) => v.v === selectedVersion);
   const words = note.content.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
@@ -51,13 +53,18 @@ export function DetailClient({ data }: { data: DetailViewData }) {
     router.refresh();
   }, [flash, note.id, router, selectedVersion]);
 
-  const onProseClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'IMG') {
-      const img = target as HTMLImageElement;
-      setLightbox({ images: [{ id: 'inline', label: INLINE_IMAGE_LABEL, src: img.src }], index: 0 });
-    }
-  }, []);
+  const onProseClick = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'IMG') {
+        const img = target as HTMLImageElement;
+        setLightbox({ images: [{ id: 'inline', label: INLINE_IMAGE_LABEL, src: img.src }], index: 0 });
+        return;
+      }
+      highlight.onProseClick(e);
+    },
+    [highlight],
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-1120 flex-col gap-24 px-16 pt-20 pb-80 min-[820px]:px-40 min-[820px]:pt-36">
@@ -74,7 +81,7 @@ export function DetailClient({ data }: { data: DetailViewData }) {
           <div className="mb-16 flex flex-wrap items-center gap-8">
             <PriorityPill priority={note.priority} />
             {note.tags.map((tag) => (
-              <TagChip key={tag} name={tag} hash onClick={() => router.push(tagPath(tag))} />
+              <TagChip key={tag} name={tag} hash onClick={() => router.push(buildDashboardHref({ tag }))} />
             ))}
           </div>
 
@@ -102,7 +109,13 @@ export function DetailClient({ data }: { data: DetailViewData }) {
             />
           ) : null}
 
-          <Prose html={shownContent} onClick={onProseClick} />
+          <Prose
+            html={shownContent}
+            proseRef={highlight.proseRef}
+            onClick={onProseClick}
+            onMouseUp={highlight.onProseSelect}
+            onTouchEnd={highlight.onProseSelect}
+          />
 
           {note.images.length > 0 ? (
             <div className="mt-40 flex flex-col gap-14">
@@ -122,13 +135,23 @@ export function DetailClient({ data }: { data: DetailViewData }) {
           note={note}
           selectedVersion={selectedVersion}
           latestVersion={latestVersion}
-          highlights={[]}
-          onRemoveHighlight={() => undefined}
+          highlights={highlight.items}
+          onRemoveHighlight={highlight.remove}
           words={words}
           onStartQuiz={() => undefined}
           onOpenQuizAttempt={() => undefined}
         />
       </div>
+
+      {highlight.popup ? (
+        <HighlightPopup
+          mode={highlight.popup.mode}
+          x={highlight.popup.x}
+          y={highlight.popup.y}
+          viewportWidth={typeof window === 'undefined' ? 0 : window.innerWidth}
+          onAction={highlight.act}
+        />
+      ) : null}
 
       {lightbox ? (
         <Lightbox

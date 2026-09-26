@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import { DeleteConfirmBanner } from '@/components/shared';
 import { Button, buttonVariants, Icon, IconButton, useToast } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { noteEditPath, notePath } from './routes';
+import { noteEditPath, notePath } from '@/lib/nav/paths';
 
 export interface DetailActionsProps {
   noteId: string;
