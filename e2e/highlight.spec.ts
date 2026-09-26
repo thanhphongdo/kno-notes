@@ -55,6 +55,20 @@ async function scrollIntoView(page: Page, selector: string, nth = 0): Promise<vo
   );
 }
 
+/**
+ * Click a `<mark>` to open the remove bubble.
+ *
+ * The scroll has to happen and settle first. Playwright's own auto-scroll runs
+ * as part of the click, and the scroll event it produces arrives a frame later
+ * — after the bubble has opened — which correctly dismisses it, leaving the
+ * bubble detached mid-click.
+ */
+async function clickMark(page: Page, id: string): Promise<void> {
+  const selector = `mark[data-hl="${id}"]`;
+  await scrollIntoView(page, selector);
+  await page.locator(`[data-prose] ${selector}`).first().click();
+}
+
 /** Select the contents of the nth element matching `selector` inside the prose. */
 async function selectInProse(page: Page, selector: string, nth = 0): Promise<void> {
   await scrollIntoView(page, selector, nth);
@@ -146,7 +160,7 @@ test.describe('đánh dấu', () => {
 
     // ── remove it again, restoring the seeded state for every other test ────
     const added = idsAfter.find((id) => !marksBefore.includes(id))!;
-    await page.locator(`[data-prose] mark[data-hl="${added}"]`).first().click();
+    await clickMark(page, added);
     const removePopup = page.locator('[data-hlpop]');
     await expect(removePopup).toHaveAttribute('data-mode', 'remove');
     await removePopup.getByRole('button', { name: 'Bỏ đánh dấu' }).click();
@@ -214,7 +228,7 @@ test.describe('đánh dấu', () => {
     await expect(page.locator('[data-version-item]')).toHaveCount(versionsBefore);
 
     // Clean up so the seeded state is what the next test sees.
-    await page.locator(`[data-prose] mark[data-hl="${added[0]}"]`).first().click();
+    await clickMark(page, added[0]);
     await page.locator('[data-hlpop]').getByRole('button', { name: 'Bỏ đánh dấu' }).click();
     await expect(page.locator('[data-highlight-item]')).toHaveCount(railBefore);
     await page.reload();
@@ -256,6 +270,7 @@ test.describe('đánh dấu', () => {
     await page.goto(`/notes/${NOTE}?v=1`);
     const onOld = page.locator(`[data-prose] mark[data-hl="${SEEDED_HIGHLIGHT}"]`);
     if (await onOld.count()) {
+      await scrollIntoView(page, `mark[data-hl="${SEEDED_HIGHLIGHT}"]`);
       await onOld.first().click();
       await expect(page.locator('[data-hlpop]')).toHaveCount(0);
     }
