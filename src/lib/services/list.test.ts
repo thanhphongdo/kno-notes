@@ -2,6 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { summary } from './helpers';
 import { applyFilters, sortNotes, paginate } from './notes';
+import { DEFAULT_PAGE_SIZE } from '@/lib/types';
 
 const notes = [
   summary({
@@ -137,28 +138,29 @@ describe('sortNotes', () => {
 });
 
 describe('paginate', () => {
-  const ten = Array.from({ length: 10 }, (_, i) => summary({ id: String(i) }));
+  const rows = (n: number) => Array.from({ length: n }, (_, i) => summary({ id: String(i) }));
+  const fifteen = rows(15);
 
-  it('defaults to 6 per page', () => {
-    const r = paginate(ten, {});
-    expect(r.pageSize).toBe(6);
-    expect(r.notes).toHaveLength(6);
+  it(`defaults to ${DEFAULT_PAGE_SIZE} per page`, () => {
+    const r = paginate(fifteen, {});
+    expect(r.pageSize).toBe(DEFAULT_PAGE_SIZE);
+    expect(r.notes).toHaveLength(DEFAULT_PAGE_SIZE);
     expect(r.pages).toBe(2);
-    expect(r.total).toBe(10);
+    expect(r.total).toBe(15);
     expect(r.page).toBe(1);
   });
 
   it('returns the tail on the last page', () => {
-    expect(ids(paginate(ten, { page: 2 }).notes)).toEqual(['6', '7', '8', '9']);
+    expect(ids(paginate(fifteen, { page: 2 }).notes)).toEqual(['10', '11', '12', '13', '14']);
   });
 
   it('clamps a page beyond the end to the last page', () => {
-    expect(paginate(ten, { page: 99 }).page).toBe(2);
+    expect(paginate(fifteen, { page: 99 }).page).toBe(2);
   });
 
   it('clamps page 0 and negatives to 1', () => {
-    expect(paginate(ten, { page: 0 }).page).toBe(1);
-    expect(paginate(ten, { page: -3 }).page).toBe(1);
+    expect(paginate(fifteen, { page: 0 }).page).toBe(1);
+    expect(paginate(fifteen, { page: -3 }).page).toBe(1);
   });
 
   it('reports at least one page for an empty result', () => {
@@ -167,9 +169,9 @@ describe('paginate', () => {
   });
 
   it('honours an explicit pageSize and caps it at 100', () => {
-    expect(paginate(ten, { pageSize: 3 }).notes).toHaveLength(3);
-    expect(paginate(ten, { pageSize: 1000 }).pageSize).toBe(100);
-    expect(paginate(ten, { pageSize: 0 }).pageSize).toBe(6);
+    expect(paginate(fifteen, { pageSize: 3 }).notes).toHaveLength(3);
+    expect(paginate(fifteen, { pageSize: 1000 }).pageSize).toBe(100);
+    expect(paginate(fifteen, { pageSize: 0 }).pageSize).toBe(DEFAULT_PAGE_SIZE);
   });
 });
 

@@ -95,11 +95,20 @@ export function toHref(f: NoteFilters): string {
   });
 }
 
-/** The prototype's `viewTitle`, verbatim. */
+/**
+ * Tiêu đề của danh sách đang xem.
+ *
+ * Prototype chỉ có `viewTitle` chọn MỘT mặt lọc theo thứ tự ưu tiên, vì lúc đó
+ * thanh bên thay bộ lọc chứ không cộng dồn. Giờ thẻ và mức ưu tiên lọc được
+ * cùng lúc, nên tiêu đề phải kể đủ — nếu không nó nói dối về danh sách bên
+ * dưới. Một mặt lọc duy nhất vẫn ra đúng chuỗi cũ.
+ */
 export function filtersTitle(f: NoteFilters): string {
   if (f.q.trim()) return 'Kết quả tìm kiếm';
-  if (f.tag) return `#${f.tag}`;
-  if (f.priority) return `Ưu tiên ${PRIORITY_LABEL[f.priority].toLowerCase()}`;
-  if (f.fav) return 'Yêu thích';
-  return 'Tất cả ghi chú';
+  const parts = [
+    f.fav ? 'Yêu thích' : null,
+    f.tag ? `#${f.tag}` : null,
+    f.priority ? `Ưu tiên ${PRIORITY_LABEL[f.priority].toLowerCase()}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'Tất cả ghi chú';
 }

@@ -102,4 +102,19 @@ describe('useNoteFilters', () => {
     act(() => result.current.chips[1]!.onRemove());
     expect(push).toHaveBeenCalledWith('/?q=s%E1%BB%91c&tag=ECG', { scroll: false });
   });
+
+  it('offers a chip for every active facet, favourites included', () => {
+    search = new URLSearchParams('q=sốc&tag=Cấp cứu&priority=high&fav=1');
+    const result = render();
+    expect(result.current.chips.map((c) => c.id)).toEqual(['q', 'priority', 'tag', 'fav']);
+  });
+
+  it('removing the favourites chip leaves the other filters alone', () => {
+    search = new URLSearchParams('tag=Cấp cứu&priority=high&fav=1');
+    const result = render();
+    act(() => result.current.chips.find((c) => c.id === 'fav')!.onRemove());
+    expect(push).toHaveBeenCalledWith('/?tag=C%E1%BA%A5p+c%E1%BB%A9u&priority=high', {
+      scroll: false,
+    });
+  });
 });

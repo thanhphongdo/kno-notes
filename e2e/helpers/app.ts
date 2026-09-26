@@ -19,8 +19,8 @@ import { expect, type Page } from '@playwright/test';
 export const PREFS_COOKIE = 'kn_prefs';
 export const SESSION_COOKIE = 'kn_session';
 
-/** `DEFAULT_PAGE_SIZE` — the dashboard paginates by six. */
-export const PAGE_SIZE = 6;
+/** `DEFAULT_PAGE_SIZE` — the dashboard paginates by ten. */
+export const PAGE_SIZE = 10;
 
 /** `DEFAULT_PREFS` from `src/lib/prefs.ts`. */
 export const DEFAULT_PREFS = {

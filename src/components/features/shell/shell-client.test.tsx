@@ -84,6 +84,57 @@ describe('ShellClient', () => {
     expect(push).toHaveBeenLastCalledWith('/', { scroll: true });
   });
 
+  /**
+   * Thanh bên từng dựng href từ số không, nên chọn mức ưu tiên là mất thẻ
+   * đang lọc và ngược lại — dù server vẫn luôn lọc được cả hai cùng lúc.
+   */
+  it('adds a sidebar filter to the ones already on, instead of replacing them', async () => {
+    search = new URLSearchParams('tag=Tim+m%E1%BA%A1ch');
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(screen.getByText('Cao'));
+    expect(push).toHaveBeenLastCalledWith('/?tag=Tim+m%E1%BA%A1ch&priority=high', { scroll: true });
+  });
+
+  it('keeps the priority when a tag is picked, and drops only the one clicked again', async () => {
+    search = new URLSearchParams('priority=high&tag=Tim+m%E1%BA%A1ch');
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(screen.getByText('Tim mạch'));
+    expect(push).toHaveBeenLastCalledWith('/?priority=high', { scroll: true });
+  });
+
+  it('keeps tag and priority when switching to favourites', async () => {
+    search = new URLSearchParams('priority=high&tag=Tim+m%E1%BA%A1ch');
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(screen.getByText('Yêu thích'));
+    expect(push).toHaveBeenLastCalledWith('/?tag=Tim+m%E1%BA%A1ch&priority=high&fav=1', {
+      scroll: true,
+    });
+  });
+
+  it('"Tất cả ghi chú" is the one control that clears everything', async () => {
+    search = new URLSearchParams('priority=high&tag=Tim+m%E1%BA%A1ch&fav=1&q=abc');
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(screen.getByText('Tất cả ghi chú'));
+    expect(push).toHaveBeenLastCalledWith('/', { scroll: true });
+  });
+
+  it('a sidebar filter sends the reader back to page 1', async () => {
+    search = new URLSearchParams('page=3');
+    const user = userEvent.setup();
+    mount();
+
+    await user.click(screen.getByText('Cao'));
+    expect(push).toHaveBeenLastCalledWith('/?priority=high', { scroll: true });
+  });
+
   it('marks "Tất cả ghi chú" current only on an unfiltered dashboard', () => {
     const { unmount } = mount();
     expect(screen.getByText('Tất cả ghi chú').closest('button')).toHaveAttribute('aria-current', 'page');

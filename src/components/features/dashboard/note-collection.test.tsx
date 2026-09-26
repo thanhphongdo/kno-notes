@@ -75,7 +75,7 @@ describe('NoteCollection', () => {
     const user = userEvent.setup();
     vi.stubGlobal('scrollTo', vi.fn());
     show([note('n1')], 14, 3, 1);
-    expect(screen.getByText('Hiển thị 1–6 trên 14')).toBeInTheDocument();
+    expect(screen.getByText('Hiển thị 1–10 trên 14')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Trang 2' }));
     expect(push).toHaveBeenCalledWith('/?page=2', { scroll: false });
   });
@@ -85,7 +85,7 @@ describe('NoteCollection', () => {
     vi.stubGlobal('scrollTo', vi.fn());
     search = new URLSearchParams('page=999');
     show([note('n1')], 14, 3, 1);
-    expect(screen.getByText('Hiển thị 1–6 trên 14')).toBeInTheDocument();
+    expect(screen.getByText('Hiển thị 1–10 trên 14')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Trang sau' }));
     expect(push).toHaveBeenCalledWith('/?page=2', { scroll: false });
   });

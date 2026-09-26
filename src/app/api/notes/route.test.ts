@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { DEFAULT_PAGE_SIZE } from '@/lib/types';
 
 const session = { current: null as null | { id: string; username: string; displayName: string } };
 vi.mock('@/lib/auth/session', () => ({
@@ -86,10 +87,10 @@ describe('POST + GET /api/notes', () => {
     expect(out.note.title).toBe(body.title);
   });
 
-  it('lists with the default page size of 6', async () => {
+  it(`lists with the default page size of ${DEFAULT_PAGE_SIZE}`, async () => {
     const out = await (await list()).json();
-    expect(out.pageSize).toBe(6);
-    expect(out.notes.length).toBeLessThanOrEqual(6);
+    expect(out.pageSize).toBe(DEFAULT_PAGE_SIZE);
+    expect(out.notes.length).toBeLessThanOrEqual(DEFAULT_PAGE_SIZE);
     expect(out.page).toBe(1);
   });
 

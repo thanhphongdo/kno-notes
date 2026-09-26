@@ -1,11 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { parseNoteFilters } from './query';
+import { DEFAULT_PAGE_SIZE } from '@/lib/types';
 
 const parse = (qs: string) => parseNoteFilters(new URL(`http://x/api/notes${qs}`).searchParams);
 
 describe('parseNoteFilters', () => {
-  it('defaults to all notes, updated sort, page 1, size 6', () => {
+  it(`defaults to all notes, updated sort, page 1, size ${DEFAULT_PAGE_SIZE}`, () => {
     expect(parse('')).toEqual({
       query: '',
       nav: 'all',
@@ -13,7 +14,7 @@ describe('parseNoteFilters', () => {
       tag: null,
       sort: 'updated',
       page: 1,
-      pageSize: 6,
+      pageSize: DEFAULT_PAGE_SIZE,
     });
   });
 
@@ -49,11 +50,11 @@ describe('parseNoteFilters', () => {
     expect(parse('?page=abc').page).toBe(1);
   });
 
-  it('clamps pageSize to 1..100 and defaults to 6', () => {
+  it(`clamps pageSize to 1..100 and defaults to ${DEFAULT_PAGE_SIZE}`, () => {
     expect(parse('?pageSize=12').pageSize).toBe(12);
-    expect(parse('?pageSize=0').pageSize).toBe(6);
+    expect(parse('?pageSize=0').pageSize).toBe(DEFAULT_PAGE_SIZE);
     expect(parse('?pageSize=5000').pageSize).toBe(100);
-    expect(parse('?pageSize=xyz').pageSize).toBe(6);
+    expect(parse('?pageSize=xyz').pageSize).toBe(DEFAULT_PAGE_SIZE);
   });
 
   it('passes the tag through untouched so display casing survives', () => {

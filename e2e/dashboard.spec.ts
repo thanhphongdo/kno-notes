@@ -135,9 +135,22 @@ test.describe('Dashboard', () => {
     await expect(page.locator('[data-note-card]').first()).toBeVisible();
   });
 
-  test('phân trang 6 mỗi trang, tiến và lùi, trang cuối hiện đúng khoảng', async ({ page }) => {
+  test(`phân trang ${PAGE_SIZE} mỗi trang, tiến và lùi, trang cuối hiện đúng khoảng`, async ({
+    page,
+  }) => {
+    // Cần ÍT NHẤT ba trang thì "trang giữa" mới là một trạng thái có thật.
+    // Dữ liệu mẫu không đủ cho mọi cỡ trang, nên test tự tạo phần còn thiếu
+    // thay vì phụ thuộc vào một con số có thể đổi.
     await page.goto('/');
-    const { total } = await listNotes(page);
+    let { total } = await listNotes(page);
+    for (let i = total; i < PAGE_SIZE * 2 + 1; i += 1) {
+      created.push(
+        await createNote(page, { title: `Ghi chú E2E phân trang ${i}`, desc: '', tags: [] }),
+      );
+    }
+    await page.goto('/');
+    ({ total } = await listNotes(page));
+
     const pageCount = Math.ceil(total / PAGE_SIZE);
     expect(pageCount, 'the seed needs at least three pages for this test').toBeGreaterThanOrEqual(3);
 

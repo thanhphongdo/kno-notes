@@ -8,6 +8,7 @@ import { GET, POST } from './route';
 import * as single from './[id]/route';
 import * as v1comments from './[id]/comments/route';
 import * as v1tags from '../tags/route';
+import { DEFAULT_PAGE_SIZE } from '@/lib/types';
 
 let cleanup: () => Promise<void>;
 let userA = '';
@@ -77,7 +78,7 @@ describe('bearer auth', () => {
     __resetRateLimits();
     const res = await GET(req('http://x/api/v1/notes', keyA));
     expect(res.status).toBe(200);
-    expect(await res.json()).toHaveProperty('pageSize', 6);
+    expect(await res.json()).toHaveProperty('pageSize', DEFAULT_PAGE_SIZE);
   });
 });
 

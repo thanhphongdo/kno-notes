@@ -261,4 +261,9 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
   low: 'Thấp',
 };
 
-export const DEFAULT_PAGE_SIZE = 6;
+/**
+ * Prototype phân trang 6; người dùng chọn 10 — lưới 3 cột thành hai hàng đầy
+ * và bớt một lần bấm trang. Đây là nguồn duy nhất: server, `/api/v1`, MCP và
+ * `PAGE_SIZE` phía điều hướng đều đọc từ đây.
+ */
+export const DEFAULT_PAGE_SIZE = 10;

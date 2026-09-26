@@ -22,7 +22,7 @@ describe('domain constants', () => {
   });
 
   it('defaults to 6 notes per page', () => {
-    expect(DEFAULT_PAGE_SIZE).toBe(6);
+    expect(DEFAULT_PAGE_SIZE).toBe(10);
   });
 
   it('accepts a fully-populated Note', () => {

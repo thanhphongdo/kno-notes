@@ -98,17 +98,29 @@ describe('nextFilters', () => {
 });
 
 describe('filtersTitle', () => {
-  it('mirrors the prototype precedence', () => {
+  it('names a single active facet exactly as the prototype does', () => {
     expect(filtersTitle({ ...DEFAULT_FILTERS, q: 'hen', tag: 'ECG' })).toBe('Kết quả tìm kiếm');
-    expect(filtersTitle({ ...DEFAULT_FILTERS, tag: 'ECG', priority: 'high' })).toBe('#ECG');
-    expect(filtersTitle({ ...DEFAULT_FILTERS, priority: 'medium', fav: true })).toBe('Ưu tiên trung bình');
+    expect(filtersTitle({ ...DEFAULT_FILTERS, tag: 'ECG' })).toBe('#ECG');
+    expect(filtersTitle({ ...DEFAULT_FILTERS, priority: 'medium' })).toBe('Ưu tiên trung bình');
     expect(filtersTitle({ ...DEFAULT_FILTERS, fav: true })).toBe('Yêu thích');
     expect(filtersTitle(DEFAULT_FILTERS)).toBe('Tất cả ghi chú');
+  });
+
+  it('names every active facet when several are combined', () => {
+    expect(filtersTitle({ ...DEFAULT_FILTERS, tag: 'ECG', priority: 'high' })).toBe(
+      '#ECG · Ưu tiên cao',
+    );
+    expect(filtersTitle({ ...DEFAULT_FILTERS, fav: true, priority: 'medium' })).toBe(
+      'Yêu thích · Ưu tiên trung bình',
+    );
+    expect(filtersTitle({ ...DEFAULT_FILTERS, fav: true, tag: 'ECG', priority: 'low' })).toBe(
+      'Yêu thích · #ECG · Ưu tiên thấp',
+    );
   });
 });
 
 describe('PAGE_SIZE', () => {
   it('matches the backend default page size', () => {
-    expect(PAGE_SIZE).toBe(6);
+    expect(PAGE_SIZE).toBe(10);
   });
 });

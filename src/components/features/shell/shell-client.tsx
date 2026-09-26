@@ -9,8 +9,10 @@ import {
 } from '@/components/shared';
 import { usePrefs } from '@/hooks/use-prefs';
 import { useIsMobile } from '@/hooks/use-is-mobile';
+import { useNoteFilters } from '@/hooks/use-note-filters';
 import { useTheme } from '@/components/providers/theme-provider';
-import { buildDashboardHref, loginPath, newNotePath } from '@/lib/nav/paths';
+import { loginPath, newNotePath } from '@/lib/nav/paths';
+import type { FilterPatch } from '@/lib/nav/filters';
 import type { ShellNavData } from './shell-data';
 import { KeyboardLayer } from './keyboard-layer';
 import { SearchContainer } from './search-container';
@@ -28,12 +30,16 @@ export type { ShellNavData } from './shell-data';
  *    a persisted pref; on mobile it is a drawer whose state is transient and
  *    must not follow the user back to their laptop. `useIsMobile()` picks.
  *  • `SidebarNavItem` takes `onClick`, not `href` (contracts §2.1), so each
- *    item calls `router.push()` with a URL built by `buildDashboardHref`.
+ *    item navigates through `useNoteFilters`, which MERGES the patch into the
+ *    filters already in the URL. Thẻ và mức ưu tiên vì thế lọc được cùng lúc;
+ *    bấm lại đúng mục đang bật thì chỉ tắt mục đó. "Tất cả ghi chú" là nút duy
+ *    nhất xoá sạch.
  */
 export function ShellClient({ data, children }: { data: ShellNavData; children: ReactNode }) {
   const router = useRouter();
   const navigate = useVerifiedNavigate();
   const params = useSearchParams();
+  const { setFilters, clearAll } = useNoteFilters();
   const isMobile = useIsMobile();
   const { prefs, setPrefs } = usePrefs();
   const { theme, setTheme, fontSize, setFontSize } = useTheme();
@@ -49,6 +55,21 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
   const hasQuery = Boolean(params.get('q'));
   const onDashboardRoot = !activeFav && !activePriority && !activeTag && !hasQuery;
 
+  /** Áp một mặt lọc, giữ nguyên những mặt đang bật. */
+  const applyFilter = useCallback(
+    (patch: FilterPatch) => {
+      setDrawerOpen(false);
+      setFilters(patch, { scroll: true });
+    },
+    [setFilters],
+  );
+
+  const showAll = useCallback(() => {
+    setDrawerOpen(false);
+    clearAll({ scroll: true });
+  }, [clearAll]);
+
+  /** Điều hướng thẳng (logo, "Ghi chú mới", đăng xuất) — không phải bộ lọc. */
   const go = useCallback(
     (href: string) => {
       setDrawerOpen(false);
@@ -94,7 +115,7 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
       drawerOpen={drawerOpen}
       isMobile={isMobile}
       onCollapse={collapseSidebar}
-      onBrandClick={() => go(buildDashboardHref({}))}
+      onBrandClick={showAll}
       user={data.user}
       onLogout={logout}
     >
@@ -103,13 +124,13 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
           label="Tất cả ghi chú"
           count={data.counts.all}
           active={onDashboardRoot}
-          onClick={() => go(buildDashboardHref({}))}
+          onClick={showAll}
         />
         <SidebarNavItem
           label="Yêu thích"
           count={data.counts.favorite}
           active={activeFav}
-          onClick={() => go(buildDashboardHref({ fav: true }))}
+          onClick={() => applyFilter({ fav: !activeFav })}
         />
       </SidebarSection>
 
@@ -122,9 +143,7 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
             count={data.counts[priority]}
             dotClassName={PRIORITY_CLASS[priority].dot}
             active={activePriority === priority}
-            onClick={() =>
-              go(buildDashboardHref({ priority: activePriority === priority ? null : priority }))
-            }
+            onClick={() => applyFilter({ priority: activePriority === priority ? null : priority })}
           />
         ))}
       </SidebarSection>
@@ -138,7 +157,7 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
             label={tag.name}
             count={tag.count}
             active={activeTag === tag.name}
-            onClick={() => go(buildDashboardHref({ tag: activeTag === tag.name ? null : tag.name }))}
+            onClick={() => applyFilter({ tag: activeTag === tag.name ? null : tag.name })}
           />
         ))}
       </SidebarSection>
