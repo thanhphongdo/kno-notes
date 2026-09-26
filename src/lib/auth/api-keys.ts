@@ -52,7 +52,7 @@ export async function revokeApiKey(userId: string, id: string): Promise<void> {
   const deleted = await db
     .delete(apiKeys)
     .where(and(eq(apiKeys.userId, userId), eq(apiKeys.id, id)))
-    .returning({ id: apiKeys.id });
+    .returning();
   if (!deleted.length) throw new HttpError(404, 'NOT_FOUND', 'Không tìm thấy API key.');
 }
 
