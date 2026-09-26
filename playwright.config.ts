@@ -73,7 +73,9 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
-  outputDir: 'test-results',
+  // Playwright clears outputDir at the start of every run, so two slots
+  // sharing it delete each other's artifacts mid-run.
+  outputDir: SLOT ? `test-results-${SLOT}` : 'test-results',
 
   use: {
     baseURL,

@@ -69,7 +69,7 @@ export function DetailActions({
           {`Cập nhật ${updatedLabel} · `}
           <span className="font-mono">{versionLabel}</span>
         </div>
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-6">
           <Button variant="secondary" onClick={() => void toggleFav()} disabled={disabled}>
             <Icon name="star" size={16} filled={fav} className={fav ? 'text-med' : 'text-muted'} />
             {fav ? 'Đã yêu thích' : 'Yêu thích'}

@@ -47,3 +47,6 @@ yarn-error.log*
 # parallel e2e slots (per-agent db data dir + build output)
 .data-test-*/
 .next-e2e*/
+
+# per-slot playwright artifacts
+test-results-*/

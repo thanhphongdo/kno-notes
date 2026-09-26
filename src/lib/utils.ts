@@ -22,6 +22,14 @@ const ROUNDED_GROUPS = [
 ] as const;
 
 const twMerge = extendTailwindMerge({
+  override: {
+    // Stock tailwind-merge makes `font-size` evict `leading-*`, because
+    // Tailwind's `text-lg/7` shorthand sets both. We never use that shorthand
+    // (verified across src/), and our sizes are literal pixels, so the rule
+    // only ever silently drops a line-height — it rendered the quiz question
+    // at 1.5 instead of the 1.35 the design spec requires.
+    conflictingClassGroups: { 'font-size': [] },
+  },
   extend: {
     classGroups: {
       'font-size': [{ text: TEXT_SCALE }],

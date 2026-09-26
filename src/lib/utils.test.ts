@@ -38,3 +38,25 @@ describe('cn', () => {
     expect(cn('border-line', 'border-accent')).toBe('border-accent');
   });
 });
+
+describe('cn keeps line-height alongside our pixel font sizes', () => {
+  it('does not let a later text-<n> evict an earlier leading-[…]', () => {
+    // Regression: the quiz question rendered at line-height 1.5 instead of the
+    // 1.35 the design spec requires, because tailwind-merge treats `font-size`
+    // as conflicting with `leading` (Tailwind's `text-lg/7` shorthand sets
+    // both). We never use that shorthand, so the rule is pure downside.
+    const out = cn('font-serif leading-[1.35] tracking-[-.01em]', 'text-28');
+    expect(out).toContain('leading-[1.35]');
+    expect(out).toContain('text-28');
+  });
+
+  it('still lets an explicit leading win over an earlier leading', () => {
+    expect(cn('leading-[1.35]', 'leading-[1.72]')).toBe('leading-[1.72]');
+  });
+
+  it('still de-duplicates the scales it was taught', () => {
+    expect(cn('rounded-9', 'rounded-8')).toBe('rounded-8');
+    expect(cn('text-muted', 'text-13')).toBe('text-muted text-13');
+    expect(cn('text-17', 'text-28')).toBe('text-28');
+  });
+});
