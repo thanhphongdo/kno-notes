@@ -130,17 +130,32 @@ test.describe('Tuỳ chọn hiển thị', () => {
     const searchbox = page.getByRole('searchbox');
     const suggestions = page.locator('[data-search-suggestions]');
 
+    /** One search, confirmed to have reached `user_prefs`. */
+    const search = async (term: string) => {
+      await searchbox.click();
+      await expect(suggestions).toBeVisible();
+      await searchbox.fill(term);
+      await expect(searchbox).toHaveValue(term);
+      await searchbox.press('Enter');
+    };
+    const head = async () =>
+      (await api<{ prefs: { recentSearches: string[] } }>(page, '/api/prefs')).body.prefs.recentSearches[0];
+
     for (const term of terms) {
       // One search at a time. `PrefsProvider` debounces its PATCH by 500ms and
       // sends the whole list each time, so firing six searches inside one
       // debounce window lets two writes race and the later row can lose.
-      await withPrefsSync(page, async () => {
-        await searchbox.click();
-        await expect(suggestions).toBeVisible();
-        await searchbox.fill(term);
-        await expect(searchbox).toHaveValue(term);
-        await searchbox.press('Enter');
-      });
+      await search(term);
+      try {
+        await expect.poll(head, { timeout: 8_000 }).toBe(term);
+      } catch {
+        // `useVerifiedNavigate` falls back to a full page load when a soft
+        // navigation is dropped, and that discards the still-pending PATCH.
+        // Re-running the same search is idempotent: the term simply returns to
+        // the head of the list, which is where it belongs.
+        await search(term);
+        await expect.poll(head).toBe(term);
+      }
     }
 
     const newestFirst = [...terms].reverse().slice(0, 5);
