@@ -501,8 +501,32 @@ lived in the interaction between React 19's prop diffing and a live DOM `Range`.
 Two more — invisible list markers and a 27px horizontal scroll on mobile — were
 the kind of thing that only a screenshot review catches.
 
-One product bug remains open and is **not** visual: `router.push` / `router.replace`
-called from an event handler that also queues React state updates is dropped
-roughly 20–70% of the time, which makes Enter in the search box, the tag chips,
-and the grid/list toggle intermittently do nothing. It is tracked separately and
-`e2e/search.spec.ts` asserts the correct behaviour rather than working around it.
+A sixth bug surfaced during the review and is **not** visual, so it is not in the
+table above, but it is recorded here because these screenshots are how it was
+first caught. `router.push` / `router.replace` called from an event handler that
+has already queued React state updates was dropped outright 20–70% of the time —
+the router was called with the correct href and `history.pushState` /
+`replaceState` never fired. Enter in the search box, the tag chips and the
+grid/list toggle intermittently did nothing, while the term was still saved to
+"Tìm gần đây", so the app looked like it had reacted and then went nowhere.
+
+A successful navigation lands in 9–28 ms and a dropped one never lands at all, so
+it is not latency. The one control that never failed is a real `<Link>`, which
+takes no state update first — which places the trigger in the
+state-update-then-navigate shape rather than in the router. `<Link>` prefetching,
+the debounced prefs write, `flushSync`, requesting the navigation from an effect,
+a single `startTransition` around the whole handler, and hydration timing were
+each measured and ruled out; two of them made it worse.
+
+**Fixed** by `useVerifiedNavigate()` in `src/lib/nav/navigate.ts`, used by
+`useNoteFilters`: it issues the navigation, then checks whether the URL actually
+changed and re-issues with escalating backoff (100/200/400/800/1200 ms) until it
+has, stopping as soon as the URL matches. Measured 40/40 twice under the load
+that previously gave 22–27/40.
+
+That wrapper is deliberate, not a leftover. The underlying defect is upstream, in
+how Next commits a navigation inside a React transition, so there is nothing in
+this codebase left to fix; the wrapper is the containment and should stay until
+the upstream behaviour changes. `e2e/search.spec.ts` asserts the correct
+behaviour directly, with no `test.fail()` and no retry workaround, so it will
+report honestly if the wrapper ever stops being enough.

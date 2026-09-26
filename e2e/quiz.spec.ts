@@ -297,8 +297,11 @@ test.describe('trắc nghiệm — đường AI', () => {
 
     // Key `1` picks option A every time and the stub's answers are
     // [0, 1, 2, 3, 0], so exactly questions 1 and 5 are right: 2/5 = 40%.
-    await expect(page.getByText('2/5', { exact: true })).toBeVisible();
-    await expect(page.getByText('40% · Nên đọc lại ghi chú')).toBeVisible();
+    // Scoped to the dialog: an earlier run of this test leaves a `2/5` attempt
+    // in the rail behind the modal, and an unscoped match would find both.
+    const result = dialog(page);
+    await expect(result.getByText('2/5', { exact: true })).toBeVisible();
+    await expect(result.getByText('40% · Nên đọc lại ghi chú')).toBeVisible();
 
     await page.getByRole('button', { name: 'Về ghi chú' }).click();
     await expect(page.locator('[data-quiz-history-item]')).toHaveCount(before + 1);
