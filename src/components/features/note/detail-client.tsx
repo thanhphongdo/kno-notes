@@ -7,6 +7,7 @@ import {
   HighlightPopup, ImageGrid, Lightbox, PriorityPill, Prose, SectionLabel, TagChip, VersionBanner,
 } from '@/components/shared';
 import { Icon, useToast } from '@/components/ui';
+import { QuizController } from '@/components/features/quiz/quiz-controller';
 import { useHighlight } from '@/hooks/use-highlight';
 import { fmt, rel } from '@/lib/text';
 import type { Note, NoteImage } from '@/lib/types';
@@ -32,6 +33,7 @@ export function DetailClient({ data }: { data: DetailViewData }) {
   const router = useRouter();
   const { flash } = useToast();
   const [lightbox, setLightbox] = useState<{ images: NoteImage[]; index: number } | null>(null);
+  const [quiz, setQuiz] = useState<{ reviewId: string | null } | null>(null);
   const highlight = useHighlight({ noteId: note.id, content: shownContent, disabled: viewingOld });
 
   const selected = note.versions.find((v) => v.v === selectedVersion);
@@ -96,7 +98,7 @@ export function DetailClient({ data }: { data: DetailViewData }) {
             updatedLabel={rel(note.updated)}
             versionLabel={`v${latestVersion}`}
             disabled={viewingOld}
-            onStartQuiz={() => undefined}
+            onStartQuiz={() => setQuiz({ reviewId: null })}
           />
 
           {viewingOld && selected ? (
@@ -138,10 +140,22 @@ export function DetailClient({ data }: { data: DetailViewData }) {
           highlights={highlight.items}
           onRemoveHighlight={highlight.remove}
           words={words}
-          onStartQuiz={() => undefined}
-          onOpenQuizAttempt={() => undefined}
+          onStartQuiz={() => setQuiz({ reviewId: null })}
+          onOpenQuizAttempt={(reviewId) => setQuiz({ reviewId })}
         />
       </div>
+
+      {quiz ? (
+        <QuizController
+          // Remounting is what re-runs the state machine for a new mode.
+          key={quiz.reviewId ?? 'new'}
+          noteId={note.id}
+          noteTitle={note.title}
+          attempts={note.quizzes}
+          reviewAttemptId={quiz.reviewId}
+          onClose={() => setQuiz(null)}
+        />
+      ) : null}
 
       {highlight.popup ? (
         <HighlightPopup
