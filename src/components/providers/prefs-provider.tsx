@@ -41,17 +41,29 @@ export function PrefsProvider({ initial = DEFAULT_PREFS, sync = false, children 
   const [prefs, setState] = useState<ClientPrefs>(initial);
   const pending = useRef<Partial<ClientPrefs>>({});
 
+  // Writes are chained rather than fired in parallel. Two PATCHes in flight can
+  // be applied out of order by the server, and the later one carries the newer
+  // recentSearches list — losing a term and scrambling the order. Chaining costs
+  // nothing here (one request per 500 ms burst) and makes the order exact.
+  const inFlight = useRef<Promise<unknown>>(Promise.resolve());
+
   const flush = useDebouncedCallback(() => {
     const patch = pending.current;
     pending.current = {};
     if (!sync || Object.keys(patch).length === 0) return;
-    void fetch('/api/prefs', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    }).catch(() => {
-      /* best-effort: the cookie already carries the value */
-    });
+    inFlight.current = inFlight.current
+      .catch(() => {
+        /* a failed write must not stall the ones behind it */
+      })
+      .then(() =>
+        fetch('/api/prefs', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(patch),
+        }).catch(() => {
+          /* best-effort: the cookie already carries the value */
+        }),
+      );
   }, PREFS_SYNC_DEBOUNCE_MS);
 
   const commit = useCallback(
