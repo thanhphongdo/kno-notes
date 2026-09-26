@@ -3,8 +3,10 @@ import { eq } from 'drizzle-orm';
 import { db, noteIndex } from '@/lib/db';
 import { getStorage } from '@/lib/storage';
 import { stripHtml } from '@/lib/text/server';
-import type { Note } from '@/lib/types';
+import type { Note, Priority, SearchDoc } from '@/lib/types';
 import { computeContentSha } from './index-sync';
+
+export type { SearchDoc };
 
 /**
  * Trình duyệt chỉ nhúng khoảng 512 token đầu (e5-small), nên gửi nhiều hơn
@@ -13,18 +15,6 @@ import { computeContentSha } from './index-sync';
 export const PLAIN_MAX = 2000;
 
 const MAX_NOTES = 5000;
-
-/** part-0-contracts §3.1 — sáu trường, không hơn không kém. */
-export interface SearchDoc {
-  noteId: string;
-  title: string;
-  desc: string;
-  tags: string[];
-  /** sha256 của `title \n desc \n tags.join(',') \n plain` — xem computeContentSha. */
-  contentSha: string;
-  /** stripHtml(content) đã bỏ `<mark>`, cắt còn PLAIN_MAX ký tự. */
-  plain: string;
-}
 
 /**
  * Bỏ thẻ `<mark>` GIỐNG HỆT `computeContentSha`, rồi strip HTML và cắt.
@@ -40,8 +30,14 @@ export function plainFor(note: Note): string {
  * Hàng index còn sót nhưng file đã mất thì bị bỏ qua, không ném.
  */
 export async function buildSearchDocs(userId: string): Promise<SearchDoc[]> {
+  // `priority` và `updated_at` đã nằm sẵn trong note_index — lấy luôn ở đây,
+  // không tốn thêm truy vấn, và UI gợi ý mới vẽ đúng chấm ưu tiên.
   const rows = await db
-    .select({ noteId: noteIndex.noteId })
+    .select({
+      noteId: noteIndex.noteId,
+      priority: noteIndex.priority,
+      updatedAt: noteIndex.updatedAt,
+    })
     .from(noteIndex)
     .where(eq(noteIndex.userId, userId))
     .limit(MAX_NOTES);
@@ -49,13 +45,16 @@ export async function buildSearchDocs(userId: string): Promise<SearchDoc[]> {
   const storage = getStorage();
   const loaded = await Promise.all(rows.map((r) => storage.readNote(userId, r.noteId)));
 
-  return loaded
-    .filter((n): n is Note => n !== null)
-    .map((n) => ({
+  return rows
+    .map((row, i) => ({ row, note: loaded[i] }))
+    .filter((pair): pair is { row: (typeof rows)[number]; note: Note } => pair.note != null)
+    .map(({ row, note: n }) => ({
       noteId: n.id,
       title: n.title,
       desc: n.desc,
       tags: n.tags,
+      priority: row.priority as Priority,
+      updated: row.updatedAt.toISOString(),
       contentSha: computeContentSha(n),
       plain: plainFor(n),
     }));

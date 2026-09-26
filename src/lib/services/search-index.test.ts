@@ -36,16 +36,32 @@ describe('buildSearchDocs', () => {
     expect(await buildSearchDocs(userB)).toEqual([]);
   });
 
-  it('emits exactly the six contract fields per note', async () => {
+  it('emits exactly the eight contract fields per note', async () => {
     const { note } = await createNote(userA, base);
     const docs = await buildSearchDocs(userA);
     const doc = docs.find((d) => d.noteId === note.id)!;
     expect(Object.keys(doc).sort()).toEqual(
-      ['contentSha', 'desc', 'noteId', 'plain', 'tags', 'title'].sort(),
+      ['contentSha', 'desc', 'noteId', 'plain', 'priority', 'tags', 'title', 'updated'].sort(),
     );
     expect(doc.title).toBe(base.title);
     expect(doc.desc).toBe(base.desc);
     expect(doc.tags).toEqual(['Tim mạch', 'Phác đồ']);
+  });
+
+  it('carries the priority and the updated timestamp the suggestion row needs', async () => {
+    const { note } = await createNote(userA, base);
+    const doc = (await buildSearchDocs(userA)).find((d) => d.noteId === note.id)!;
+    const stored = await getNote(userA, note.id);
+    expect(doc.priority).toBe('high');
+    expect(doc.updated).toBe(stored.updated);
+    expect(doc.updated).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('tracks a priority change on the next build', async () => {
+    const { note } = await createNote(userA, base);
+    await updateNote(userA, note.id, { ...base, priority: 'low' });
+    const doc = (await buildSearchDocs(userA)).find((d) => d.noteId === note.id)!;
+    expect(doc.priority).toBe('low');
   });
 
   it('strips HTML into readable plain text', async () => {

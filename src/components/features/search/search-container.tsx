@@ -8,7 +8,7 @@ import { useNoteFilters } from '@/hooks/use-note-filters';
 import { useSemanticSearch } from '@/hooks/use-semantic-search';
 import { hybridRank, isTagQuery, tagNeedle } from '@/lib/search';
 import { notePath } from '@/lib/nav/paths';
-import { norm } from '@/lib/text';
+import { norm, rel } from '@/lib/text';
 
 /** Long enough that a fast typist embeds once, short enough to feel live. */
 export const QUERY_DEBOUNCE_MS = 180;
@@ -115,15 +115,16 @@ export function SearchContainer({ tags, isMobile, inputRef, open, onOpenChange }
   }, [q, tags]);
 
   const suggestionNotes = useMemo<SuggestionNote[]>(() => {
+    // Idle is "Mở gần đây": newest first, four of them, exactly like the
+    // prototype's `sugSrc`. Typing hands the order to the ranker.
     const ranked = q
       ? hybridRank({ query: q, docs, vectors, queryVector, maxResults: NOTES_TYPING })
-      : docs.slice(0, NOTES_IDLE);
+      : [...docs].sort((a, b) => b.updated.localeCompare(a.updated)).slice(0, NOTES_IDLE);
     return ranked.map((doc) => ({
       id: doc.noteId,
       title: doc.title,
-      // `SearchDoc` carries no priority or timestamp, so the row shows its tags.
-      sub: doc.tags.map((t) => `#${t}`).join(' '),
-      priority: 'medium' as const,
+      sub: `${doc.tags.map((t) => `#${t}`).join(' ')} · ${rel(doc.updated)}`,
+      priority: doc.priority,
     }));
   }, [docs, q, queryVector, vectors]);
 

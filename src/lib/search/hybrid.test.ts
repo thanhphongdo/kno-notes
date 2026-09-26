@@ -87,7 +87,7 @@ describe('hybridRank', () => {
   });
 
   it('accepts SearchDoc and preserves the extra fields', () => {
-    const docs: SearchDoc[] = [{ noteId: 'n2', title: 'Đọc ECG trong 10 bước', desc: '', tags: ['ECG'], contentSha: 'sha2', plain: 'body' }];
+    const docs: SearchDoc[] = [{ noteId: 'n2', title: 'Đọc ECG trong 10 bước', desc: '', tags: ['ECG'], priority: 'medium', updated: '2026-02-14T12:00:00.000Z', contentSha: 'sha2', plain: 'body' }];
     const ranked = hybridRank({ query: 'ECG', docs, vectors: null, queryVector: null });
     expect(ranked[0]!.contentSha).toBe('sha2');
   });

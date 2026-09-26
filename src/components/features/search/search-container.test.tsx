@@ -19,8 +19,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 const items: SearchDoc[] = [
-  { noteId: 'n1', title: 'Xử trí sốc phản vệ', desc: 'Adrenalin', tags: ['Cấp cứu'], contentSha: 's1', plain: '' },
-  { noteId: 'n2', title: 'Đọc ECG trong 10 bước', desc: 'Trình tự', tags: ['ECG'], contentSha: 's2', plain: '' },
+  { noteId: 'n1', title: 'Xử trí sốc phản vệ', desc: 'Adrenalin', tags: ['Cấp cứu'], priority: 'high', updated: '2026-01-05T12:00:00.000Z', contentSha: 's1', plain: '' },
+  { noteId: 'n2', title: 'Đọc ECG trong 10 bước', desc: 'Trình tự', tags: ['ECG'], priority: 'low', updated: '2026-02-14T12:00:00.000Z', contentSha: 's2', plain: '' },
+  { noteId: 'n3', title: 'Kháng sinh dự phòng', desc: 'Liều nạp', tags: ['Nhiễm khuẩn'], priority: 'medium', updated: '2026-03-02T12:00:00.000Z', contentSha: 's3', plain: '' },
+  { noteId: 'n4', title: 'Bù dịch sốt xuất huyết', desc: 'Dịch truyền', tags: ['Nhi'], priority: 'high', updated: '2026-04-09T12:00:00.000Z', contentSha: 's4', plain: '' },
+  { noteId: 'n5', title: 'Hồi sức ngừng tuần hoàn', desc: 'Ép tim', tags: ['Hồi sức'], priority: 'low', updated: '2026-05-21T12:00:00.000Z', contentSha: 's5', plain: '' },
 ];
 
 let semantic: SemanticSearch;
@@ -106,6 +109,38 @@ describe('SearchContainer', () => {
     expect(screen.queryByText('Xử trí sốc phản vệ')).toBeNull();
     expect(screen.getByText('Ghi chú khớp')).toBeInTheDocument();
     expect(semantic.embedQuery).not.toHaveBeenCalled();
+  });
+
+  it('draws the real priority dot and the "#tag · rel(updated)" sub-line', async () => {
+    const user = userEvent.setup();
+    show();
+    await user.click(screen.getByRole('searchbox'));
+    await user.type(screen.getByRole('searchbox'), 'ECG');
+    const row = (await screen.findByText('Đọc ECG trong 10 bước')).closest('button')!;
+    expect(row.querySelector('[aria-hidden="true"]')!.className).toContain('bg-low');
+    expect(row.querySelector('[aria-hidden="true"]')!.className).not.toContain('bg-med');
+    expect(screen.getByText('#ECG · 14/02/2026')).toBeInTheDocument();
+  });
+
+  it('lists the four most recently updated notes while idle, newest first', async () => {
+    const user = userEvent.setup();
+    show();
+    await user.click(screen.getByRole('searchbox'));
+    await screen.findByText('Mở gần đây');
+    const titles = [
+      'Hồi sức ngừng tuần hoàn',
+      'Bù dịch sốt xuất huyết',
+      'Kháng sinh dự phòng',
+      'Đọc ECG trong 10 bước',
+    ];
+    for (const title of titles) expect(screen.getByText(title)).toBeInTheDocument();
+    expect(screen.queryByText('Xử trí sốc phản vệ')).toBeNull();
+    const rendered = titles.map((t) => screen.getByText(t));
+    for (let i = 1; i < rendered.length; i += 1) {
+      expect(
+        rendered[i - 1]!.compareDocumentPosition(rendered[i]!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
   });
 
   it('shows the prototype empty line when nothing matches', async () => {

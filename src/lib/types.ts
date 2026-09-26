@@ -141,6 +141,26 @@ export interface NoteIndexRow {
   contentSha: string | null;
 }
 
+/**
+ * Một hàng của `GET /api/search/index` — đủ để xếp hạng, nhúng vector và vẽ
+ * đúng dòng gợi ý của prototype (chấm ưu tiên + `#thẻ · rel(updated)`).
+ * Bản sao cấu trúc y hệt nằm ở `src/lib/search/types.ts` (search core đứng
+ * độc lập, không import domain type).
+ */
+export interface SearchDoc {
+  noteId: string;
+  title: string;
+  desc: string;
+  tags: string[];
+  priority: Priority;
+  /** ISO-8601 — dòng phụ của gợi ý và thứ tự "Mở gần đây". */
+  updated: string;
+  /** sha của `title \n desc \n tags.join(',') \n plain`, đã bỏ `<mark>`. */
+  contentSha: string;
+  /** Nội dung đã strip HTML, server cắt còn ~2000 ký tự. */
+  plain: string;
+}
+
 export interface UserPrefs {
   userId: string;
   theme: 'light' | 'dark';

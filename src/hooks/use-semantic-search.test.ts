@@ -40,8 +40,8 @@ class FakeEmbedder {
 const vec = (n: number) => Float32Array.from([n, 0, 0]);
 
 const items: SearchDoc[] = [
-  { noteId: 'n1', title: 'Sốc phản vệ', desc: 'Adrenalin', tags: ['Cấp cứu'], contentSha: 's1', plain: 'a' },
-  { noteId: 'n2', title: 'Đọc ECG', desc: 'Trình tự', tags: ['ECG'], contentSha: 's2', plain: 'b' },
+  { noteId: 'n1', title: 'Sốc phản vệ', desc: 'Adrenalin', tags: ['Cấp cứu'], priority: 'high', updated: '2026-01-05T12:00:00.000Z', contentSha: 's1', plain: 'a' },
+  { noteId: 'n2', title: 'Đọc ECG', desc: 'Trình tự', tags: ['ECG'], priority: 'low', updated: '2026-02-14T12:00:00.000Z', contentSha: 's2', plain: 'b' },
 ];
 
 const okFetch = () =>

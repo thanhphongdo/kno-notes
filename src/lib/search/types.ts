@@ -1,11 +1,10 @@
 /**
  * Structural types for the client-side search core.
  *
- * TODO(integration): these are declared locally on purpose — the backend agent
- * owns the canonical domain types in `src/lib/types.ts`. Once that file exists,
- * the app agent should re-point `SearchDoc` / `SearchIndexResponse` at it and
- * delete the local copies (they are intentionally structurally identical, so
- * the swap is a one-line import change).
+ * These are declared locally on purpose: the search core is standalone and
+ * never imports the domain types. `SearchDoc` / `SearchIndexResponse` are kept
+ * structurally identical to `src/lib/types.ts` by hand — change one, change the
+ * other, or `GET /api/search/index` and the ranker drift apart silently.
  */
 
 /** One row of `GET /api/search/index` — everything needed to rank and embed a note. */
@@ -14,6 +13,10 @@ export interface SearchDoc {
   title: string;
   desc: string;
   tags: string[];
+  /** Drives the coloured dot on a suggestion row. */
+  priority: 'high' | 'medium' | 'low';
+  /** ISO-8601 — the `rel()` half of the sub-line, and the idle sort key. */
+  updated: string;
   /** sha over `title \n desc \n tags.join(',') \n plain`, with `<mark>` stripped. */
   contentSha: string;
   /** HTML-stripped body, already truncated to ~2000 chars by the server. */
