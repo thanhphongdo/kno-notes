@@ -200,8 +200,9 @@ export function toggleScale(scale: number): number {
 }
 
 /**
- * Scrim opacity while a dismissal drag is in flight. Stays readable — the
- * image never fades to nothing before the finger is lifted.
+ * How much of the scrim survives while a dismissal drag is in flight, as a
+ * factor of its usual alpha. It never reaches zero: the image has to stay
+ * legible against the page until the finger is actually lifted.
  */
 export function dismissOpacity(dy: number, viewportHeight: number): number {
   if (dy <= 0 || viewportHeight <= 0) return 1;

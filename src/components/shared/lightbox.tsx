@@ -456,6 +456,10 @@ export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProp
   if (isMobile) {
     const offsets: readonly number[] = total > 1 ? [-1, 0, 1] : [0];
     const viewportHeight = typeof window === 'undefined' ? 0 : window.innerHeight;
+    // Pulling down fades the *scrim*, not the photograph: the page coming back
+    // into view is the feedback, and an image that greys out mid-gesture only
+    // looks broken. Same colour as the class below, scaled alpha.
+    const scrim = dismissOpacity(drag.y, viewportHeight);
 
     return (
       <div
@@ -465,7 +469,11 @@ export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProp
         data-lightbox=""
         data-lightbox-mobile=""
         className="fixed inset-0 flex touch-none select-none flex-col overscroll-contain bg-[rgba(8,9,10,.88)]"
-        style={{ zIndex: Z.lightbox, height: '100dvh', opacity: dismissOpacity(drag.y, viewportHeight) }}
+        style={{
+          zIndex: Z.lightbox,
+          height: '100dvh',
+          backgroundColor: scrim < 1 ? `rgba(8,9,10,${(0.88 * scrim).toFixed(3)})` : undefined,
+        }}
       >
         <div
           ref={stageRef}
