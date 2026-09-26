@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  collectHighlights, newHighlightId, rangeIntersectsNode, unwrapHl, wrapRange,
+  newHighlightId, rangeIntersectsNode, unwrapHl, wrapRange,
 } from './range';
 
 function mount(html: string): HTMLDivElement {
@@ -93,22 +93,6 @@ describe('unwrapHl', () => {
   });
 });
 
-describe('collectHighlights', () => {
-  it('joins the fragments of one highlight, in document order, collapsing whitespace', () => {
-    const html =
-      '<p>x <mark data-hl="h1">hai</mark></p><p><mark data-hl="h1">  Ba </mark></p><p><mark data-hl="h2">z</mark></p>';
-    expect(collectHighlights(html)).toEqual([
-      { id: 'h1', text: 'hai Ba' },
-      { id: 'h2', text: 'z' },
-    ]);
-  });
-
-  it('returns an empty array for content without highlights', () => {
-    expect(collectHighlights('<p>plain</p>')).toEqual([]);
-    expect(collectHighlights('')).toEqual([]);
-  });
-});
-
 describe('rangeIntersectsNode', () => {
   it('is true for a node inside the range and false for one outside', () => {
     const root = mount('<p id="a">one</p><p id="b">two</p>');
@@ -122,40 +106,5 @@ describe('rangeIntersectsNode', () => {
 describe('newHighlightId', () => {
   it('is "h" plus the timestamp', () => {
     expect(newHighlightId(1758700000000)).toBe('h1758700000000');
-  });
-});
-
-describe('collectHighlights runs without a DOM', () => {
-  it('produces the same result when DOMParser is missing (SSR)', () => {
-    const html = '<p>a <mark data-hl="h1">one</mark> b <mark data-hl="h1">two</mark></p>';
-    const saved = globalThis.DOMParser;
-    // @ts-expect-error - simulating the Node server runtime, which has no DOMParser
-    delete globalThis.DOMParser;
-    try {
-      expect(collectHighlights(html)).toEqual([{ id: 'h1', text: 'one two' }]);
-    } finally {
-      globalThis.DOMParser = saved;
-    }
-  });
-
-  it('decodes entities and strips inline tags the way textContent would', () => {
-    expect(collectHighlights('<mark data-hl="h1">a &amp; b</mark>')).toEqual([
-      { id: 'h1', text: 'a & b' },
-    ]);
-    expect(collectHighlights('<mark data-hl="h1">liều <strong>0,5</strong> mg</mark>')).toEqual([
-      { id: 'h1', text: 'liều 0,5 mg' },
-    ]);
-    expect(collectHighlights('<mark data-hl="h1">&#60;ECG&#62; &#x2014; ok</mark>')).toEqual([
-      { id: 'h1', text: '<ECG> — ok' },
-    ]);
-  });
-
-  it('keeps first-seen order across interleaved ids', () => {
-    const html =
-      '<mark data-hl="b">B1</mark><mark data-hl="a">A1</mark><mark data-hl="b">B2</mark>';
-    expect(collectHighlights(html)).toEqual([
-      { id: 'b', text: 'B1 B2' },
-      { id: 'a', text: 'A1' },
-    ]);
   });
 });

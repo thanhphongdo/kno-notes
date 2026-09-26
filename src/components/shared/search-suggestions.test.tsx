@@ -115,3 +115,39 @@ describe('SearchSuggestions', () => {
     expect(screen.getByRole('button', { name: /Xem tất cả kết quả cho/ }).className).toContain('h-52');
   });
 });
+
+describe('SearchSuggestions — marked passages', () => {
+  const withHighlight = {
+    ...BASE,
+    query: 'kẻ ngang',
+    notesTitle: 'Ghi chú khớp',
+    notes: [
+      {
+        id: 'n9',
+        title: 'Chuỗi xung cơ bản trên MRI',
+        sub: '#Chẩn đoán hình ảnh · hôm qua',
+        priority: 'high' as const,
+        highlight: 'toàn bộ chiều sâu là các đường kẻ ngang song song',
+      },
+    ],
+  };
+
+  it('shows the marked passage that made the note match', () => {
+    render(<SearchSuggestions {...withHighlight} />);
+    expect(
+      screen.getByText('toàn bộ chiều sâu là các đường kẻ ngang song song'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders it as a highlight, so it reads like the rail', () => {
+    const { container } = render(<SearchSuggestions {...withHighlight} />);
+    const snippet = container.querySelector('[data-highlight-snippet]');
+    expect(snippet).not.toBeNull();
+    expect(snippet).toHaveClass('bg-hl');
+  });
+
+  it('omits the line entirely when nothing was marked', () => {
+    const { container } = render(<SearchSuggestions {...BASE} />);
+    expect(container.querySelector('[data-highlight-snippet]')).toBeNull();
+  });
+});

@@ -36,12 +36,12 @@ describe('buildSearchDocs', () => {
     expect(await buildSearchDocs(userB)).toEqual([]);
   });
 
-  it('emits exactly the eight contract fields per note', async () => {
+  it('emits exactly the nine contract fields per note', async () => {
     const { note } = await createNote(userA, base);
     const docs = await buildSearchDocs(userA);
     const doc = docs.find((d) => d.noteId === note.id)!;
     expect(Object.keys(doc).sort()).toEqual(
-      ['contentSha', 'desc', 'noteId', 'plain', 'priority', 'tags', 'title', 'updated'].sort(),
+      ['contentSha', 'desc', 'highlights', 'noteId', 'plain', 'priority', 'tags', 'title', 'updated'].sort(),
     );
     expect(doc.title).toBe(base.title);
     expect(doc.desc).toBe(base.desc);
@@ -98,6 +98,14 @@ describe('buildSearchDocs', () => {
     const after = (await buildSearchDocs(userA)).find((d) => d.noteId === note.id)!;
     expect(after.plain).toBe(before.plain);
     expect(after.contentSha).toBe(before.contentSha);
+    // ...but the passage itself must reach the browser, or it cannot be found.
+    expect(after.highlights).toEqual(['HA phòng khám ≥ 140/90 mmHg.']);
+  });
+
+  it('ships an empty highlight list for a note with nothing marked', async () => {
+    const { note } = await createNote(userA, base);
+    const doc = (await buildSearchDocs(userA)).find((d) => d.noteId === note.id)!;
+    expect(doc.highlights).toEqual([]);
   });
 
   it(`truncates plain to ${PLAIN_MAX} characters`, async () => {

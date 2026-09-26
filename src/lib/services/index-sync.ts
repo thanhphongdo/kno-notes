@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, noteIndex, tags, type NoteIndexDbRow } from '@/lib/db';
-import { norm, slugify } from '@/lib/text';
+import { highlightTexts, norm, slugify } from '@/lib/text';
 import { stripHtml } from '@/lib/text/server';
 import type { Note, NoteSummary, Priority } from '@/lib/types';
 
@@ -54,6 +54,10 @@ export function derivedIndexValues(note: Note) {
     commentCount: note.comments.length,
     quizCount: note.quizzes.length,
     contentSha: computeContentSha(note),
+    // Đánh dấu KHÔNG làm đổi contentSha (embedding vẫn hợp lệ) nhưng PHẢI làm
+    // đổi cột này, nếu không đoạn vừa bôi sẽ không tìm được cho tới lần sửa
+    // nội dung kế tiếp.
+    highlights: highlightTexts(note.content),
   };
 }
 

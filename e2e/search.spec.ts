@@ -422,3 +422,51 @@ test.describe('desktop giữ nguyên panel neo dưới ô tìm kiếm', () => {
     expect(await page.evaluate(() => getComputedStyle(document.body).position)).not.toBe('fixed');
   });
 });
+
+/**
+ * Tìm theo đoạn đã đánh dấu.
+ *
+ * Ghi chú seed `n1` có một đoạn được bôi: "Ưu tiên viên phối hợp liều cố định
+ * để cải thiện tuân thủ." Cụm đó KHÔNG có trong tiêu đề, mô tả hay thẻ — nên
+ * nếu tìm ra được thì chỉ có thể nhờ đoạn đánh dấu. Chạy với embedder tắt, nên
+ * đây là đường keyword thuần, không phải may mắn của vector.
+ */
+test.describe('tìm theo đoạn đã đánh dấu', () => {
+  const MARKED = 'viên phối hợp liều cố định';
+  const HIGHLIGHT = 'Ưu tiên viên phối hợp liều cố định để cải thiện tuân thủ.';
+
+  test('gợi ý ra ghi chú và hiện đúng đoạn đã bôi', async ({ page }) => {
+    await box(page).click();
+    await type(page, MARKED);
+
+    const row = panel(page).getByRole('button').filter({ hasText: 'Phác đồ điều trị tăng huyết áp' });
+    await expect(row).toBeVisible();
+    await expect(row.locator('[data-highlight-snippet]')).toHaveText(HIGHLIGHT);
+  });
+
+  test('không hiện đoạn bôi khi chính tiêu đề mới là thứ khớp', async ({ page }) => {
+    await box(page).click();
+    await type(page, 'tăng huyết áp');
+
+    const row = panel(page).getByRole('button').filter({ hasText: 'Phác đồ điều trị tăng huyết áp' });
+    await expect(row).toBeVisible();
+    await expect(row.locator('[data-highlight-snippet]')).toHaveCount(0);
+  });
+
+  test('bỏ dấu vẫn tìm được', async ({ page }) => {
+    await box(page).click();
+    await type(page, 'VIEN PHOI HOP LIEU CO DINH');
+    await expect(
+      panel(page).getByRole('button').filter({ hasText: 'Phác đồ điều trị tăng huyết áp' }),
+    ).toBeVisible();
+  });
+
+  test('Enter đưa tới dashboard và server cũng lọc theo đoạn đã bôi', async ({ page }) => {
+    await box(page).click();
+    await type(page, MARKED);
+    await submitAndPersist(page);
+
+    await expect(page.getByRole('heading', { name: 'Kết quả tìm kiếm', level: 1 })).toBeVisible();
+    await expect(page.getByText('Phác đồ điều trị tăng huyết áp')).toBeVisible();
+  });
+});

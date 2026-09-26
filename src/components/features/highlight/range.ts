@@ -10,11 +10,6 @@
  * Both changes are behaviour-identical for real selections.
  */
 
-export interface CollectedHighlight {
-  id: string;
-  text: string;
-}
-
 /** Prototype: `'h' + Date.now()`. */
 export function newHighlightId(now: number = Date.now()): string {
   return `h${now}`;
@@ -87,57 +82,9 @@ export function unwrapHl(root: ParentNode, id: string): void {
 }
 
 /**
- * Rail list source: one entry per id, fragments joined with a single space.
- *
- * Deliberately DOM-free. This runs inside `useMemo` in a client component, so
- * it also executes during the server render, where `DOMParser` does not exist.
- * Using `DOMParser` on the client and something else on the server would also
- * risk a hydration mismatch, so both sides share this one implementation.
- *
- * `wrapRange` only ever wraps text nodes, so a `<mark data-hl>` contains text
- * (possibly HTML-escaped) and at most inline formatting from the surrounding
- * prose — stripping tags and decoding entities reproduces `textContent`.
+ * Rail list source. The implementation is shared with the server-side search
+ * index (`@/lib/text/highlights`) so the rail and the suggestion panel can
+ * never disagree about what a highlight says. Re-exported here because this
+ * module is where the highlight feature's callers already look.
  */
-const MARK_RE = /<mark\b[^>]*\bdata-hl\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/mark>/gi;
-
-const NAMED_ENTITIES: Record<string, string> = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: '\u00a0',
-};
-
-function decodeEntities(input: string): string {
-  return input.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, body: string) => {
-    if (body[0] === '#') {
-      const code = body[1] === 'x' || body[1] === 'X'
-        ? Number.parseInt(body.slice(2), 16)
-        : Number.parseInt(body.slice(1), 10);
-      return Number.isFinite(code) && code > 0 ? String.fromCodePoint(code) : match;
-    }
-    return NAMED_ENTITIES[body.toLowerCase()] ?? match;
-  });
-}
-
-/** The text a browser would report as `mark.textContent`. */
-function markText(inner: string): string {
-  return decodeEntities(inner.replace(/<[^>]*>/g, ''));
-}
-
-export function collectHighlights(html: string): CollectedHighlight[] {
-  if (!html) return [];
-  const order: string[] = [];
-  const texts = new Map<string, string>();
-
-  for (const match of html.matchAll(MARK_RE)) {
-    const id = match[1];
-    const inner = match[2] ?? '';
-    if (!id) continue;
-    if (!texts.has(id)) {
-      texts.set(id, '');
-      order.push(id);
-    }
-    const prev = texts.get(id) ?? '';
-    const next = markText(inner);
-    texts.set(id, prev ? `${prev} ${next}` : next);
-  }
-
-  return order.map((id) => ({ id, text: (texts.get(id) ?? '').replace(/\s+/g, ' ').trim() }));
-}
+export { collectHighlights, type CollectedHighlight } from '@/lib/text';

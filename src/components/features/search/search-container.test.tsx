@@ -19,11 +19,11 @@ vi.mock('next/navigation', () => ({
 }));
 
 const items: SearchDoc[] = [
-  { noteId: 'n1', title: 'Xử trí sốc phản vệ', desc: 'Adrenalin', tags: ['Cấp cứu'], priority: 'high', updated: '2026-01-05T12:00:00.000Z', contentSha: 's1', plain: '' },
-  { noteId: 'n2', title: 'Đọc ECG trong 10 bước', desc: 'Trình tự', tags: ['ECG'], priority: 'low', updated: '2026-02-14T12:00:00.000Z', contentSha: 's2', plain: '' },
-  { noteId: 'n3', title: 'Kháng sinh dự phòng', desc: 'Liều nạp', tags: ['Nhiễm khuẩn'], priority: 'medium', updated: '2026-03-02T12:00:00.000Z', contentSha: 's3', plain: '' },
-  { noteId: 'n4', title: 'Bù dịch sốt xuất huyết', desc: 'Dịch truyền', tags: ['Nhi'], priority: 'high', updated: '2026-04-09T12:00:00.000Z', contentSha: 's4', plain: '' },
-  { noteId: 'n5', title: 'Hồi sức ngừng tuần hoàn', desc: 'Ép tim', tags: ['Hồi sức'], priority: 'low', updated: '2026-05-21T12:00:00.000Z', contentSha: 's5', plain: '' },
+  { noteId: 'n1', title: 'Xử trí sốc phản vệ', desc: 'Adrenalin', tags: ['Cấp cứu'], priority: 'high', updated: '2026-01-05T12:00:00.000Z', contentSha: 's1', plain: '', highlights: []  },
+  { noteId: 'n2', title: 'Đọc ECG trong 10 bước', desc: 'Trình tự', tags: ['ECG'], priority: 'low', updated: '2026-02-14T12:00:00.000Z', contentSha: 's2', plain: '', highlights: []  },
+  { noteId: 'n3', title: 'Kháng sinh dự phòng', desc: 'Liều nạp', tags: ['Nhiễm khuẩn'], priority: 'medium', updated: '2026-03-02T12:00:00.000Z', contentSha: 's3', plain: '', highlights: []  },
+  { noteId: 'n4', title: 'Bù dịch sốt xuất huyết', desc: 'Dịch truyền', tags: ['Nhi'], priority: 'high', updated: '2026-04-09T12:00:00.000Z', contentSha: 's4', plain: '', highlights: []  },
+  { noteId: 'n5', title: 'Hồi sức ngừng tuần hoàn', desc: 'Ép tim', tags: ['Hồi sức'], priority: 'low', updated: '2026-05-21T12:00:00.000Z', contentSha: 's5', plain: '', highlights: []  },
 ];
 
 let semantic: SemanticSearch;
@@ -328,5 +328,53 @@ describe('SearchContainer trên mobile (< 820px)', () => {
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/?q=s%E1%BB%91c', { scroll: false }));
     await waitFor(() => expect(overlay()).toBeNull());
+  });
+});
+
+describe('SearchContainer — marked passages', () => {
+  beforeEach(() => {
+    push.mockClear();
+    search = new URLSearchParams('');
+    semantic = {
+      ready: false,
+      docs: [
+        {
+          noteId: 'n9',
+          title: 'Chuỗi xung cơ bản trên MRI',
+          desc: 'Tổng quan',
+          tags: ['Chẩn đoán hình ảnh'],
+          priority: 'high',
+          updated: '2026-06-01T12:00:00.000Z',
+          contentSha: 's9',
+          plain: '',
+          highlights: ['toàn bộ chiều sâu là các đường kẻ ngang song song'],
+        },
+      ],
+      vectors: null,
+      embedQuery: vi.fn().mockResolvedValue(null),
+      warmUp: vi.fn(),
+    };
+  });
+
+  it('suggests a note whose query text only exists in a marked passage', async () => {
+    const user = userEvent.setup();
+    show();
+    await user.click(screen.getByRole('searchbox'));
+    await user.type(screen.getByRole('searchbox'), 'kẻ ngang');
+
+    expect(screen.getByText('Chuỗi xung cơ bản trên MRI')).toBeInTheDocument();
+    expect(
+      screen.getByText('toàn bộ chiều sâu là các đường kẻ ngang song song'),
+    ).toBeInTheDocument();
+  });
+
+  it('does not show a passage when the title is what matched', async () => {
+    const user = userEvent.setup();
+    const { container } = show();
+    await user.click(screen.getByRole('searchbox'));
+    await user.type(screen.getByRole('searchbox'), 'MRI');
+
+    expect(screen.getByText('Chuỗi xung cơ bản trên MRI')).toBeInTheDocument();
+    expect(container.querySelector('[data-highlight-snippet]')).toBeNull();
   });
 });

@@ -25,8 +25,21 @@ const MAX_PAGE_SIZE = 100;
 
 export const notFound = () => new HttpError(404, 'NOT_FOUND', 'Không tìm thấy ghi chú.');
 
-/** Lọc — port nguyên văn `getList()` của prototype. */
-export function applyFilters(rows: NoteSummary[], f: NoteFilters): NoteSummary[] {
+/**
+ * Tóm tắt kèm các đoạn đã đánh dấu. `highlights` là tuỳ chọn vì phần lớn nơi
+ * gọi chỉ có metadata; thiếu và rỗng cho kết quả lọc như nhau.
+ */
+export type FilterableNote = NoteSummary & { highlights?: readonly string[] };
+
+/**
+ * Lọc — port `getList()` của prototype, mở rộng thêm ĐÚNG một điều: câu truy
+ * vấn thường cũng soi các đoạn đã đánh dấu. Truy vấn `#thẻ` thì KHÔNG — nó
+ * vẫn chỉ hỏi thẻ, đúng như prototype.
+ *
+ * Generic để giữ nguyên kiểu hàng đi vào: gọi với `NoteSummary[]` vẫn trả
+ * `NoteSummary[]`.
+ */
+export function applyFilters<T extends FilterableNote>(rows: T[], f: NoteFilters): T[] {
   const q = norm((f.query ?? '').trim());
   return rows.filter((n) => {
     if (f.nav === 'fav' && !n.fav) return false;
@@ -38,13 +51,16 @@ export function applyFilters(rows: NoteSummary[], f: NoteFilters): NoteSummary[]
       return n.tags.some((x) => norm(x).includes(t));
     }
     return (
-      norm(n.title).includes(q) || norm(n.desc).includes(q) || n.tags.some((x) => norm(x).includes(q))
+      norm(n.title).includes(q) ||
+      norm(n.desc).includes(q) ||
+      n.tags.some((x) => norm(x).includes(q)) ||
+      (n.highlights ?? []).some((x) => norm(x).includes(q))
     );
   });
 }
 
 /** Sắp xếp — port nguyên văn `cmp` của prototype. */
-export function sortNotes(rows: NoteSummary[], sort: SortKey = 'updated'): NoteSummary[] {
+export function sortNotes<T extends NoteSummary>(rows: T[], sort: SortKey = 'updated'): T[] {
   const cmp: Record<SortKey, (a: NoteSummary, b: NoteSummary) => number> = {
     updated: (a, b) => b.updated.localeCompare(a.updated),
     priority: (a, b) =>
@@ -92,8 +108,16 @@ export async function listNotes(
     .where(and(...where))
     .limit(MAX_SCAN);
 
-  const summaries = rows.map(rowToSummary);
-  return paginate(sortNotes(applyFilters(summaries, filters), filters.sort ?? 'updated'), filters);
+  // Các đoạn đánh dấu chỉ phục vụ việc LỌC. Chúng bị bỏ đi ngay sau đó nên
+  // `NoteListResult` gửi xuống trình duyệt không hề nặng thêm.
+  const summaries: FilterableNote[] = rows.map((r) => ({
+    ...rowToSummary(r),
+    highlights: r.highlights,
+  }));
+  const matched = applyFilters(summaries, filters).map(
+    ({ highlights: _highlights, ...summary }) => summary,
+  );
+  return paginate(sortNotes(matched, filters.sort ?? 'updated'), filters);
 }
 
 /**

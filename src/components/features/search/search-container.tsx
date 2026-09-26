@@ -9,7 +9,7 @@ import { SearchBox, SearchSuggestions, type SuggestionNote, type SuggestionTag }
 import { usePrefs } from '@/hooks/use-prefs';
 import { useNoteFilters } from '@/hooks/use-note-filters';
 import { useSemanticSearch } from '@/hooks/use-semantic-search';
-import { hybridRank, isTagQuery, tagNeedle } from '@/lib/search';
+import { hybridRank, isTagQuery, matchedHighlight, tagNeedle } from '@/lib/search';
 import { notePath } from '@/lib/nav/paths';
 import { norm, rel } from '@/lib/text';
 
@@ -215,6 +215,9 @@ export function SearchContainer({ tags, isMobile, inputRef, open, onOpenChange }
       title: doc.title,
       sub: `${doc.tags.map((t) => `#${t}`).join(' ')} · ${rel(doc.updated)}`,
       priority: doc.priority,
+      // Chỉ khi từ khoá thực sự nằm trong một đoạn đã đánh dấu. Tiêu đề khớp
+      // thì không cần giải thích gì thêm.
+      highlight: q ? matchedHighlight(q, doc) ?? undefined : undefined,
     }));
   }, [docs, q, queryVector, vectors]);
 

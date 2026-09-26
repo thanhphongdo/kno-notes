@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { keywordScore, isTagQuery, tagNeedle, matchesTag } from './keyword';
+import {
+  keywordScore, isTagQuery, tagNeedle, matchesTag, matchedHighlight,
+  SCORE_ALL_TOKENS, SCORE_DESC_SUBSTRING, SCORE_HIGHLIGHT_SUBSTRING,
+  SCORE_TAG_SUBSTRING, SCORE_TITLE_EXACT,
+} from './keyword';
 import type { RankableNote } from './types';
 
 const notes: RankableNote[] = [
@@ -72,5 +76,77 @@ describe('isTagQuery / tagNeedle / matchesTag', () => {
 
   it('treats a bare "#" as matching every note', () => {
     expect(matchesTag(notes[2]!, '')).toBe(true);
+  });
+});
+
+describe('keywordScore over highlighted passages', () => {
+  const marked: RankableNote = {
+    noteId: 'n4',
+    title: 'Chuỗi xung cơ bản trên MRI',
+    desc: 'Tổng quan các chuỗi xung thường dùng',
+    tags: ['Chẩn đoán hình ảnh'],
+    highlights: [
+      'sáng hơn bên đối diện',
+      'toàn bộ chiều sâu là các đường kẻ ngang song song',
+    ],
+  };
+
+  it('finds a note by a word that only exists in a highlight', () => {
+    expect(keywordScore('diện', marked)).toBe(SCORE_HIGHLIGHT_SUBSTRING);
+  });
+
+  it('ignores diacritics and case in highlights too', () => {
+    expect(keywordScore('DIEN', marked)).toBe(SCORE_HIGHLIGHT_SUBSTRING);
+  });
+
+  it('scores a whole highlighted phrase at the all-tokens rung or better', () => {
+    expect(keywordScore('sáng hơn bên đối diện', marked)).toBeGreaterThanOrEqual(SCORE_ALL_TOKENS);
+  });
+
+  it('ranks a highlight hit above a description-only hit, below a tag hit', () => {
+    expect(SCORE_HIGHLIGHT_SUBSTRING).toBeGreaterThan(SCORE_DESC_SUBSTRING);
+    expect(SCORE_HIGHLIGHT_SUBSTRING).toBeLessThan(SCORE_TAG_SUBSTRING);
+  });
+
+  it('never lowers a score that title, tags or description already earned', () => {
+    expect(keywordScore('Chuỗi xung cơ bản trên MRI', marked)).toBe(SCORE_TITLE_EXACT);
+  });
+
+  it('lets highlights satisfy the all-tokens rung', () => {
+    expect(keywordScore('sâu song song', marked)).toBe(SCORE_ALL_TOKENS);
+  });
+
+  it('is unchanged for a note with no highlights at all', () => {
+    expect(keywordScore('sáng hơn', notes[0]!)).toBe(0);
+    expect(keywordScore('sáng hơn', { ...marked, highlights: [] })).toBe(0);
+    expect(keywordScore('sáng hơn', { ...marked, highlights: undefined })).toBe(0);
+  });
+});
+
+describe('matchedHighlight', () => {
+  const marked: RankableNote = {
+    noteId: 'n4',
+    title: 'Chuỗi xung cơ bản trên MRI',
+    desc: '',
+    tags: [],
+    highlights: ['sáng hơn bên đối diện', 'các đường kẻ ngang song song'],
+  };
+
+  it('returns the first highlight containing the query, verbatim', () => {
+    expect(matchedHighlight('kẻ ngang', marked)).toBe('các đường kẻ ngang song song');
+  });
+
+  it('matches without diacritics but returns the original text', () => {
+    expect(matchedHighlight('SANG HON', marked)).toBe('sáng hơn bên đối diện');
+  });
+
+  it('falls back to a highlight holding every query token', () => {
+    expect(matchedHighlight('song song đường', marked)).toBe('các đường kẻ ngang song song');
+  });
+
+  it('returns null when nothing matches, when the query is blank, or when there are none', () => {
+    expect(matchedHighlight('CT scan', marked)).toBeNull();
+    expect(matchedHighlight('  ', marked)).toBeNull();
+    expect(matchedHighlight('sáng', { ...marked, highlights: undefined })).toBeNull();
   });
 });

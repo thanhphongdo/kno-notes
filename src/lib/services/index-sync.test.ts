@@ -26,6 +26,23 @@ afterAll(async () => {
 });
 
 describe('derivedIndexValues', () => {
+  it('derives the marked passages so ?q= can match them', () => {
+    const note = makeNote('n1');
+    const marked = {
+      ...note,
+      content: '<p><mark data-hl="h1">sáng hơn bên đối diện</mark> phần còn lại</p>',
+    };
+    expect(derivedIndexValues(marked).highlights).toEqual(['sáng hơn bên đối diện']);
+    expect(derivedIndexValues(note).highlights).toEqual([]);
+  });
+
+  it('keeps contentSha stable while highlights change, and the column in step', () => {
+    const note = makeNote('n1');
+    const marked = { ...note, content: `<mark data-hl="h1">${note.content}</mark>` };
+    expect(derivedIndexValues(marked).contentSha).toBe(derivedIndexValues(note).contentSha);
+    expect(derivedIndexValues(marked).highlights).not.toEqual([]);
+  });
+
   it('stores accent-free copies of title and description for search', () => {
     const v = derivedIndexValues(makeNote('n1'));
     expect(v.titleNorm).toBe('phac do dieu tri tang huyet ap');

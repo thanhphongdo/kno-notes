@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { sections, stripHtml, extractHighlights } from './html';
+import { sections, stripHtml } from './html';
 
 describe('sections', () => {
   it('returns [] for empty, null and undefined input', () => {
@@ -83,21 +83,5 @@ describe('stripHtml', () => {
   it('returns an empty string for nullish input', () => {
     expect(stripHtml(null)).toBe('');
     expect(stripHtml(undefined)).toBe('');
-  });
-});
-
-describe('extractHighlights', () => {
-  it('groups marks by data-hl and joins their text with a single space', () => {
-    const html = '<p><mark data-hl="h1">Ưu tiên</mark> viên <mark data-hl="h1">phối hợp</mark></p>';
-    expect(extractHighlights(html)).toEqual([{ id: 'h1', text: 'Ưu tiên phối hợp' }]);
-  });
-
-  it('preserves document order across distinct highlights', () => {
-    const html = '<p><mark data-hl="a">một</mark><mark data-hl="b">hai</mark></p>';
-    expect(extractHighlights(html).map((h) => h.id)).toEqual(['a', 'b']);
-  });
-
-  it('returns [] when there are no marks', () => {
-    expect(extractHighlights('<p>x</p>')).toEqual([]);
   });
 });

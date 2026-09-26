@@ -50,32 +50,3 @@ export const stripHtml = (html: string | null | undefined): string =>
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-
-/**
- * Liệt kê các đoạn đã đánh dấu — port từ prototype (`hls` trong `renderVals`).
- * Nhiều `<mark>` cùng `data-hl` được gộp thành một mục, giữ thứ tự xuất hiện.
- */
-export function extractHighlights(
-  html: string | null | undefined,
-): { id: string; text: string }[] {
-  const { document } = parseHTML(`<!doctype html><html><body>${html || ''}</body></html>`);
-  const order: string[] = [];
-  const map = new Map<string, string>();
-
-  document.querySelectorAll('mark[data-hl]').forEach((m: Element) => {
-    const id = m.getAttribute('data-hl');
-    if (!id) return;
-    if (!map.has(id)) {
-      map.set(id, '');
-      order.push(id);
-    }
-    const prev = map.get(id) || '';
-    const text = m.textContent || '';
-    map.set(id, prev ? prev + ' ' + text : text);
-  });
-
-  return order.map((id) => ({
-    id,
-    text: (map.get(id) || '').replace(/\s+/g, ' ').trim(),
-  }));
-}

@@ -115,6 +115,7 @@ data/users/<userId>/index.json               // (tuỳ chọn) snapshot để re
 - Web Worker khởi tạo pipeline embedding (lazy, sau `requestIdleCallback`), sinh embedding cho `title + desc + tags + plaintext(content 512 token đầu)`.
 - Lưu embedding vào IndexedDB: key `userId:noteId`, value `{sha, vector Float32Array}`. Chỉ tính lại khi `sha` đổi.
 - Search = **hybrid**: `score = 0.6 * keyword + 0.4 * cosine`, keyword dùng thuật toán chuẩn hoá tiếng Việt hiện có (NFD, bỏ dấu, `đ→d`).
+- Keyword soi cả **đoạn đã đánh dấu** (`<mark data-hl>`), nấc 0.55 — trên mô tả (0.45), dưới thẻ (0.6): đoạn bôi là thứ người đọc tự chọn nên đáng hơn mô tả, nhưng vẫn là mảnh văn xuôi chứ không phải nhãn. Hàng gợi ý hiện đúng đoạn đã khớp trên nền `--hl` để kết quả không vô cớ.
 - Trong lúc model chưa sẵn sàng → dùng keyword-only (không chặn UI). Prefix `#` vẫn chỉ tìm trong tag (không dùng vector).
 - Model cache qua Cache API; kích thước tải một lần, sau đó offline.
 
@@ -146,10 +147,10 @@ Mọi hàm/logic dưới đây phải giữ đúng ngữ nghĩa:
 | `rel()` thời gian tương đối | < 1' "vừa xong"; < 60' "x phút trước"; < 24h "x giờ trước"; < 7d "x ngày trước"; còn lại `dd/mm/yyyy` |
 | `fmt()` ngày | `dd/mm/yyyy` |
 | Sort | `updated` desc · `priority` (high→low rồi updated desc) · `title` `localeCompare(…, 'vi')` |
-| Lọc | nav(all/fav) + priority + tag + query; `#` prefix → chỉ tag |
+| Lọc | nav(all/fav) + priority + tag + query; query thường soi cả đoạn đã đánh dấu; `#` prefix → chỉ tag |
 | Phân trang | pageSize 6 mặc định; đổi filter → page 1; đổi trang → scroll top |
 | Version | v1 khi tạo; +1 khi `html !== content || title !== n.title`; note mặc định "Cập nhật nội dung" / "Tạo ghi chú"; restore tạo version mới "Khôi phục từ vN" |
-| Highlight | `wrapRange()` + `unwrapHl()` nguyên văn; commit vào `content` **và** version cuối; **không** tạo version mới |
+| Highlight | `wrapRange()` + `unwrapHl()` nguyên văn; commit vào `content` **và** version cuối; **không** tạo version mới; văn bản đoạn bôi được dẫn xuất vào `note_index.highlights` + `SearchDoc.highlights` để tìm kiếm |
 | Quiz state machine | loading → asking → done; chọn 1 lần/câu; phím 1–4, Enter; token huỷ khi đóng modal |
 | Điểm quiz | ≥80% "Nắm vững" (--ok) · ≥50% "Cần ôn thêm" (--med) · <50% "Nên đọc lại ghi chú" (--hi) |
 | Suggestion | chưa gõ: recent(5) + tags(8) + "Mở gần đây"(4); đang gõ: "Thẻ khớp"(6) + "Ghi chú khớp"(6) + "Xem tất cả kết quả cho …" |

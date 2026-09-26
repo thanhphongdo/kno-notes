@@ -1,0 +1,1 @@
+ALTER TABLE "note_index" ADD COLUMN "highlights" text[] DEFAULT '{}' NOT NULL;

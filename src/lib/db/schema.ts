@@ -81,6 +81,12 @@ export const noteIndex = pgTable(
     quizCount: integer('quiz_count').notNull().default(0),
     /** Semantic sha256 of the note; invalidates the client's cached embedding. */
     contentSha: text('content_sha'),
+    /**
+     * Text of the note's highlighted passages (`<mark data-hl>`), capped and
+     * clipped by `highlightTexts`. Denormalised here so the dashboard's `?q=`
+     * filter can match a marked passage without opening every note file.
+     */
+    highlights: text('highlights').array().notNull().default([]),
   },
   (t) => [
     uniqueIndex('note_index_user_note_unique').on(t.userId, t.noteId),

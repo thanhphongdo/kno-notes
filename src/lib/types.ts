@@ -159,6 +159,8 @@ export interface SearchDoc {
   contentSha: string;
   /** Nội dung đã strip HTML, server cắt còn ~2000 ký tự. */
   plain: string;
+  /** Văn bản các đoạn đã đánh dấu, server đã chặn số lượng và độ dài. */
+  highlights: string[];
 }
 
 export interface UserPrefs {

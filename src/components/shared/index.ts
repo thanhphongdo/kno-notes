@@ -14,6 +14,7 @@ export { EmptyState, type EmptyStateProps } from './empty-state';
 export { FilterChips, type FilterChipDescriptor, type FilterChipsProps } from './filter-chips';
 export { FontSizeControl, FONT_PREVIEW_TEXT, type FontSizeControlProps } from './font-size-control';
 export { HighlightList, HIGHLIGHT_EMPTY, type HighlightItem, type HighlightListProps } from './highlight-list';
+export { HighlightSnippet, type HighlightSnippetProps } from './highlight-snippet';
 export { HighlightPopup, clampHighlightPosition, type HighlightPopupProps } from './highlight-popup';
 export { ImageDropzone, type ImageDropzoneProps } from './image-dropzone';
 export { ImageGrid, type ImageGridProps } from './image-grid';

@@ -21,6 +21,8 @@ export interface SearchDoc {
   contentSha: string;
   /** HTML-stripped body, already truncated to ~2000 chars by the server. */
   plain: string;
+  /** The note's highlighted passages — capped and clipped by the server. */
+  highlights: string[];
 }
 
 /** The payload of `GET /api/search/index`. */
@@ -35,6 +37,11 @@ export interface RankableNote {
   title: string;
   desc: string;
   tags: string[];
+  /**
+   * Text of the note's `<mark data-hl>` passages. Optional so any caller with
+   * only note metadata still type-checks; absent and empty rank identically.
+   */
+  highlights?: readonly string[];
 }
 
 /** A ranked document: the input row, widened with its three scores. */

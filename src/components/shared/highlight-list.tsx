@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { IconButton } from '@/components/ui/icon-button';
+import { HighlightSnippet } from './highlight-snippet';
 
 export const HIGHLIGHT_EMPTY = 'Bôi đen một đoạn trong nội dung để đánh dấu.';
 
@@ -26,9 +27,7 @@ export function HighlightList({ highlights, onRemove, className }: HighlightList
     <div className={cn('flex flex-col gap-8', className)}>
       {highlights.map((item) => (
         <div key={item.id} data-highlight-item="" className="flex items-start gap-8">
-          <span className="line-clamp-3 min-w-0 flex-1 break-words rounded-4 bg-hl py-2 px-6 font-serif text-14 leading-[1.5]">
-            {item.text}
-          </span>
+          <HighlightSnippet text={item.text} className="flex-1" />
           <IconButton
             icon="close"
             label="Bỏ đánh dấu"

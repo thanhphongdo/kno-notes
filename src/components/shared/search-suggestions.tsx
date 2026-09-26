@@ -3,6 +3,7 @@
 import { cn } from '@/lib/utils';
 import { Icon } from '@/components/ui/icon';
 import { Kbd } from '@/components/ui/kbd';
+import { HighlightSnippet } from './highlight-snippet';
 import { PriorityDot, type Priority } from './priority';
 import { SectionLabel } from './section-label';
 import { TagChip } from './tag-chip';
@@ -17,6 +18,11 @@ export interface SuggestionNote {
   title: string;
   sub: string;
   priority: Priority;
+  /**
+   * Đoạn đã đánh dấu khiến ghi chú này khớp. Có mặt khi từ khoá không nằm ở
+   * tiêu đề — không có dòng này, kết quả trông như vô cớ.
+   */
+  highlight?: string;
 }
 
 /**
@@ -133,6 +139,9 @@ export function SearchSuggestions({
               <span className="flex min-w-0 flex-1 flex-col gap-2">
                 <span className="truncate font-serif text-15 font-semibold">{note.title}</span>
                 <span className="truncate text-12 text-muted">{note.sub}</span>
+                {note.highlight ? (
+                  <HighlightSnippet text={note.highlight} lines={1} size="13" className="mt-2 max-w-full self-start" />
+                ) : null}
               </span>
             </button>
           ))}

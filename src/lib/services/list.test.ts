@@ -172,3 +172,34 @@ describe('paginate', () => {
     expect(paginate(ten, { pageSize: 0 }).pageSize).toBe(6);
   });
 });
+
+describe('applyFilters over highlighted passages', () => {
+  const marked = [
+    { ...summary({ id: 'm1', title: 'Chuỗi xung MRI', desc: 'Tổng quan' }),
+      highlights: ['sáng hơn bên đối diện'] },
+    { ...summary({ id: 'm2', title: 'CT sọ não', desc: 'Chỉ định' }),
+      highlights: ['toàn bộ chiều sâu là các đường kẻ ngang song song'] },
+    { ...summary({ id: 'm3', title: 'Siêu âm bụng', desc: 'Quy trình' }) },
+  ];
+
+  it('matches a note whose query text only exists in a highlight', () => {
+    expect(ids(applyFilters(marked, { query: 'bên đối diện' }))).toEqual(['m1']);
+  });
+
+  it('ignores diacritics in highlights, like every other field', () => {
+    expect(ids(applyFilters(marked, { query: 'DUONG KE NGANG' }))).toEqual(['m2']);
+  });
+
+  it('leaves notes without highlights untouched', () => {
+    expect(ids(applyFilters(marked, { query: 'Siêu âm' }))).toEqual(['m3']);
+    expect(ids(applyFilters(marked, { query: 'không có ở đâu cả' }))).toEqual([]);
+  });
+
+  it('still honours nav, priority and tag alongside a highlight hit', () => {
+    expect(ids(applyFilters(marked, { query: 'bên đối diện', nav: 'fav' }))).toEqual([]);
+  });
+
+  it('does not let a highlight satisfy a #tag query', () => {
+    expect(ids(applyFilters(marked, { query: '#đối diện' }))).toEqual([]);
+  });
+});
