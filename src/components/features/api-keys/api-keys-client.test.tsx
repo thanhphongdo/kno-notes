@@ -104,7 +104,9 @@ describe('ApiKeysClient', () => {
     await user.type(await screen.findByPlaceholderText('Tên key, VD: Claude Code'), 'Codex');
     await user.click(screen.getByRole('button', { name: 'Tạo key' }));
     await screen.findByText('kn_SECRET_VALUE');
-    await user.click(screen.getByRole('button', { name: 'Sao chép khoá' }));
+    const copyButton = screen.getByRole('button', { name: 'Sao chép khoá' });
+    expect(copyButton.querySelector('svg')).not.toBeNull();
+    await user.click(copyButton);
     expect(writeText).toHaveBeenCalledWith('kn_SECRET_VALUE');
   });
 

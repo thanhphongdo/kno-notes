@@ -17,6 +17,13 @@ describe('McpSnippet', () => {
     expect(screen.getByText(/curl/)).toHaveTextContent('/api/v1/notes');
   });
 
+  it('labels each copy button with the copy icon, not text alone', () => {
+    render(<McpSnippet baseUrl="http://localhost:3000" onCopy={vi.fn()} />);
+    for (const button of screen.getAllByRole('button', { name: 'Sao chép' })) {
+      expect(button.querySelector('svg')).not.toBeNull();
+    }
+  });
+
   it('copies a block through the supplied handler', async () => {
     const onCopy = vi.fn();
     const user = userEvent.setup();

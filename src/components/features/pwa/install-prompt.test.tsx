@@ -41,6 +41,12 @@ describe('InstallPrompt', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
+  it('puts the download icon on the install button', () => {
+    render(<InstallPrompt />);
+    firePrompt();
+    expect(screen.getByRole('button', { name: 'Cài đặt' }).querySelector('svg')).not.toBeNull();
+  });
+
   it('remembers a dismissal and never asks again', async () => {
     const user = userEvent.setup();
     const { unmount } = render(<InstallPrompt />);

@@ -137,7 +137,7 @@ export function ApiKeysClient({ baseUrl }: ApiKeysClientProps) {
           <div className="flex flex-col gap-8 rounded-12 bg-accent-soft py-14 px-16">
             <div className="flex flex-wrap items-center gap-10">
               <code className="min-w-0 flex-1 break-all font-mono text-13 text-text">{secret}</code>
-              <Button variant="secondary" size="32" radius="8" onClick={() => copy(secret)}>
+              <Button variant="secondary" size="32" radius="8" icon="copy" onClick={() => copy(secret)}>
                 Sao chép khoá
               </Button>
               <Button variant="ghost" size="32" radius="8" onClick={() => setSecret(null)}>

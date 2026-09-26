@@ -53,6 +53,7 @@ export function McpSnippet({ baseUrl, onCopy }: McpSnippetProps) {
             <Button
               variant="ghost"
               size="30"
+              icon="copy"
               onClick={() => onCopy(block.code)}
               className="ml-auto px-8"
             >

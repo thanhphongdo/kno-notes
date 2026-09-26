@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 export type IconName =
   | 'search' | 'star' | 'plus' | 'sidebar-open' | 'sidebar-collapse' | 'edit' | 'trash'
   | 'quiz' | 'highlight' | 'history' | 'comment' | 'image' | 'grid' | 'list'
-  | 'sun' | 'moon' | 'logout'
+  | 'sun' | 'moon' | 'logout' | 'copy' | 'download'
   | 'chevron-left' | 'chevron-right' | 'chevron-down' | 'check' | 'close';
 
 interface IconDef {
@@ -36,6 +36,8 @@ const ICONS: Record<IconName, IconDef> = {
   sun: { sw: 1.8, cap: true, join: false, paths: (<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>) },
   moon: { sw: 1.8, cap: true, join: true, paths: <path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z" /> },
   logout: { sw: 1.7, cap: true, join: true, paths: <path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10" /> },
+  copy: { sw: 1.7, cap: true, join: true, paths: (<><rect x="9" y="9" width="11" height="11" rx="2.5" /><path d="M15 9V4H4v11h5" /></>) },
+  download: { sw: 1.7, cap: true, join: true, paths: <path d="M12 4v11M8 11l4 4 4-4M5 19h14" /> },
   'chevron-left': { sw: 1.8, cap: true, join: true, paths: <path d="M15 6l-6 6 6 6" /> },
   'chevron-right': { sw: 1.8, cap: true, join: true, paths: <path d="M9 6l6 6-6 6" /> },
   'chevron-down': { sw: 2, cap: true, join: true, paths: <path d="M6 9l6 6 6-6" /> },

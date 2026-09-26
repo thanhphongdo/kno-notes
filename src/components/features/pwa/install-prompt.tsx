@@ -72,7 +72,7 @@ export function InstallPrompt() {
       <Button variant="ghost" size="32" onClick={dismiss}>
         Để sau
       </Button>
-      <Button variant="primary" size="32" onClick={install}>
+      <Button variant="primary" size="32" icon="download" onClick={install}>
         Cài đặt
       </Button>
     </div>

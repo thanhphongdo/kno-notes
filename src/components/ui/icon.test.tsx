@@ -3,12 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { ICON_NAMES, Icon, type IconName } from './icon';
 
 describe('Icon', () => {
-  it('exposes exactly the 22 names from Design Spec §05', () => {
+  it('exposes exactly the 24 names from Design Spec §05', () => {
     expect([...ICON_NAMES].sort()).toEqual(
       [
         'check', 'chevron-down', 'chevron-left', 'chevron-right', 'close', 'comment',
-        'edit', 'grid', 'highlight', 'history', 'image', 'list', 'logout', 'moon',
-        'plus', 'quiz', 'search', 'sidebar-collapse', 'sidebar-open', 'star', 'sun', 'trash',
+        'copy', 'download', 'edit', 'grid', 'highlight', 'history', 'image', 'list',
+        'logout', 'moon', 'plus', 'quiz', 'search', 'sidebar-collapse', 'sidebar-open',
+        'star', 'sun', 'trash',
       ].sort(),
     );
   });
@@ -21,6 +22,17 @@ describe('Icon', () => {
     expect(svg).toHaveAttribute('stroke', 'currentColor');
     expect(svg).toHaveAttribute('aria-hidden', 'true');
     expect(svg?.querySelector('path, rect, circle')).not.toBeNull();
+  });
+
+  it('draws copy and download in the §05 house style', () => {
+    for (const name of ['copy', 'download'] as const) {
+      const { container } = render(<Icon name={name} />);
+      const svg = container.querySelector('svg')!;
+      expect(svg).toHaveAttribute('fill', 'none');
+      expect(svg).toHaveAttribute('stroke-width', '1.7');
+      expect(svg).toHaveAttribute('stroke-linecap', 'round');
+      expect(svg).toHaveAttribute('stroke-linejoin', 'round');
+    }
   });
 
   it('defaults to 16px and honours an explicit size', () => {
