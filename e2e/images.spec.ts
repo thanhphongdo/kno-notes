@@ -142,4 +142,58 @@ test.describe('Ảnh trong ghi chú', () => {
     }).toPass({ timeout: 15_000 });
     await expect(page.locator('[data-lightbox-counter]')).toHaveText('1 / 2');
   });
+
+  /**
+   * Chú thích ảnh giờ là alt do người dùng viết, nên nó dài như một câu thật.
+   * Thư viện ảnh cuối bài phải chịu được điều đó: trên iPhone, một chú thích
+   * dài từng kéo cả cột lưới rộng ra, đẩy trang tràn ngang và các dòng chữ
+   * chồng lên nhau.
+   */
+  test('chú thích ảnh dài không làm trang tràn ngang', async ({ page }) => {
+    const captions = [
+      'Siêu âm phổi: dấu bờ biển, mã vạch và điểm phổi cùng ý nghĩa của từng dấu hiệu',
+      'Đối chiếu X-quang và siêu âm trong tràn khí màng phổi, kèm cách ước lượng kích thước',
+      'Sơ đồ tiếp cận tràn khí màng phổi tại giường khi chưa có phim chụp',
+    ];
+
+    await page.goto('/notes/new');
+    await page.getByLabel('Tiêu đề ghi chú').fill(unique('Ghi chú E2E · chú thích dài'));
+    for (let i = 0; i < captions.length; i += 1) {
+      await attach(page, `anh-${i}.png`);
+      await expect(bodyImages(page)).toHaveCount(i + 1);
+      await page.getByLabel(`Mô tả ảnh anh-${i}.png`).fill(captions[i]!);
+    }
+
+    await page.getByRole('button', { name: 'Lưu v1' }).click();
+    await page.waitForURL(/\/notes\/[^/]+$/);
+    created.push(noteIdFromUrl(page.url()));
+
+    await expect(page.getByText('Hình ảnh · 3')).toBeVisible();
+
+    const measure = () =>
+      page.evaluate(() => ({
+        doc: document.documentElement.scrollWidth,
+        view: document.documentElement.clientWidth,
+      }));
+
+    const overflow = await measure();
+    expect(overflow.doc, 'trang không được rộng hơn màn hình').toBeLessThanOrEqual(overflow.view);
+
+    // Và vẫn phải đúng khi chữ to hơn dự kiến: iOS có thể tự phóng chữ, người
+    // dùng có thể chỉnh cỡ chữ hệ thống. Bố cục không được phụ thuộc vào việc
+    // chú thích vừa đúng một dòng.
+    await page.addStyleTag({
+      content: '[data-image-thumb] span { font-size: 22px !important; line-height: 1.3 !important }',
+    });
+    await page.waitForTimeout(300);
+    const inflated = await measure();
+    expect(inflated.doc, 'chữ to hơn vẫn không được làm tràn trang').toBeLessThanOrEqual(inflated.view);
+
+    // Và không thumbnail nào được rộng hơn màn hình.
+    const thumbs = page.locator('[data-image-thumb]');
+    for (let i = 0; i < (await thumbs.count()); i += 1) {
+      const box = (await thumbs.nth(i).boundingBox())!;
+      expect(box.width, `thumbnail ${i} rộng hơn màn hình`).toBeLessThanOrEqual(overflow.view);
+    }
+  });
 });

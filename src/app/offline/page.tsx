@@ -17,6 +17,18 @@ const OFFLINE_HEADING = 'Đang ngoại tuyến';
  * (cache thiếu, thiết bị chặn script), người dùng vẫn phải biết chuyện gì đang
  * xảy ra. Danh sách ghi chú đã tải là phần tăng cường nằm bên dưới.
  */
+/**
+ * Service worker trả thân trang này cho BẤT KỲ URL nào không tới được mạng,
+ * nên tài liệu và thanh địa chỉ lệch nhau: tài liệu là /offline, URL có thể
+ * là /notes/abc. Next đọc URL để quyết định route, nên nếu không sửa, nó sẽ
+ * cố dựng /notes/abc ở phía client — cần một payload RSC mà ngoại tuyến thì
+ * không lấy được, và trang thành trắng.
+ *
+ * Script nội tuyến này chạy lúc parse HTML, trước khi bundle của app khởi
+ * động, nên router thấy đúng /offline ngay từ đầu.
+ */
+const FIX_URL = "if(location.pathname!=='/offline'){history.replaceState(null,'','/offline')}";
+
 export default function OfflinePage() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-740 flex-col gap-20 bg-bg px-16 pt-24 pb-64 text-text min-[820px]:px-40">
@@ -30,6 +42,7 @@ export default function OfflinePage() {
         <h1 className="m-0 font-serif text-22 font-semibold">{OFFLINE_HEADING}</h1>
       </div>
       <OfflineReader />
+      <script dangerouslySetInnerHTML={{ __html: FIX_URL }} />
     </div>
   );
 }

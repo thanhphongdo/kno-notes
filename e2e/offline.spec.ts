@@ -229,4 +229,39 @@ test.describe('Ngoại tuyến', () => {
       created,
     );
   });
+
+  /**
+   * Mở app khi đã tắt mạng, trong một PHIÊN MỚI — đúng như bấm icon trên Home
+   * Screen. Khác với các bài trên: không có tab nào đang mở sẵn, mọi thứ phải
+   * đến từ service worker và IndexedDB.
+   *
+   * Bài này canh đúng chỗ đã làm hỏng app trên iPhone một lần: nếu service
+   * worker chuyển hướng thay vì trả thân trang, WebKit cho ra màn hình trắng;
+   * nếu trả thân trang mà không sửa URL, Next lại đi dựng route cũ và cũng ra
+   * màn hình trắng.
+   */
+  test('mở app lần đầu khi đã mất mạng vẫn vào được trang ngoại tuyến', async () => {
+    await waitForCache(page, 3);
+    await context.setOffline(true);
+    try {
+      for (const entry of ['/', '/notes/n1']) {
+        const fresh = await context.newPage();
+        const errors: string[] = [];
+        fresh.on('pageerror', (e) => errors.push(e.message));
+        try {
+          await fresh.goto(entry);
+          await expect(fresh.getByRole('heading', { name: 'Đang ngoại tuyến' })).toBeVisible();
+          await expect(fresh.locator('[data-note-brief]').first()).toBeVisible({ timeout: 20_000 });
+          // URL phải được sửa về /offline, nếu không router của Next sẽ đi tìm
+          // route cũ và không bao giờ tìm thấy khi đang ngoại tuyến.
+          expect(new URL(fresh.url()).pathname).toBe('/offline');
+          expect(errors).toEqual([]);
+        } finally {
+          await fresh.close();
+        }
+      }
+    } finally {
+      await context.setOffline(false);
+    }
+  });
 });

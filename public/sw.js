@@ -121,38 +121,36 @@ self.addEventListener('activate', (event) => {
 /**
  * Network-first for documents; the response is used, never stored.
  *
- * Khi mạng hỏng thì CHUYỂN HƯỚNG tới /offline chứ không trả thân trang đó cho
- * URL đang xin. Trả thân trang là cách cũ, và nó sai: tài liệu nhận được là
- * trang /offline trong khi thanh địa chỉ vẫn là /notes/xyz, nên Next hydrate
- * theo route /notes/xyz, không khớp với HTML máy chủ, rồi dựng thêm một cây
- * DOM thứ hai bên cạnh cây đã có — hai trang chồng lên nhau.
+ * Khi mạng hỏng thì trả THÂN trang /offline đã precache, cho bất kỳ URL nào.
  *
- * Chuyển hướng thì tài liệu và URL khớp nhau, Back vẫn đúng, và lần điều
- * hướng tới chính /offline mới đọc từ cache (nếu không sẽ lặp vô hạn).
+ * Có một cách nhìn "đúng hơn": chuyển hướng sang /offline để tài liệu và
+ * thanh địa chỉ khớp nhau. Đừng làm thế. WebKit xử lý response chuyển hướng
+ * do service worker trả cho một điều hướng rất không ổn định, và trên app đã
+ * cài ở iPhone nó cho ra màn hình trắng — không lỗi, không chữ, không gì cả.
+ * Trả thẳng thân trang là cách đã chạy ổn định, và trang /offline được dựng
+ * để hiển thị được dưới bất kỳ URL nào.
  */
 async function navigateWithOfflineFallback(request) {
   try {
     return await fetch(request);
   } catch {
-    let pathname = '';
-    try {
-      pathname = new URL(request.url).pathname;
-    } catch {
-      /* URL lạ: coi như không phải /offline */
-    }
-    // `Response.redirect` CHỈ nhận URL tuyệt đối; đưa đường dẫn tương đối vào
-    // là nó ném TypeError và điều hướng chết hẳn thay vì hiện trang ngoại tuyến.
-    if (pathname !== OFFLINE_URL) {
-      return Response.redirect(new URL(OFFLINE_URL, self.location.origin).href, 302);
-    }
-
     const cached = await caches.match(OFFLINE_URL, { cacheName: SHELL_CACHE });
-    return (
-      cached ||
-      new Response('<!doctype html><meta charset="utf-8"><title>Ngoại tuyến</title><p>Không có kết nối mạng.</p>', {
-        status: 503,
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
-      })
+    if (cached) return cached;
+
+    // Chưa kịp precache (lần mở đầu tiên đã mất mạng): ít nhất cũng phải nói
+    // được chuyện gì đang xảy ra, thay vì để trình duyệt hiện trang lỗi trắng.
+    return new Response(
+      '<!doctype html><html lang="vi"><head><meta charset="utf-8">' +
+        '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<title>Đang ngoại tuyến</title>' +
+        '<style>body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;' +
+        'justify-content:center;gap:10px;background:#f6f6f3;color:#1a1c1e;' +
+        'font-family:system-ui,sans-serif;text-align:center;padding:24px}' +
+        'p{margin:0;max-width:320px;font-size:14px;line-height:1.5;color:#63676c}</style>' +
+        '</head><body><h1 style="font-size:22px;margin:0">Đang ngoại tuyến</h1>' +
+        '<p>Chưa có nội dung nào tải sẵn trên máy. Hãy mở lại Kno-Notes khi có mạng ít nhất một lần.</p>' +
+        '</body></html>',
+      { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
     );
   }
 }

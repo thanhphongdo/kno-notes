@@ -104,7 +104,10 @@ export function ImageThumb({
       data-image-thumb=""
       onClick={onOpen}
       aria-label={`Mở ảnh ${image.label}`}
-      className={cn('flex cursor-zoom-in flex-col gap-8 border-0 bg-transparent p-0 text-left', className)}
+      // `min-w-0`: một ô lưới mặc định có `min-width: auto`, nghĩa là nó không
+      // được phép hẹp hơn nội dung của chính nó. Thiếu dòng này, một chú thích
+      // dài sẽ tự bẻ rộng ô ra và đẩy cả trang tràn ngang.
+      className={cn('flex min-w-0 cursor-zoom-in flex-col gap-8 border-0 bg-transparent p-0 text-left', className)}
     >
       <span
         className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-10 border border-line"
@@ -117,7 +120,17 @@ export function ImageThumb({
           <span className="font-mono text-11 text-faint">hình ảnh</span>
         )}
       </span>
-      <span className="truncate text-12 text-muted">{image.label}</span>
+      {/*
+        Xuống dòng, tối đa hai dòng — KHÔNG phải `truncate` một dòng.
+        Chú thích giờ là alt do người dùng viết nên nó dài như một câu thật;
+        `white-space: nowrap` khiến bề rộng tối thiểu của nó bằng cả câu, và
+        chỉ cần một chỗ nào đó không kịp cắt là chữ tràn ra ngoài, đè lên
+        chú thích bên cạnh. Chữ biết xuống dòng thì không bao giờ rộng hơn
+        một từ, nên tràn ngang là chuyện không thể xảy ra.
+      */}
+      <span className="line-clamp-2 w-full min-w-0 break-words text-12 leading-[1.4] text-muted">
+        {image.label}
+      </span>
     </button>
   );
 }

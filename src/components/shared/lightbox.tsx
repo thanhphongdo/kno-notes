@@ -419,7 +419,9 @@ export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProp
           onClick={prev}
         />
       ) : null}
-      <span>
+      {/* `min-w-0` + xuống dòng: chú thích là alt do người dùng viết, có thể
+          dài hơn cả màn hình. */}
+      <span className="min-w-0 break-words">
         {current.label}
         <span data-lightbox-counter="" className="ml-6 font-mono text-12 text-[#8a9095]">
           {`${index + 1} / ${total}`}
@@ -557,7 +559,10 @@ export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProp
     >
       {closeButton()}
       <LightboxMedia image={current} current mobile={false} onClick={stop} />
-      <div onClick={stop} className="flex items-center gap-16 text-14 text-[#e6e7e5]">
+      <div
+        onClick={stop}
+        className="flex max-w-[92vw] items-center gap-16 text-center text-14 text-[#e6e7e5]"
+      >
         {caption}
       </div>
     </div>
