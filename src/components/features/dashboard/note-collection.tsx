@@ -1,0 +1,90 @@
+'use client';
+
+import { useCallback, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  EmptyState, NoteGrid, NoteList, Pagination, type NoteSummary,
+} from '@/components/shared';
+import { useIsMobile } from '@/hooks/use-is-mobile';
+import { PAGE_SIZE, useNoteFilters } from '@/hooks/use-note-filters';
+import { notePath } from '@/lib/nav/paths';
+
+export interface NoteCollectionProps {
+  /** The current page, already mapped to the shared card shape on the server. */
+  notes: readonly NoteSummary[];
+  total: number;
+  pages: number;
+}
+
+const hrefFor = (note: NoteSummary) => notePath(note.id);
+
+/**
+ * The note list itself: grid or list per the URL, the prototype's empty state,
+ * and pagination. Favourites are optimistic — the star flips immediately, the
+ * server is told, and `router.refresh()` re-runs the server component so a
+ * `fav=1` filter stays honest. A rejected write rolls the star back.
+ */
+export function NoteCollection({ notes, total, pages }: NoteCollectionProps) {
+  const { filters, setPage, clearAll } = useNoteFilters();
+  const router = useRouter();
+  const isMobile = useIsMobile();
+  const [, startTransition] = useTransition();
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+
+  const onToggleFavorite = useCallback(
+    (id: string) => {
+      const current = overrides[id] ?? notes.find((n) => n.id === id)?.favorite ?? false;
+      setOverrides((m) => ({ ...m, [id]: !current }));
+      void (async () => {
+        try {
+          const res = await fetch(`/api/notes/${encodeURIComponent(id)}/favorite`, { method: 'POST' });
+          if (!res.ok) throw new Error('favorite failed');
+          startTransition(() => router.refresh());
+        } catch {
+          setOverrides((m) => ({ ...m, [id]: current }));
+        }
+      })();
+    },
+    [notes, overrides, router],
+  );
+
+  if (notes.length === 0) {
+    return (
+      <EmptyState
+        title="Không tìm thấy ghi chú"
+        description={
+          <>
+            Thử từ khoá khác, hoặc tìm theo thẻ với cú pháp <span className="font-mono">#thẻ</span>.
+          </>
+        }
+        actionLabel="Xoá bộ lọc"
+        onAction={clearAll}
+      />
+    );
+  }
+
+  const withOverrides = notes.map((n) => ({ ...n, favorite: overrides[n.id] ?? n.favorite }));
+
+  return (
+    <>
+      {filters.view === 'grid' ? (
+        <NoteGrid notes={withOverrides} hrefFor={hrefFor} onToggleFavorite={onToggleFavorite} />
+      ) : (
+        <NoteList
+          notes={withOverrides}
+          wrap={isMobile}
+          hrefFor={hrefFor}
+          onToggleFavorite={onToggleFavorite}
+        />
+      )}
+
+      <Pagination
+        page={filters.page}
+        pageCount={pages}
+        total={total}
+        pageSize={PAGE_SIZE}
+        onPageChange={setPage}
+      />
+    </>
+  );
+}
