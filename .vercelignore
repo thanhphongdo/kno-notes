@@ -1,0 +1,16 @@
+# build + test artefacts
+.next
+.next-*
+test-results
+test-results-*
+playwright-report
+coverage
+e2e
+.data
+.data-*
+# local-only material
+docs
+*-pat.txt
+*neon*.txt
+.env.local
+.env.test

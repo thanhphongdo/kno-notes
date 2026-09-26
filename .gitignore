@@ -55,3 +55,6 @@ test-results-*/
 # credentials supplied by the user - NEVER commit
 *-pat.txt
 *.pat
+postgres-neon.txt
+*neon*.txt
+.env*
