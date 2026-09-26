@@ -28,6 +28,28 @@ describe('useIsMobile', () => {
     expect(result.current).toBe(false);
   });
 
+  it('waits for the effect by default, so hydration can never mismatch', () => {
+    setWidth(390);
+    let firstRender: boolean | null = null;
+    renderHook(() => {
+      const value = useIsMobile();
+      firstRender ??= value;
+      return value;
+    });
+    expect(firstRender).toBe(false);
+  });
+
+  it('answers from the first render when asked to, for overlays opened by a click', () => {
+    setWidth(390);
+    let firstRender: boolean | null = null;
+    renderHook(() => {
+      const value = useIsMobile({ immediate: true });
+      firstRender ??= value;
+      return value;
+    });
+    expect(firstRender).toBe(true);
+  });
+
   it('reacts to resize', () => {
     setWidth(1440);
     const { result } = renderHook(() => useIsMobile());

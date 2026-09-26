@@ -118,7 +118,10 @@ function LightboxMedia({
 export function Lightbox({ images, index, onIndexChange, onClose }: LightboxProps) {
   const total = images.length;
   const current = images[index];
-  const isMobile = useIsMobile();
+  // `immediate`: the lightbox only ever mounts from a click, so it has no
+  // hydration to protect — and the default's one-render lag shows up on a
+  // phone as a flash of the letterboxed desktop layout.
+  const isMobile = useIsMobile({ immediate: true });
   const reducedMotion = useReducedMotion();
 
   const [drag, setDrag] = useState<Point>(ORIGIN);
