@@ -6,13 +6,12 @@
  * next to a sibling spec that is adding notes of its own. Anything that depends
  * on *how many* notes exist reads the number from the API first.
  *
- * Every control here navigates through `router.push`; `clickAndWaitForURL`
- * explains why that click is retried.
+ * Every control here navigates by writing the query string, so each assertion
+ * follows the URL that control is supposed to produce.
  */
 import { test, expect } from './fixtures/auth';
 import {
-  PAGE_SIZE, actAndWaitForURL, cleanupNotes, clickAndWaitForURL, createNote, listNotes, rangeText,
-  resetPrefs, withPrefsSync,
+  PAGE_SIZE, cleanupNotes, createNote, listNotes, rangeText, resetPrefs, withPrefsSync,
 } from './helpers/app';
 import { SEED_TOP_TAG } from './helpers/seed';
 
@@ -35,21 +34,16 @@ async function favouriteWritten(
   await written;
 }
 
-/** Opens the custom sort menu and picks an option, retrying the whole gesture. */
+/** Opens the custom sort menu, if it is not already open, and picks an option. */
 async function pickSort(
   page: Parameters<typeof resetPrefs>[0],
   label: string,
   url: string,
 ): Promise<void> {
-  await actAndWaitForURL(
-    page,
-    async () => {
-      const trigger = page.getByRole('combobox', { name: 'Sắp xếp' });
-      if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click();
-      await page.getByRole('option', { name: label, exact: true }).click();
-    },
-    url,
-  );
+  const trigger = page.getByRole('combobox', { name: 'Sắp xếp' });
+  if ((await trigger.getAttribute('aria-expanded')) !== 'true') await trigger.click();
+  await page.getByRole('option', { name: label, exact: true }).click();
+  await page.waitForURL(url);
 }
 
 test.describe('Dashboard', () => {
@@ -122,7 +116,8 @@ test.describe('Dashboard', () => {
     await expect(page.locator('[data-note-row]')).toHaveCount(0);
 
     await withPrefsSync(page, async () => {
-      await clickAndWaitForURL(page, page.getByRole('radio', { name: 'Dạng danh sách' }), '/?view=list');
+      await page.getByRole('radio', { name: 'Dạng danh sách' }).click();
+      await page.waitForURL('/?view=list');
       await expect(page.locator('[data-note-row]').first()).toBeVisible();
     });
 
@@ -150,22 +145,17 @@ test.describe('Dashboard', () => {
     await expect(page.locator('[data-note-card]')).toHaveCount(PAGE_SIZE);
     await expect(page.getByRole('button', { name: 'Trang trước' })).toBeDisabled();
 
-    await clickAndWaitForURL(page, page.getByRole('button', { name: 'Trang sau' }), '/?page=2');
+    await page.getByRole('button', { name: 'Trang sau' }).click();
+    await page.waitForURL('/?page=2');
     await expect(page.getByText(rangeText(2, total))).toBeVisible();
 
-    await clickAndWaitForURL(
-      page,
-      page.getByRole('button', { name: `Trang ${pageCount}`, exact: true }),
-      `/?page=${pageCount}`,
-    );
+    await page.getByRole('button', { name: `Trang ${pageCount}`, exact: true }).click();
+    await page.waitForURL(`/?page=${pageCount}`);
     await expect(page.getByText(rangeText(pageCount, total))).toBeVisible();
     await expect(page.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
 
-    await clickAndWaitForURL(
-      page,
-      page.getByRole('button', { name: 'Trang trước' }),
-      `/?page=${pageCount - 1}`,
-    );
+    await page.getByRole('button', { name: 'Trang trước' }).click();
+    await page.waitForURL(`/?page=${pageCount - 1}`);
     await expect(page.getByText(rangeText(pageCount - 1, total))).toBeVisible();
   });
 
@@ -178,7 +168,8 @@ test.describe('Dashboard', () => {
 
     // Removing a filter chip is a filter change too, so it also resets the page.
     await page.goto('/?page=2&priority=high');
-    await clickAndWaitForURL(page, page.getByRole('button', { name: 'Gỡ bộ lọc Ưu tiên cao' }), '/');
+    await page.getByRole('button', { name: 'Gỡ bộ lọc Ưu tiên cao' }).click();
+    await page.waitForURL('/');
   });
 
   test('tham số rác vẫn ra trang 1 của sắp xếp mặc định', async ({ page }) => {
@@ -207,17 +198,20 @@ test.describe('Dashboard', () => {
     const chipTag = page.getByRole('button', { name: `Gỡ bộ lọc #${SEED_TOP_TAG.name}` });
     for (const chip of [chipQ, chipPriority, chipTag]) await expect(chip).toBeVisible();
 
-    await clickAndWaitForURL(page, chipPriority, `/?q=Tim&tag=${encodeURIComponent(SEED_TOP_TAG.name).replace(/%20/g, '+')}`);
+    await chipPriority.click();
+    await page.waitForURL(`/?q=Tim&tag=${encodeURIComponent(SEED_TOP_TAG.name).replace(/%20/g, '+')}`);
     await expect(chipPriority).toHaveCount(0);
     await expect(chipQ).toBeVisible();
     await expect(chipTag).toBeVisible();
 
-    await clickAndWaitForURL(page, chipTag, '/?q=Tim');
+    await chipTag.click();
+    await page.waitForURL('/?q=Tim');
     await expect(chipTag).toHaveCount(0);
     await expect(chipQ).toBeVisible();
 
     await page.goto(url);
-    await clickAndWaitForURL(page, page.getByRole('button', { name: 'Xoá bộ lọc' }), '/');
+    await page.getByRole('button', { name: 'Xoá bộ lọc' }).click();
+    await page.waitForURL('/');
     await expect(page.getByRole('button', { name: /^Gỡ bộ lọc/ })).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tất cả ghi chú');
   });
@@ -231,7 +225,8 @@ test.describe('Dashboard', () => {
     await expect(page.getByText('0 ghi chú', { exact: true })).toBeVisible();
     await expect(page.locator('[data-note-card]')).toHaveCount(0);
 
-    await clickAndWaitForURL(page, empty.getByRole('button', { name: 'Xoá bộ lọc' }), '/');
+    await empty.getByRole('button', { name: 'Xoá bộ lọc' }).click();
+    await page.waitForURL('/');
     await expect(page.locator('[data-note-card]').first()).toBeVisible();
   });
 

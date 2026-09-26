@@ -9,8 +9,7 @@
  */
 import { test, expect } from './fixtures/auth';
 import {
-  actAndWaitForURL, expectedTags, isMobileProject, listNotes, openSidebar,
-  parseTagItem, resetPrefs,
+  expectedTags, isMobileProject, listNotes, openSidebar, parseTagItem, resetPrefs,
   sidebarItem, sidebarTagItems, withPrefsSync,
 } from './helpers/app';
 import { SEED_FAVOURITES, SEED_NOTES, SEED_PRIORITY, SEED_TOP_TAG, SEED_TOTAL } from './helpers/seed';
@@ -144,14 +143,8 @@ test.describe('Khung ứng dụng', () => {
     const tag = sidebarTagItems(page).first();
     const { name } = parseTagItem((await tag.textContent()) ?? '');
 
-    await actAndWaitForURL(
-      page,
-      async () => {
-        await openSidebar(page, mobile);
-        await tag.click();
-      },
-      /\?tag=/,
-    );
+    await tag.click();
+    await page.waitForURL(/\?tag=/);
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(`#${name}`);
     for (const title of await page.locator('[data-note-title]').allTextContents()) {
       expect(title.length).toBeGreaterThan(0);
@@ -164,16 +157,8 @@ test.describe('Khung ứng dụng', () => {
     await openSidebar(page, mobile);
     const activeTag = sidebarTagItems(page).filter({ hasText: name }).first();
     await expect(activeTag).toHaveAttribute('aria-current', 'page');
-    // Clicking closes the drawer even when the navigation does not land, so a
-    // retry has to reopen it first.
-    await actAndWaitForURL(
-      page,
-      async () => {
-        await openSidebar(page, mobile);
-        await activeTag.click();
-      },
-      '/',
-    );
+    await activeTag.click();
+    await page.waitForURL('/');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Tất cả ghi chú');
   });
 

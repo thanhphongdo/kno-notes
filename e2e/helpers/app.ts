@@ -198,44 +198,6 @@ export async function openSidebar(page: Page, mobile: boolean): Promise<void> {
   await expect.poll(async () => (await page.locator('aside').boundingBox())?.x ?? null).toBe(0);
 }
 
-/**
- * Clicks something that navigates through `router.push`, and waits for the URL.
- *
- * Under load — two `next start` servers plus a `next build` on the same
- * machine — the App Router occasionally drops a soft navigation: the click
- * handler runs (verified: `history.pushState` is never reached), the RSC
- * payload for the new URL comes back `200` and is then `ERR_ABORTED`, and the
- * router never commits. Nothing in the app is wrong when this happens, and it
- * clears on a second click, so the user action — not the assertion — is what
- * this retries. The assertion itself stays strict.
- */
-export async function actAndWaitForURL(
-  page: Page,
-  action: () => Promise<void>,
-  url: string | RegExp,
-  attempts = 3,
-): Promise<void> {
-  for (let attempt = 1; ; attempt += 1) {
-    await action();
-    try {
-      await page.waitForURL(url, { timeout: 7_000 });
-      return;
-    } catch (error) {
-      if (attempt >= attempts) throw error;
-    }
-  }
-}
-
-/** The common case: one button, one URL. */
-export async function clickAndWaitForURL(
-  page: Page,
-  locator: ReturnType<Page['locator']>,
-  url: string | RegExp,
-  attempts = 3,
-): Promise<void> {
-  await actAndWaitForURL(page, () => locator.click(), url, attempts);
-}
-
 /** A sidebar entry, located by its visible label rather than by a utility class. */
 export function sidebarItem(page: Page, label: string) {
   return page.locator('aside button').filter({ hasText: label }).first();
