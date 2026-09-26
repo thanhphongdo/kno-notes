@@ -174,6 +174,7 @@ export function ApiKeysClient({ baseUrl }: ApiKeysClientProps) {
                 {confirming === row.id ? (
                   <DeleteConfirmBanner
                     message={REVOKE_CONFIRM_MESSAGE}
+                    confirmLabel="Thu hồi vĩnh viễn"
                     onCancel={() => setConfirming(null)}
                     onConfirm={() => void revoke(row.id)}
                     className="basis-full"

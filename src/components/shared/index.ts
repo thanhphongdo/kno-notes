@@ -2,7 +2,10 @@ export { AppHeader, HEADER_PAD_X, type AppHeaderProps } from './app-header';
 export { AppShell, type AppShellProps } from './app-shell';
 export { CommentComposer, COMMENT_PLACEHOLDER, type CommentComposerProps } from './comment-composer';
 export { CommentList, type CommentAuthor, type CommentItem, type CommentListProps } from './comment-list';
-export { DeleteConfirmBanner, DELETE_CONFIRM_MESSAGE, type DeleteConfirmBannerProps } from './delete-confirm-banner';
+export {
+  DeleteConfirmBanner, DELETE_CONFIRM_MESSAGE, DELETE_CONFIRM_LABEL, DELETE_CANCEL_LABEL,
+  type DeleteConfirmBannerProps,
+} from './delete-confirm-banner';
 export {
   EditorToolbar, EDITOR_TOOL_GROUPS,
   type EditorCommand, type EditorTool, type EditorToolbarProps,

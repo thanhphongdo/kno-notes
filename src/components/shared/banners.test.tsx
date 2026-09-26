@@ -48,4 +48,30 @@ describe('DeleteConfirmBanner', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Xoá' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
+
+  it('defaults the two actions to Huỷ / Xoá', () => {
+    render(<DeleteConfirmBanner onCancel={() => {}} onConfirm={() => {}} />);
+    expect(screen.getByRole('button', { name: 'Huỷ' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xoá' })).toBeInTheDocument();
+  });
+
+  it('takes overridden labels and still emits the same two actions', async () => {
+    const onCancel = vi.fn();
+    const onConfirm = vi.fn();
+    render(
+      <DeleteConfirmBanner
+        message="Thu hồi key này?"
+        confirmLabel="Thu hồi vĩnh viễn"
+        cancelLabel="Giữ lại"
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Xoá' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Huỷ' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Giữ lại' }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Thu hồi vĩnh viễn' }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
 });

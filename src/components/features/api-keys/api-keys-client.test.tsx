@@ -86,7 +86,7 @@ describe('ApiKeysClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
 
     await user.click(screen.getByRole('button', { name: 'Thu hồi' }));
-    await user.click(screen.getByRole('button', { name: 'Xoá' }));
+    await user.click(screen.getByRole('button', { name: 'Thu hồi vĩnh viễn' }));
     expect(fetchMock).toHaveBeenCalledWith('/api/api-keys/k1', expect.objectContaining({ method: 'DELETE' }));
   });
 
