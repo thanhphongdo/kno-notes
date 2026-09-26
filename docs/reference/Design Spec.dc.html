@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f6f3;--surface:#ffffff;--surface2:#f0f0ec;--line:#e5e4df;--line2:#d3d2cb;--text:#1a1c1e;--muted:#63676c;--faint:#989ca1;--accent:#17756b;--accent-ink:#ffffff;--accent-soft:#e2efec;--hi:#b3382e;--hi-soft:#f8e7e4;--med:#9c630f;--med-soft:#f5ecda;--low:#5a6670;--low-soft:#eceeef;--ok:#23794a;--ok-soft:#e3f2e8;--hl:#fbe9a6;--hl2:#f6db78;--shadow:0 1px 2px rgba(20,20,20,.04),0 10px 30px rgba(20,20,20,.07)}
+[data-theme="dark"]{--bg:#0f1112;--surface:#16191a;--surface2:#1d2122;--line:#252a2b;--line2:#343a3c;--text:#e6e7e5;--muted:#9ca1a5;--faint:#6b7175;--accent:#5cc3b3;--accent-ink:#0c1a18;--accent-soft:#15302c;--hi:#f0897e;--hi-soft:#391f1c;--med:#e2b35f;--med-soft:#342a17;--low:#a4aeb5;--low-soft:#242a2d;--ok:#6cc98f;--ok-soft:#173022;--hl:rgba(226,179,95,.28);--hl2:rgba(226,179,95,.42);--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35)}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:'IBM Plex Mono',monospace;font-size:.88em}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;background:var(--bg);color:var(--text)">
+  <nav style="width:240px;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 20px;border-right:1px solid var(--line);display:{{ navDisplay }};flex-direction:column;gap:22px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:28px;height:28px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-size:16px;font-weight:700">S</div>
+      <div style="display:flex;flex-direction:column"><span style="font-family:'Source Serif 4',serif;font-size:16px;font-weight:600">Sổ Lâm Sàng</span><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">Design spec · v1.3</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <sc-for list="{{ toc }}" as="t" hint-placeholder-count="12">
+        <a href="{{ t.href }}" style="display:flex;gap:10px;padding:6px 8px;border-radius:7px;font-size:13px;color:var(--muted);text-decoration:none" style-hover="background:var(--surface2);color:var(--text)"><span style="font-family:'IBM Plex Mono',monospace;color:var(--faint);font-size:12px;width:18px">{{ t.n }}</span>{{ t.label }}</a>
+      </sc-for>
+    </div>
+  </nav>
+
+  <main style="flex:1;min-width:0">
+    <header style="position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:12px;height:56px;padding:0 {{ padX }}px;background:var(--bg);border-bottom:1px solid var(--line)">
+      <span style="font-size:13px;color:var(--muted);flex:1">Tài liệu đặc tả giao diện — trích xuất từ <a href="So%20Lam%20Sang.dc.html">So Lam Sang.dc.html</a></span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--surface2);border-radius:10px">
+        <button onClick="{{ setLight }}" style="height:30px;padding:0 12px;border:0;border-radius:7px;font-size:12px;font-weight:500;background:{{ lightBg }};color:{{ lightColor }}">Sáng</button>
+        <button onClick="{{ setDark }}" style="height:30px;padding:0 12px;border:0;border-radius:7px;font-size:12px;font-weight:500;background:{{ darkBg }};color:{{ darkColor }}">Tối</button>
+      </div>
+    </header>
+
+    <div style="max-width:1080px;margin:0 auto;padding:56px {{ padX }}px 120px;display:flex;flex-direction:column;gap:88px">
+
+      <section style="display:flex;flex-direction:column;gap:18px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent)">DESIGN SPEC · 25/09/2026</span>
+        <h1 style="margin:0;font-family:'Source Serif 4',serif;font-size:{{ h1 }}px;font-weight:600;letter-spacing:-.025em;line-height:1.08;text-wrap:balance">Sổ Lâm Sàng — Đặc tả thiết kế</h1>
+        <p style="margin:0;max-width:680px;font-size:18px;line-height:1.6;color:var(--muted);text-wrap:pretty">Webapp ghi chú kiến thức lâm sàng cho một bác sĩ. Tài liệu này ghi lại toàn bộ token, kiểu chữ, khoảng cách, thành phần, trạng thái, hành vi và nội dung đang dùng trong 5 màn hình: Đăng nhập, Dashboard, Chi tiết, Soạn thảo, Trắc nghiệm.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-top:12px">
+          <sc-for list="{{ principles }}" as="p" hint-placeholder-count="4">
+            <div style="background:var(--surface);padding:18px 20px;display:flex;flex-direction:column;gap:6px"><span style="font-size:14px;font-weight:600">{{ p.t }}</span><span style="font-size:13px;line-height:1.55;color:var(--muted)">{{ p.d }}</span></div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- 01 COLORS -->
+      <section id="colors" style="display:flex;flex-direction:column;gap:24px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">01</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Màu sắc</h2><p style="margin:0;font-size:15px;color:var(--muted);line-height:1.6;max-width:680px">Tất cả màu khai báo dưới dạng CSS custom property trên <code>:root</code>, ghi đè bởi <code>[data-theme="dark"]</code> trên <code>&lt;html&gt;</code>. Accent được set runtime qua <code>style.setProperty</code> theo tweak <code>accent</code>.</p></div>
+        <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+          <div style="display:grid;grid-template-columns:{{ colCols }};gap:16px;padding:10px 18px;background:var(--surface2);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)"><span>Token</span><span>Sáng</span><span>Tối</span><span>Dùng cho</span></div>
+          <sc-for list="{{ colors }}" as="c" hint-placeholder-count="21">
+            <div style="display:grid;grid-template-columns:{{ colCols }};gap:16px;padding:12px 18px;border-top:1px solid var(--line);align-items:center;font-size:13px">
+              <code style="font-weight:500">{{ c.token }}</code>
+              <span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;flex-shrink:0;background:#f6f6f3;padding:3px;border:1px solid #e5e4df"><span style="display:block;width:100%;height:100%;border-radius:4px;background:{{ c.light }}"></span></span><code style="color:var(--muted)">{{ c.light }}</code></span>
+              <span style="display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:7px;flex-shrink:0;background:#0f1112;padding:3px;border:1px solid #252a2b"><span style="display:block;width:100%;height:100%;border-radius:4px;background:{{ c.dark }}"></span></span><code style="color:var(--muted)">{{ c.dark }}</code></span>
+              <span style="color:var(--muted);line-height:1.5">{{ c.use }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h3 style="margin:0;font-size:15px;font-weight:600">Biến thể accent (tweak <code>accent</code>)</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+            <sc-for list="{{ accents }}" as="a" hint-placeholder-count="3">
+              <div style="border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:12px">
+                <span style="font-size:14px;font-weight:600">{{ a.name }}{{ a.def }}</span>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+                  <span style="height:36px;border-radius:6px;background:{{ a.l }}"></span><span style="height:36px;border-radius:6px;background:{{ a.ls }};border:1px solid var(--line)"></span><span style="height:36px;border-radius:6px;background:{{ a.d }}"></span><span style="height:36px;border-radius:6px;background:{{ a.ds }}"></span>
+                </div>
+                <code style="font-size:11px;color:var(--muted);line-height:1.6">sáng {{ a.l }} / {{ a.ls }}<br>tối {{ a.d }} / {{ a.ds }}</code>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h3 style="margin:0;font-size:15px;font-weight:600">Mã màu theo ngữ nghĩa</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+            <div style="border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+              <span style="font-weight:600">Mức ưu tiên</span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--hi)"></span>Cao — <code>--hi / --hi-soft</code></span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--med)"></span>Trung bình — <code>--med / --med-soft</code></span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:var(--low)"></span>Thấp — <code>--low / --low-soft</code></span>
+            </div>
+            <div style="border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+              <span style="font-weight:600">Điểm trắc nghiệm</span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:4px;border-radius:2px;background:var(--ok)"></span>≥ 80% — Nắm vững (<code>--ok</code>)</span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:4px;border-radius:2px;background:var(--med)"></span>50–79% — Cần ôn thêm (<code>--med</code>)</span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:28px;height:4px;border-radius:2px;background:var(--hi)"></span>&lt; 50% — Nên đọc lại (<code>--hi</code>)</span>
+            </div>
+            <div style="border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:10px;font-size:13px">
+              <span style="font-weight:600">Màu cố định (không đổi theo theme)</span>
+              <span>Backdrop drawer <code>rgba(10,12,14,.45)</code></span>
+              <span>Lightbox <code>rgba(8,9,10,.88)</code>, chữ <code>#e6e7e5</code>, phụ <code>#8a9095</code></span>
+              <span>Nút trên lightbox <code>rgba(255,255,255,.1)</code></span>
+              <span>Nút gỡ ảnh <code>rgba(0,0,0,.55)</code> + <code>#fff</code></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 02 TYPE -->
+      <section id="type" style="display:flex;flex-direction:column;gap:24px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">02</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Kiểu chữ</h2><p style="margin:0;font-size:15px;color:var(--muted);line-height:1.6;max-width:680px">Ba họ chữ từ Google Fonts. Serif cho tiêu đề và nội dung đọc dài; sans cho giao diện; mono cho số, phiên bản, phím tắt và nhãn kỹ thuật. Font smoothing: <code>-webkit-font-smoothing: antialiased</code>.</p></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+          <div style="border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:10px"><span style="font-family:'Source Serif 4',serif;font-size:44px;font-weight:600;letter-spacing:-.02em;line-height:1">Aa Ưu</span><span style="font-size:14px;font-weight:600">Source Serif 4</span><span style="font-size:13px;color:var(--muted);line-height:1.5">400 · 600 · 700 (opsz 8–60). Tiêu đề trang, tiêu đề note, nội dung prose, câu hỏi quiz, brand, điểm số.</span></div>
+          <div style="border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:10px"><span style="font-size:44px;font-weight:500;letter-spacing:-.02em;line-height:1">Aa Ưu</span><span style="font-size:14px;font-weight:600">IBM Plex Sans</span><span style="font-size:13px;color:var(--muted);line-height:1.5">400 · 500 · 600. Toàn bộ UI: nút, input, nav, meta, mô tả; H2/H3 bên trong prose; bảng.</span></div>
+          <div style="border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:10px"><span style="font-family:'IBM Plex Mono',monospace;font-size:44px;line-height:1">v3 /</span><span style="font-size:14px;font-weight:600">IBM Plex Mono</span><span style="font-size:13px;color:var(--muted);line-height:1.5">400 · 500. Số đếm, v1…vN, số trang, phím tắt, ngày trong spec, “CÂU 1 / 5”, username.</span></div>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+          <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="20">
+            <div style="display:flex;flex-wrap:wrap;gap:8px 24px;padding:16px 20px;border-top:1px solid var(--line);align-items:baseline">
+              <div style="flex:0 0 220px;display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:600">{{ t.role }}</span><code style="font-size:11px;color:var(--faint)">{{ t.spec }}</code></div>
+              <div style="flex:1 1 300px;min-width:0;font-family:{{ t.ff }};font-size:{{ t.size }};font-weight:{{ t.w }};line-height:{{ t.lh }};letter-spacing:{{ t.ls }};text-transform:{{ t.tt }};color:{{ t.color }};font-style:{{ t.fst }}">{{ t.sample }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h3 style="margin:0;font-size:15px;font-weight:600">Prose (nội dung note &amp; editor) — <code>[data-prose]</code></h3>
+          <div style="display:flex;flex-wrap:wrap;gap:24px">
+            <div style="flex:1 1 380px;min-width:0;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:28px 32px;font-family:'Source Serif 4',serif;font-size:17px;line-height:1.72">
+              <div style="font-family:'IBM Plex Sans',sans-serif;font-size:1.12em;font-weight:600;letter-spacing:-.005em;margin:0 0 .6em">Tiêu đề H2 — Mục tiêu điều trị</div>
+              <p style="margin:0 0 .9em">Mục tiêu <b style="font-weight:600">&lt; 130/80 mmHg</b> nếu dung nạp tốt. <span style="background:var(--hl);border-radius:3px;padding:.05em .1em">Đoạn được đánh dấu</span> nằm trong đoạn văn.</p>
+              <div style="font-family:'IBM Plex Sans',sans-serif;font-size:.98em;font-weight:600;margin:1.2em 0 .4em">Tiêu đề H3</div>
+              <ul style="padding-left:1.35em;margin:0 0 1em"><li style="margin:.28em 0;padding-left:.2em">Marker danh sách dùng màu accent</li><li style="margin:.28em 0;padding-left:.2em">Khoảng cách giữa item .28em</li></ul>
+              <div style="margin:1.3em 0 0;padding:.1em 0 .1em 1.1em;border-left:2px solid var(--accent);color:var(--muted);font-style:italic">Blockquote — nghiêng, màu muted, vạch trái 2px accent.</div>
+            </div>
+            <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:0;font-size:13px">
+              <sc-for list="{{ proseRules }}" as="r" hint-placeholder-count="12">
+                <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)"><code style="flex:0 0 110px;color:var(--accent)">{{ r.sel }}</code><span style="color:var(--muted);line-height:1.5">{{ r.rule }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 LAYOUT -->
+      <section id="layout" style="display:flex;flex-direction:column;gap:24px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">03</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Bố cục, khoảng cách &amp; breakpoint</h2><p style="margin:0;font-size:15px;color:var(--muted);line-height:1.6;max-width:680px">Lưới 2px/4px. Mọi nhóm phần tử dùng flex/grid + <code>gap</code>. Một breakpoint duy nhất: <b>820px</b> (<code>window.innerWidth &lt; 820</code> → mobile).</p></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <h3 style="margin:0 0 4px;font-size:15px;font-weight:600">Thang khoảng cách đang dùng</h3>
+          <sc-for list="{{ spacing }}" as="s" hint-placeholder-count="14">
+            <div style="display:flex;align-items:center;gap:16px;font-size:13px"><code style="width:40px;text-align:right;color:var(--muted)">{{ s.v }}</code><span style="height:12px;width:{{ s.v }}px;background:var(--accent);border-radius:2px;flex-shrink:0"></span><span style="color:var(--muted)">{{ s.use }}</span></div>
+          </sc-for>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+          <div style="display:grid;grid-template-columns:{{ lyCols }};gap:16px;padding:10px 18px;background:var(--surface2);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)"><span>Vùng</span><span>Desktop ≥ 820</span><span>Mobile &lt; 820</span></div>
+          <sc-for list="{{ layout }}" as="l" hint-placeholder-count="16">
+            <div style="display:grid;grid-template-columns:{{ lyCols }};gap:16px;padding:11px 18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5"><span style="font-weight:500">{{ l.k }}</span><span style="color:var(--muted)">{{ l.d }}</span><span style="color:var(--muted)">{{ l.m }}</span></div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <h3 style="margin:0;font-size:15px;font-weight:600">Khung trang (desktop)</h3>
+          <div style="display:flex;height:280px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">
+            <div style="width:22%;border-right:1px dashed var(--line2);padding:12px;display:flex;flex-direction:column;gap:8px"><span>aside 256</span><span style="color:var(--faint)">sticky · 100vh · pad 22/16/16 · gap 28</span></div>
+            <div style="flex:1;display:flex;flex-direction:column">
+              <div style="height:44px;border-bottom:1px dashed var(--line2);padding:12px;display:flex;justify-content:space-between"><span>header 64 · sticky · pad-x 40</span><span>search ≤ 560 · Aa 40 · + 40</span></div>
+              <div style="flex:1;padding:14px;display:flex;justify-content:center"><div style="width:84%;border:1px dashed var(--accent);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px;color:var(--accent)"><span>container max 1160 (dash) / 1120 (detail, edit) · pad 36 40 64</span><div style="display:flex;gap:10px;flex:1"><div style="flex:1;border:1px dashed var(--line2);border-radius:6px;padding:8px;color:var(--muted)">article ≤ 740 · flex 1 1 560</div><div style="width:28%;border:1px dashed var(--line2);border-radius:6px;padding:8px;color:var(--muted)">rail ≤ 300 · sticky top 88 · gap 56</div></div></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 SHAPE -->
+      <section id="shape" style="display:flex;flex-direction:column;gap:24px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">04</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Bo góc, viền, đổ bóng, lớp &amp; chuyển động</h2></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">
+          <sc-for list="{{ radii }}" as="r" hint-placeholder-count="12">
+            <div style="display:flex;flex-direction:column;gap:8px"><div style="height:72px;border:1px solid var(--line2);background:var(--surface);border-radius:{{ r.css }}"></div><code style="font-size:12px">{{ r.v }}</code><span style="font-size:12px;color:var(--muted);line-height:1.45">{{ r.use }}</span></div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+          <div style="border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:12px;font-size:13px;line-height:1.55">
+            <span style="font-size:14px;font-weight:600">Viền &amp; đổ bóng</span>
+            <div style="height:64px;border-radius:12px;background:var(--surface);box-shadow:var(--shadow);border:1px solid var(--line)"></div>
+            <code style="color:var(--muted)">--shadow sáng: 0 1px 2px rgba(20,20,20,.04), 0 10px 30px rgba(20,20,20,.07)</code>
+            <code style="color:var(--muted)">--shadow tối: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35)</code>
+            <span style="color:var(--muted)">Dùng cho: card hover, popover (settings, sort, suggestion), highlight popup, toast. Segmented item đang chọn: <code>0 1px 2px rgba(0,0,0,.12)</code> (tối <code>.4</code>). Viền mặc định 1px <code>--line</code>; hover 1px <code>--line2</code>; dashed cho dropzone, empty state, gợi ý thẻ.</span>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:0;font-size:13px">
+            <span style="font-size:14px;font-weight:600;margin-bottom:8px">Z-index</span>
+            <sc-for list="{{ zindex }}" as="z" hint-placeholder-count="12">
+              <div style="display:flex;gap:12px;padding:6px 0;border-bottom:1px solid var(--line)"><code style="width:36px;color:var(--accent)">{{ z.v }}</code><span style="color:var(--muted)">{{ z.use }}</span></div>
+            </sc-for>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:0;font-size:13px">
+            <span style="font-size:14px;font-weight:600;margin-bottom:8px">Chuyển động</span>
+            <sc-for list="{{ motion }}" as="m" hint-placeholder-count="8">
+              <div style="display:flex;flex-direction:column;gap:2px;padding:7px 0;border-bottom:1px solid var(--line)"><span>{{ m.k }}</span><code style="color:var(--muted);font-size:11px">{{ m.v }}</code></div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <!-- 05 ICONS -->
+      <section id="icons" style="display:flex;flex-direction:column;gap:24px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">05</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Icon</h2><p style="margin:0;font-size:15px;color:var(--muted);line-height:1.6;max-width:680px">SVG nội tuyến, viewBox 24×24, <code>fill:none; stroke:currentColor</code>, <code>stroke-linecap/linejoin: round</code>. Nét 1.6–1.8 cho icon thường, 2–2.6 cho icon nhỏ (×, ✓, +). Kích thước hiển thị 10–20px. Không dùng emoji; ký tự B/I/U/S/H2/¶/•/1./❝/—/↶/↷ trên toolbar là chữ.</p></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden">
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">search · 17 · 1.8</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:var(--med);color:var(--med);stroke:currentColor;stroke-width:1.6;stroke-linejoin:round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">star (on) · 18 · 1.6</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;color:var(--faint);stroke:currentColor;stroke-width:1.6;stroke-linejoin:round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">star (off) · faint</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><path d="M12 5v14M5 12h14"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">plus · 17 · 2</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><path d="M9.5 4.5v15"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">sidebar open · 20</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><path d="M9.5 4.5v15M16 10l-2 2 2 2"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">sidebar collapse · 18</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">edit · 15</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">trash · 16</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M9 11l2 2 4-4"></path><rect x="4" y="4" width="16" height="16" rx="3"></rect></svg><span style="font-size:11px;color:var(--muted);text-align:center">quiz · 15</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M14.5 4.5l5 5L10 19H5v-5z"></path><path d="M4 22h16"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">highlight · 15</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l3 2"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">history · 15–16</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round"><path d="M4 5h16v11H9l-5 4z"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">comment · 14</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.7;stroke-linejoin:round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><circle cx="9" cy="10" r="1.5"></circle><path d="M21 16l-5-5-9 8"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">image · 14–16</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg><span style="font-size:11px;color:var(--muted);text-align:center">grid · 15</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">list · 15</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">sun · 15</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">moon · 15</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">logout · 15–17</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M15 6l-6 6 6 6"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">chevron-left · 16</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M6 9l6 6 6-6"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">chevron-down · 14 · 2</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12l5 5 9-10"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">check · 14 · 2.2</span></div>
+          <div style="background:var(--surface);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px"><svg width="20" height="20" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M6 6l12 12M18 6L6 18"></path></svg><span style="font-size:11px;color:var(--muted);text-align:center">close · 10–18</span></div>
+        </div>
+      </section>
+
+      <!-- 06 COMPONENTS -->
+      <section id="components" style="display:flex;flex-direction:column;gap:32px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">06</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Thành phần</h2><p style="margin:0;font-size:15px;color:var(--muted);line-height:1.6;max-width:680px">Mẫu trực tiếp (đổi theme ở góc phải để xem cả hai chế độ) kèm thông số. Chiều cao vùng chạm tối thiểu trên mobile 40–44px.</p></div>
+
+        <!-- Buttons -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h3 style="margin:0;font-size:17px;font-weight:600">Nút</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--bg)">
+            <button style="height:40px;padding:0 16px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px" style-hover="opacity:.9"><svg width="17" height="17" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><path d="M12 5v14M5 12h14"></path></svg>Ghi chú mới</button>
+            <button style="height:36px;padding:0 14px;border:0;border-radius:9px;background:var(--text);color:var(--bg);font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px" style-hover="opacity:.88"><svg width="15" height="15" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Chỉnh sửa</button>
+            <button style="height:36px;padding:0 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface);font-size:13px;display:flex;align-items:center;gap:6px" style-hover="border-color:var(--accent);color:var(--accent)"><svg width="15" height="15" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M9 11l2 2 4-4"></path><rect x="4" y="4" width="16" height="16" rx="3"></rect></svg>Trắc nghiệm</button>
+            <button style="height:32px;padding:0 10px 0 4px;border:0;border-radius:8px;background:transparent;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:4px" style-hover="color:var(--text);background:var(--surface2)"><svg width="16" height="16" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M15 6l-6 6 6 6"></path></svg>Tất cả ghi chú</button>
+            <button style="width:36px;height:36px;border:1px solid var(--line);border-radius:9px;background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted)" style-hover="color:var(--hi);border-color:var(--line2)"><svg width="16" height="16" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round"><path d="M5 7h14M9 7V4h6v3M7 7l1 13h8l1-13"></path></svg></button>
+            <button style="height:32px;padding:0 12px;border:0;border-radius:8px;background:var(--hi);color:var(--surface);font-size:13px;font-weight:500">Xoá</button>
+            <button style="height:30px;padding:0 6px;border:0;background:transparent;font-size:13px;color:var(--accent)">Xoá bộ lọc</button>
+            <button style="height:40px;min-width:40px;padding:0 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);display:flex;align-items:center;justify-content:center;gap:2px;font-family:'Source Serif 4',serif;font-size:17px;font-weight:600">A<span style="font-size:12px">a</span></button>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+            <sc-for list="{{ buttons }}" as="b" hint-placeholder-count="9">
+              <div style="display:flex;flex-wrap:wrap;gap:6px 20px;padding:12px 18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5"><span style="flex:0 0 180px;font-weight:600">{{ b.k }}</span><span style="flex:1 1 320px;color:var(--muted)">{{ b.v }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- Inputs -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h3 style="margin:0;font-size:17px;font-weight:600">Trường nhập liệu</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--bg)">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;color:var(--muted)">Tên đăng nhập<input placeholder="bacsi" style="height:46px;padding:0 14px;border-radius:10px;border:1px solid var(--line2);background:var(--surface);font-size:15px;outline:none" style-focus="border-color:var(--accent)"></label>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:var(--muted)">Search (focus = viền accent)</span><div style="height:42px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:10px;background:var(--surface);border:1px solid var(--accent)"><svg width="17" height="17" viewBox="0 0 24 24" style="color:var(--faint);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><span style="flex:1;font-size:14px;color:var(--faint)">Tìm theo tiêu đề, mô tả hoặc #thẻ</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:5px;padding:1px 6px">/</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:var(--muted)">Tag input</span><div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--surface);align-items:center"><span style="display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:500">Tim mạch ×</span><span style="font-size:13px;color:var(--faint)">Thêm thẻ…</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;font-weight:500;color:var(--muted)">Comment box</span><div style="display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface)"><span style="font-size:15px;color:var(--faint);min-height:40px">Thêm bình luận, kinh nghiệm thực tế…</span><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--faint)">⌘/Ctrl + Enter để gửi</span><span style="height:32px;padding:0 14px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:500;display:flex;align-items:center;opacity:.4">Gửi</span></div></div></div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+            <sc-for list="{{ inputs }}" as="b" hint-placeholder-count="8">
+              <div style="display:flex;flex-wrap:wrap;gap:6px 20px;padding:12px 18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5"><span style="flex:0 0 180px;font-weight:600">{{ b.k }}</span><span style="flex:1 1 320px;color:var(--muted)">{{ b.v }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- Chips & selection -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h3 style="margin:0;font-size:17px;font-weight:600">Chip, pill &amp; bộ chọn</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--bg)">
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">tag chip</span><div style="display:flex;gap:6px"><span style="font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface2);color:var(--muted)">Cấp cứu</span><span style="font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface2);color:var(--muted)">Dị ứng</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">filter chip</span><span style="height:30px;padding:0 8px 0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:13px;display:flex;align-items:center;gap:6px">#Cấp cứu <span style="color:var(--faint)">×</span></span></div>
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">priority pill (detail)</span><div style="display:flex;gap:6px"><span style="display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:500;background:var(--hi-soft);color:var(--hi)"><span style="width:6px;height:6px;border-radius:50%;background:var(--hi)"></span>Ưu tiên cao</span><span style="display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:500;background:var(--med-soft);color:var(--med)"><span style="width:6px;height:6px;border-radius:50%;background:var(--med)"></span>Ưu tiên trung bình</span><span style="display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:500;background:var(--low-soft);color:var(--low)"><span style="width:6px;height:6px;border-radius:50%;background:var(--low)"></span>Ưu tiên thấp</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">priority label (card)</span><span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--hi)"><span style="width:7px;height:7px;border-radius:50%;background:var(--hi)"></span>Cao</span></div>
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">tag suggestion</span><span style="height:26px;padding:0 10px;border:1px dashed var(--line2);border-radius:999px;font-size:12px;color:var(--muted);display:flex;align-items:center">+ Phác đồ</span></div>
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">segmented (priority)</span><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;background:var(--surface2);border-radius:10px;width:280px"><span style="height:34px;border-radius:7px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.12)"><span style="width:7px;height:7px;border-radius:50%;background:var(--hi)"></span>Cao</span><span style="height:34px;border-radius:7px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted)"><span style="width:7px;height:7px;border-radius:50%;background:var(--med)"></span>TB</span><span style="height:34px;border-radius:7px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--muted)"><span style="width:7px;height:7px;border-radius:50%;background:var(--low)"></span>Thấp</span></div></div>
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">view toggle</span><div style="display:flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:9px;background:var(--surface)"><span style="width:30px;height:28px;border-radius:6px;background:var(--surface2);display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8"><rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect></svg></span><span style="width:30px;height:28px;border-radius:6px;color:var(--faint);display:flex;align-items:center;justify-content:center"><svg width="15" height="15" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round"><path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"></path></svg></span></div></div>
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">sort dropdown (custom)</span>
+              <div style="display:flex;flex-direction:column;gap:6px;width:220px">
+                <span style="height:36px;padding:0 10px 0 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface);font-size:13px;display:flex;align-items:center;gap:8px"><span style="color:var(--faint)">Sắp xếp</span><span style="font-weight:500">Mới cập nhật</span><svg width="14" height="14" viewBox="0 0 24 24" style="color:var(--faint);transform:rotate(180deg);fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M6 9l6 6 6-6"></path></svg></span>
+                <div style="padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:2px">
+                  <span style="height:36px;padding:0 10px;border-radius:8px;background:var(--surface2);font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:space-between">Mới cập nhật<svg width="14" height="14" viewBox="0 0 24 24" style="color:var(--accent);fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12l5 5 9-10"></path></svg></span>
+                  <span style="height:36px;padding:0 10px;border-radius:8px;font-size:13px;display:flex;align-items:center">Ưu tiên</span>
+                  <span style="height:36px;padding:0 10px;border-radius:8px;font-size:13px;display:flex;align-items:center">Tên A–Z</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card & list row -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h3 style="margin:0;font-size:17px;font-weight:600">Note card (grid) &amp; list row</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:24px;padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--bg)">
+            <div style="flex:0 1 330px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px 16px;display:flex;flex-direction:column;gap:10px;min-height:200px" style-hover="border-color:var(--line2);box-shadow:var(--shadow)">
+              <div style="display:flex;align-items:center;justify-content:space-between;height:28px"><span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--hi)"><span style="width:7px;height:7px;border-radius:50%;background:var(--hi)"></span>Cao</span><svg width="18" height="18" viewBox="0 0 24 24" style="color:var(--med);fill:currentColor;stroke:currentColor;stroke-width:1.6;stroke-linejoin:round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"></path></svg></div>
+              <div style="font-family:'Source Serif 4',serif;font-size:20px;font-weight:600;line-height:1.3;letter-spacing:-.01em">Xử trí cấp cứu sốc phản vệ</div>
+              <div style="font-size:14px;line-height:1.55;color:var(--muted)">Adrenalin tiêm bắp là ưu tiên số một — liều, vị trí tiêm và các bước tiếp theo.</div>
+              <div style="flex:1"></div>
+              <div style="display:flex;gap:6px"><span style="font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface2);color:var(--muted)">Cấp cứu</span><span style="font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface2);color:var(--muted)">Dị ứng</span></div>
+              <div style="display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--faint)"><span style="flex:1">3 ngày trước</span><span>▢ 1</span><span>▭ 1</span><span style="font-family:'IBM Plex Mono',monospace">v2</span></div>
+            </div>
+            <div style="flex:1 1 360px;display:flex;flex-direction:column;gap:0;font-size:13px">
+              <sc-for list="{{ cardSpec }}" as="b" hint-placeholder-count="10">
+                <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);line-height:1.5"><span style="flex:0 0 110px;font-weight:500">{{ b.k }}</span><span style="color:var(--muted)">{{ b.v }}</span></div>
+              </sc-for>
+            </div>
+            <div style="flex:1 1 100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:16px;padding:16px 18px">
+                <span style="width:8px;height:8px;border-radius:50%;background:var(--hi);flex-shrink:0"></span>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font-family:'Source Serif 4',serif;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Phác đồ điều trị tăng huyết áp ở người lớn</span><span style="font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ngưỡng chẩn đoán, mục tiêu huyết áp và trình tự lựa chọn thuốc…</span></div>
+                <span style="font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface2);color:var(--muted)">Tim mạch</span>
+                <span style="font-size:12px;color:var(--faint);min-width:110px;text-align:right">5 giờ trước</span>
+              </div>
+              <div style="padding:10px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);background:var(--surface2)">List row: pad 16/18 · gap 16 · dot 8 · title serif 17/600 ellipsis · desc 13 muted ellipsis · meta min-width 150 căn phải · divider 1px --line giữa các hàng (hàng đầu không viền) · hover nền --surface2 · mobile: flex-wrap.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h3 style="margin:0;font-size:17px;font-weight:600">Sidebar, pagination &amp; version timeline</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--bg)">
+            <div style="width:240px;display:flex;flex-direction:column;gap:2px">
+              <span style="height:38px;padding:0 10px;border-radius:8px;background:var(--surface2);font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:space-between">Tất cả ghi chú<span style="font-size:12px;color:var(--faint);font-family:'IBM Plex Mono',monospace">14</span></span>
+              <span style="height:38px;padding:0 10px;border-radius:8px;font-size:14px;color:var(--muted);display:flex;align-items:center;justify-content:space-between">Yêu thích<span style="font-size:12px;color:var(--faint);font-family:'IBM Plex Mono',monospace">5</span></span>
+              <span style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:18px 10px 6px">Thẻ</span>
+              <span style="height:32px;padding:0 10px;border-radius:8px;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px"><span style="color:var(--faint);font-family:'IBM Plex Mono',monospace;font-size:13px">#</span><span style="flex:1">Tim mạch</span><span style="font-size:12px;color:var(--faint);font-family:'IBM Plex Mono',monospace">5</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:4px">
+                <span style="width:36px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center;opacity:.35">‹</span>
+                <span style="min-width:36px;height:36px;border-radius:8px;background:var(--text);color:var(--bg);font-size:13px;font-weight:500;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center">1</span>
+                <span style="min-width:36px;height:36px;border-radius:8px;color:var(--muted);font-size:13px;font-weight:500;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center">2</span>
+                <span style="min-width:36px;height:36px;border-radius:8px;color:var(--muted);font-size:13px;font-weight:500;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:center">3</span>
+                <span style="width:36px;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--surface);display:flex;align-items:center;justify-content:center">›</span>
+              </div>
+              <span style="font-size:13px;color:var(--muted)">Hiển thị 1–6 trên 14</span>
+            </div>
+            <div style="width:260px;display:flex;flex-direction:column">
+              <span style="display:flex;gap:12px;padding:10px 10px 10px 8px;border-radius:10px;background:var(--surface2)"><span style="margin-top:6px;width:9px;height:9px;border-radius:50%;background:var(--accent);border:2px solid var(--accent);flex-shrink:0"></span><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:500"><span style="font-family:'IBM Plex Mono',monospace">v3</span> · Cập nhật theo khuyến cáo mới</span><span style="font-size:12px;color:var(--faint)">25/09/2026 · hiện tại</span></span></span>
+              <span style="display:flex;gap:12px;padding:10px 10px 10px 8px;border-radius:10px"><span style="margin-top:6px;width:9px;height:9px;border-radius:50%;background:var(--surface);border:2px solid var(--line2);flex-shrink:0"></span><span style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:500"><span style="font-family:'IBM Plex Mono',monospace">v2</span> · Bổ sung phần điều trị</span><span style="font-size:12px;color:var(--faint)">18/09/2026</span></span></span>
+            </div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+            <sc-for list="{{ navSpec }}" as="b" hint-placeholder-count="7">
+              <div style="display:flex;flex-wrap:wrap;gap:6px 20px;padding:12px 18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5"><span style="flex:0 0 180px;font-weight:600">{{ b.k }}</span><span style="flex:1 1 320px;color:var(--muted)">{{ b.v }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- Feedback -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h3 style="margin:0;font-size:17px;font-weight:600">Banner, toast, highlight popup &amp; trạng thái trống</h3>
+          <div style="display:flex;flex-direction:column;gap:14px;padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--bg)">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:12px;background:var(--med-soft);color:var(--med);font-size:14px"><span style="flex:1">Đang xem <b style="font-family:'IBM Plex Mono',monospace">v2</b> — 18/09/2026 · Bổ sung phần điều trị</span><span style="font-size:13px">Về bản hiện tại</span><span style="height:32px;padding:0 12px;border-radius:8px;background:var(--med);color:var(--surface);font-size:13px;font-weight:500;display:flex;align-items:center">Khôi phục bản này</span></div>
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:12px;background:var(--hi-soft);color:var(--hi);font-size:14px"><span style="flex:1">Xoá vĩnh viễn ghi chú này và toàn bộ phiên bản?</span><span style="font-size:13px">Huỷ</span><span style="height:32px;padding:0 12px;border-radius:8px;background:var(--hi);color:var(--surface);font-size:13px;font-weight:500;display:flex;align-items:center">Xoá</span></div>
+            <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:center;padding-top:8px">
+              <span style="padding:11px 18px;border-radius:10px;background:var(--text);color:var(--bg);font-size:14px;box-shadow:var(--shadow)">Đã lưu · phiên bản v4</span>
+              <span style="display:flex;padding:4px;border-radius:10px;background:var(--text);box-shadow:var(--shadow)"><span style="height:32px;padding:0 12px;color:var(--bg);font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px"><span style="width:12px;height:12px;border-radius:3px;background:var(--hl2)"></span>Đánh dấu</span></span>
+              <span style="display:flex;padding:4px;border-radius:10px;background:var(--text);box-shadow:var(--shadow)"><span style="height:32px;padding:0 12px;color:var(--bg);font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px"><span style="width:12px;height:12px;border-radius:3px;border:1px solid rgba(127,127,127,.4)"></span>Bỏ đánh dấu</span></span>
+            </div>
+            <div style="padding:40px 24px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;border:1px dashed var(--line2);border-radius:14px"><span style="font-family:'Source Serif 4',serif;font-size:22px;font-weight:600">Không tìm thấy ghi chú</span><span style="font-size:14px;color:var(--muted)">Thử từ khoá khác, hoặc tìm theo thẻ với cú pháp <code>#thẻ</code>.</span></div>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+            <sc-for list="{{ feedbackSpec }}" as="b" hint-placeholder-count="6">
+              <div style="display:flex;flex-wrap:wrap;gap:6px 20px;padding:12px 18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5"><span style="flex:0 0 180px;font-weight:600">{{ b.k }}</span><span style="flex:1 1 320px;color:var(--muted)">{{ b.v }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- Quiz -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h3 style="margin:0;font-size:17px;font-weight:600">Lựa chọn trắc nghiệm — 4 trạng thái</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;padding:28px;border:1px solid var(--line);border-radius:14px;background:var(--bg)">
+            <sc-for list="{{ quizStates }}" as="o" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11px;color:var(--faint);font-family:'IBM Plex Mono',monospace">{{ o.name }}</span>
+                <div style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;border:1px solid {{ o.border }};border-radius:12px;background:{{ o.bg }};font-size:16px;line-height:1.5">
+                  <span style="width:26px;height:26px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;background:{{ o.keyBg }};color:{{ o.keyColor }}">{{ o.key }}</span><span style="flex:1">{{ o.text }}</span><span style="font-size:12px;font-weight:600;padding-top:4px;color:{{ o.keyBg }}">{{ o.verdict }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+            <sc-for list="{{ quizSpec }}" as="b" hint-placeholder-count="8">
+              <div style="display:flex;flex-wrap:wrap;gap:6px 20px;padding:12px 18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5"><span style="flex:0 0 180px;font-weight:600">{{ b.k }}</span><span style="flex:1 1 320px;color:var(--muted)">{{ b.v }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <!-- 07 SCREENS -->
+      <section id="screens" style="display:flex;flex-direction:column;gap:24px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">07</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Màn hình &amp; hành vi</h2></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+          <sc-for list="{{ screens }}" as="s" hint-placeholder-count="6">
+            <div style="border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:22px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;align-items:baseline;gap:10px"><code style="color:var(--accent)">{{ s.n }}</code><span style="font-family:'Source Serif 4',serif;font-size:20px;font-weight:600">{{ s.name }}</span></div>
+              <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:1.55;color:var(--muted)">
+                <sc-for list="{{ s.items }}" as="i" hint-placeholder-count="6"><li>{{ i }}</li></sc-for>
+              </ul>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- 08 INTERACTION -->
+      <section id="interaction" style="display:flex;flex-direction:column;gap:24px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">08</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Phím tắt, tìm kiếm &amp; quy tắc</h2></div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px">
+          <div style="flex:1 1 360px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:0">
+            <span style="font-size:14px;font-weight:600;margin-bottom:8px">Phím tắt</span>
+            <sc-for list="{{ keys }}" as="k" hint-placeholder-count="10">
+              <div style="display:flex;gap:14px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px"><span style="flex:0 0 120px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:5px;padding:1px 7px;background:var(--bg)">{{ k.k }}</span></span><span style="color:var(--muted)">{{ k.v }}</span></div>
+            </sc-for>
+          </div>
+          <div style="flex:1 1 360px;border:1px solid var(--line);border-radius:14px;background:var(--surface);padding:20px;display:flex;flex-direction:column;gap:0">
+            <span style="font-size:14px;font-weight:600;margin-bottom:8px">Quy tắc logic</span>
+            <sc-for list="{{ rules }}" as="r" hint-placeholder-count="10">
+              <div style="display:flex;flex-direction:column;gap:2px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.5"><span style="font-weight:500">{{ r.k }}</span><span style="color:var(--muted)">{{ r.v }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+
+      <!-- 09 CONTENT -->
+      <section id="content" style="display:flex;flex-direction:column;gap:24px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">09</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Nội dung &amp; microcopy</h2><p style="margin:0;font-size:15px;color:var(--muted);line-height:1.6;max-width:680px">Giọng văn: tiếng Việt, ngắn, trung tính, ngôi thứ hai ẩn. Viết hoa chữ đầu câu, không dùng chấm than. Nhãn section viết HOA + letter-spacing .08em.</p></div>
+        <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+          <sc-for list="{{ copy }}" as="c" hint-placeholder-count="20">
+            <div style="display:flex;flex-wrap:wrap;gap:4px 20px;padding:10px 18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5"><span style="flex:0 0 200px;color:var(--faint)">{{ c.k }}</span><span style="flex:1 1 320px">{{ c.v }}</span></div>
+          </sc-for>
+        </div>
+      </section>
+
+      <!-- 10 DATA -->
+      <section id="data" style="display:flex;flex-direction:column;gap:24px;scroll-margin-top:80px">
+        <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:16px;border-bottom:1px solid var(--line)"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">10</span><h2 style="margin:0;font-family:'Source Serif 4',serif;font-size:30px;font-weight:600;letter-spacing:-.02em">Mô hình dữ liệu &amp; lưu trữ</h2><p style="margin:0;font-size:15px;color:var(--muted);line-height:1.6;max-width:680px">Toàn bộ trạng thái lưu vào <code>localStorage["sls-v1"]</code>: <code>authed, notes, theme, fs, view, recent, sbCollapsed</code>. Ảnh upload lưu dạng data URL.</p></div>
+        <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+          <sc-for list="{{ model }}" as="m" hint-placeholder-count="16">
+            <div style="display:flex;flex-wrap:wrap;gap:4px 20px;padding:10px 18px;border-top:1px solid var(--line);font-size:13px;line-height:1.5"><code style="flex:0 0 160px;color:var(--accent)">{{ m.k }}</code><code style="flex:0 0 200px;color:var(--faint);font-size:12px">{{ m.t }}</code><span style="flex:1 1 260px;color:var(--muted)">{{ m.v }}</span></div>
+          </sc-for>
+        </div>
+        <div style="border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface)">
+          <div style="padding:12px 18px;background:var(--surface2);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)">Tweaks (props của DC gốc)</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px 20px;padding:10px 18px;border-top:1px solid var(--line);font-size:13px"><code style="flex:0 0 160px;color:var(--accent)">startScreen</code><span style="color:var(--muted)">auto · login · dashboard · detail · edit (mặc định auto)</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px 20px;padding:10px 18px;border-top:1px solid var(--line);font-size:13px"><code style="flex:0 0 160px;color:var(--accent)">pageSize</code><span style="color:var(--muted)">3–24, bước 3 (mặc định 6)</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px 20px;padding:10px 18px;border-top:1px solid var(--line);font-size:13px"><code style="flex:0 0 160px;color:var(--accent)">accent</code><span style="color:var(--muted)">Teal · Indigo · Plum (mặc định Teal)</span></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { theme: (() => { try { return JSON.parse(localStorage.getItem('sls-v1') || '{}').theme || 'light'; } catch (e) { return 'light'; } })(), w: window.innerWidth };
+  componentDidMount() { this.r = () => this.setState({ w: window.innerWidth }); window.addEventListener('resize', this.r); this.apply(); }
+  componentWillUnmount() { window.removeEventListener('resize', this.r); }
+  componentDidUpdate() { this.apply(); }
+  apply() { const r = document.documentElement; r.dataset.theme = this.state.theme; ['--accent', '--accent-soft', '--fs'].forEach(p => r.style.removeProperty(p)); }
+  renderVals() {
+    const m = this.state.w < 820, t = this.state.theme;
+    const kv = a => a.map(([k, v]) => ({ k, v }));
+    const SERIF = "'Source Serif 4', serif", SANS = "'IBM Plex Sans', sans-serif", MONO = "'IBM Plex Mono', monospace";
+    const ts = (role, spec, ff, size, w, lh, ls, sample, x = {}) => ({ role, spec, ff, size, w, lh, ls, sample, tt: x.tt || 'none', color: x.color || 'var(--text)', fst: 'normal' });
+    return {
+      navDisplay: m ? 'none' : 'flex', padX: m ? 16 : 48, h1: m ? 36 : 52,
+      colCols: this.state.w < 1180 ? 'minmax(0,1fr) minmax(0,1fr)' : 'minmax(0,130px) minmax(0,190px) minmax(0,210px) minmax(0,1fr)', lyCols: 'minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr)',
+      setLight: () => this.setState({ theme: 'light' }), setDark: () => this.setState({ theme: 'dark' }),
+      lightBg: t === 'light' ? 'var(--surface)' : 'transparent', lightColor: t === 'light' ? 'var(--text)' : 'var(--muted)',
+      darkBg: t === 'dark' ? 'var(--surface)' : 'transparent', darkColor: t === 'dark' ? 'var(--text)' : 'var(--muted)',
+      toc: [['01', 'Màu sắc', 'colors'], ['02', 'Kiểu chữ', 'type'], ['03', 'Bố cục & khoảng cách', 'layout'], ['04', 'Bo góc, lớp, chuyển động', 'shape'], ['05', 'Icon', 'icons'], ['06', 'Thành phần', 'components'], ['07', 'Màn hình & hành vi', 'screens'], ['08', 'Phím tắt & quy tắc', 'interaction'], ['09', 'Nội dung & microcopy', 'content'], ['10', 'Dữ liệu & lưu trữ', 'data']].map(([n, label, id]) => ({ n, label, href: '#' + id })),
+      principles: [
+        { t: 'Nội dung là trung tâm', d: 'Nền trung tính ấm, một màu nhấn; serif cho phần đọc, UI lùi về sau.' },
+        { t: 'Rộng rãi', d: 'Container tối đa 1120–1160, vùng đọc ≤ 740px, khoảng thở 40–56px giữa khối lớn.' },
+        { t: 'Màu có nghĩa', d: 'Đỏ/hổ phách/xám chỉ dùng cho mức ưu tiên, trạng thái và cảnh báo.' },
+        { t: 'Bàn phím trước', d: '/ để tìm, Esc để đóng, 1–4 + Enter trong trắc nghiệm, ⌘/Ctrl+Enter gửi bình luận.' },
+      ],
+      colors: [
+        ['--bg', '#f6f6f3', '#0f1112', 'Nền ứng dụng, sidebar, header, modal trắc nghiệm'],
+        ['--surface', '#ffffff', '#16191a', 'Card, input, popover, panel, chữ trên nút đỏ/hổ phách'],
+        ['--surface2', '#f0f0ec', '#1d2122', 'Hover, tag chip, track segmented, nav đang chọn, skeleton'],
+        ['--line', '#e5e4df', '#252a2b', 'Viền mặc định, divider, thanh tiến độ nền'],
+        ['--line2', '#d3d2cb', '#343a3c', 'Viền hover, input login, dashed dropzone/empty'],
+        ['--text', '#1a1c1e', '#e6e7e5', 'Chữ chính; nền nút ink, toast, popup highlight, trang hiện tại'],
+        ['--muted', '#63676c', '#9ca1a5', 'Mô tả, chữ phụ, nav chưa chọn'],
+        ['--faint', '#989ca1', '#6b7175', 'Meta, placeholder, nhãn section, số đếm, icon phụ'],
+        ['--accent', '#17756b', '#5cc3b3', 'Nút chính, link, focus, marker list, vạch quote, tiến độ'],
+        ['--accent-ink', '#ffffff', '#0c1a18', 'Chữ/icon trên nền accent'],
+        ['--accent-soft', '#e2efec', '#15302c', 'Chip thẻ khi soạn, ô icon quiz, dropzone khi kéo'],
+        ['--hi', '#b3382e', '#f0897e', 'Ưu tiên cao, lỗi đăng nhập, đáp án sai, xoá'],
+        ['--hi-soft', '#f8e7e4', '#391f1c', 'Pill ưu tiên cao, banner xoá, nền đáp án sai'],
+        ['--med', '#9c630f', '#e2b35f', 'Ưu tiên TB, sao yêu thích, banner phiên bản cũ'],
+        ['--med-soft', '#f5ecda', '#342a17', 'Pill ưu tiên TB, nền banner phiên bản cũ'],
+        ['--low', '#5a6670', '#a4aeb5', 'Ưu tiên thấp'],
+        ['--low-soft', '#eceeef', '#242a2d', 'Pill ưu tiên thấp'],
+        ['--ok', '#23794a', '#6cc98f', 'Đáp án đúng, điểm ≥ 80%'],
+        ['--ok-soft', '#e3f2e8', '#173022', 'Nền đáp án đúng, phản hồi “Chính xác”'],
+        ['--hl', '#fbe9a6', 'rgba(226,179,95,.28)', 'Nền đoạn highlight'],
+        ['--hl2', '#f6db78', 'rgba(226,179,95,.42)', 'Highlight hover, swatch trong popup'],
+      ].map(([token, light, dark, use]) => ({ token, light, dark, use })),
+      accents: [['Teal', '#17756b', '#e2efec', '#5cc3b3', '#15302c', ' · mặc định'], ['Indigo', '#4351a6', '#e8eaf6', '#9ea8f2', '#1f2340', ''], ['Plum', '#8a3e74', '#f5e7f0', '#dc9cc8', '#34202e', '']].map(([name, l, ls, d, ds, def]) => ({ name, l, ls, d, ds, def })),
+      typeScale: [
+        ts('Display — spec', 'Serif 52/600 · lh 1.08 · -0.025em', SERIF, '40px', 600, 1.08, '-.025em', 'Sổ Lâm Sàng'),
+        ts('Điểm quiz', 'Serif 64/600 · lh 1 · -0.03em', SERIF, '64px', 600, 1, '-.03em', '4/5'),
+        ts('Tiêu đề note (detail, editor)', 'Serif 38/600 (mobile 28) · lh 1.15 · -0.02em · balance', SERIF, '38px', 600, 1.15, '-.02em', 'Xử trí cấp cứu sốc phản vệ'),
+        ts('H1 dashboard · Login', 'Serif 32/600 (mobile 26) · lh 1.15 · -0.02em', SERIF, '32px', 600, 1.15, '-.02em', '#Cấp cứu'),
+        ts('Section spec', 'Serif 30/600 · -0.02em', SERIF, '30px', 600, 1.2, '-.02em', 'Màu sắc'),
+        ts('Câu hỏi quiz', 'Serif 28/600 (mobile 22) · lh 1.35 · -0.01em', SERIF, '28px', 600, 1.35, '-.01em', 'Liều adrenalin IM cho người lớn?'),
+        ts('Empty / loading title', 'Serif 22–26/600', SERIF, '22px', 600, 1.3, '-.01em', 'Không tìm thấy ghi chú'),
+        ts('Tiêu đề card', 'Serif 20/600 · lh 1.3 · -0.01em · pretty', SERIF, '20px', 600, 1.3, '-.01em', 'Đọc ECG trong 10 bước'),
+        ts('Brand sidebar', 'Serif 18/600 · -0.01em', SERIF, '18px', 600, 1.3, '-.01em', 'Sổ Lâm Sàng'),
+        ts('Tiêu đề list row', 'Serif 17/600 · lh 1.3 · ellipsis', SERIF, '17px', 600, 1.3, 'normal', 'Thang điểm Glasgow (GCS)'),
+        ts('Prose body', 'Serif var(--fs) 14–22 (mặc định 17) · lh 1.72', SERIF, '17px', 400, 1.72, 'normal', 'Adrenalin 0,5 mg tiêm bắp mặt trước ngoài đùi.'),
+        ts('Mô tả note (detail)', 'Sans 17/400 · lh 1.55 · muted', SANS, '17px', 400, 1.55, 'normal', 'Ngưỡng chẩn đoán và mục tiêu huyết áp.', { color: 'var(--muted)' }),
+        ts('Quiz option · Comment', 'Sans 16/400 (option) · 15 (comment) · lh 1.5–1.6', SANS, '16px', 400, 1.5, 'normal', 'Spironolacton 25–50 mg'),
+        ts('Input login · Search', 'Sans 15 / 14', SANS, '15px', 400, 1.4, 'normal', 'bacsi'),
+        ts('UI body · nav · nút lớn', 'Sans 14/400–500', SANS, '14px', 500, 1.4, 'normal', 'Tất cả ghi chú'),
+        ts('Mô tả card', 'Sans 14/400 · lh 1.55 · muted · clamp 2', SANS, '14px', 400, 1.55, 'normal', 'Loại trừ 5 nguyên nhân nguy hiểm…', { color: 'var(--muted)' }),
+        ts('UI small · nút thường', 'Sans 13/400–500', SANS, '13px', 500, 1.5, 'normal', 'Chỉnh sửa · Sắp xếp · Hiển thị 1–6 trên 14'),
+        ts('Caption · meta · chip', 'Sans 12/400–500 · faint/muted', SANS, '12px', 400, 1.5, 'normal', '3 ngày trước · Cấp cứu', { color: 'var(--faint)' }),
+        ts('Nhãn section', 'Sans 11–12/600 · UPPERCASE · 0.08em · faint', SANS, '12px', 600, 1.4, '.08em', 'Lịch sử phiên bản', { tt: 'uppercase', color: 'var(--faint)' }),
+        ts('Mono meta', 'Mono 11–13/400–500', MONO, '13px', 500, 1.4, 'normal', 'v3 · 14 · CÂU 2 / 5 · /'),
+      ],
+      proseRules: [
+        ['p', 'margin 0 0 .9em'], ['h2', 'Sans 1.12em/600, -0.005em, margin 1.9em 0 .6em'], ['h3', 'Sans .98em/600, margin 1.5em 0 .4em'],
+        ['ul, ol', 'padding-left 1.35em, margin 0 0 1em'], ['li', 'margin .28em 0, padding-left .2em, ::marker accent'],
+        ['blockquote', 'margin 1.3em 0, padding-left 1.1em, border-left 2px accent, italic, muted'], ['hr', '1px --line, margin 2em 0'],
+        ['img', 'max-width 100%, radius 10, margin 1.3em 0, cursor zoom-in → lightbox'], ['strong, b', 'weight 600'],
+        ['table', 'Sans .86em, full width; th/td padding .55em .7em, border-bottom --line; th muted/500'],
+        ['mark[data-hl]', 'nền --hl, radius 3, padding .05em .1em, box-decoration-break clone; hover --hl2'],
+        [':empty (editor)', 'placeholder từ data-ph “Bắt đầu ghi chép…”, màu faint'], [':first-child', 'margin-top 0'],
+      ].map(([sel, rule]) => ({ sel, rule })),
+      spacing: [[2, 'Khoảng giữa item nav/toolbar'], [4, 'Padding track segmented, gap pagination'], [6, 'Gap chip/tag, nút action'], [8, 'Gap nội bộ nhỏ, padding tag input'], [10, 'Gap sidebar item, padding-x nav'], [12, 'Gap header, lưới ảnh'], [14, 'Gap form login, option quiz'], [16, 'Gap lưới card, padding list row, pad-x mobile'], [20, 'Padding-x card, padding-top section rail'], [24, 'Gap khối dashboard'], [28, 'Gap sidebar section, rail, quiz'], [40, 'Pad-x desktop, gap editor ↔ panel'], [48, 'Khoảng cách spec'], [56, 'Gap article ↔ rail, top padding quiz']].map(([v, use]) => ({ v, use })),
+      layout: [
+        ['Breakpoint', '≥ 820px', '< 820px'], ['Sidebar', '256px, sticky, thu gọn bằng margin-left -256px', 'Drawer fixed, translateX(-102%) ↔ 0, backdrop'],
+        ['Header', '64px sticky, pad-x 40', '64px, pad-x 16, nút menu trái'], ['Nút “Ghi chú mới”', 'Icon + chữ, pad-x 16', 'Chỉ icon, pad-x 11'],
+        ['Search', 'flex 1, max 560, hiện gợi ý phím “/”', 'flex 1, ẩn phím “/”'], ['Padding trên nội dung', '36px', '20px'],
+        ['Container dashboard', 'max 1160', '100%'], ['Container detail/edit', 'max 1120', '100%'],
+        ['Lưới card', 'auto-fill minmax(300px, 1fr), gap 16', '1 cột (min(100%, 300px))'], ['List row', 'nowrap', 'wrap'],
+        ['Article', 'flex 1 1 560, max 740', 'full width'], ['Rail detail', 'flex 1 1 260, max 300, sticky top 88', 'xuống dưới, static, 100%'],
+        ['Editor padding', '32px 40px, min-height 460', '20px 18px'], ['Quiz', 'max 760, pad-top 56', 'pad-top 28, câu hỏi 22px'],
+        ['Login', 'max 380, căn giữa', 'giống, padding 24'], ['Popover settings', '288px, căn phải nút', 'giống'],
+      ].map(([k, d, mm]) => ({ k, d, m: mm })),
+      radii: [['2–3', '2px', 'Thanh tiến độ, mark highlight'], ['5', '5px', 'Kbd “/”'], ['6', '6px', 'Nút view toggle, nút gỡ ảnh, skeleton'], ['7', '7px', 'Item segmented, nút toolbar, key A–D'], ['8', '8px', 'Nav item, pagination, nút nhỏ, ảnh nhỏ'], ['9', '9px', 'Nút 36px (detail), sort trigger'], ['10', '10px', 'Input, nút 40–46, search, track segmented, toast, ảnh'], ['11', '11px', 'Logo login 40px'], ['12', '12px', 'Popover, banner, option quiz, comment box'], ['14', '14px', 'Card, panel editor, bảng spec'], ['999', '999px', 'Pill, chip, tag'], ['50%', '50%', 'Avatar, chấm ưu tiên, dot timeline']].map(([v, css, use]) => ({ v, css, use })),
+      zindex: [[5, 'Toolbar editor (sticky top 64)'], [10, 'Header spec'], [20, 'Backdrop sort · 21 menu sort'], [30, 'Header ứng dụng'], [31, 'Backdrop gợi ý search · 32 ô search · 33 panel'], [40, 'Backdrop drawer'], [50, 'Sidebar'], [60, 'Backdrop settings · 61 popover'], [80, 'Popup highlight'], [90, 'Toast'], [95, 'Modal trắc nghiệm'], [100, 'Lightbox']].map(([v, use]) => ({ v, use })),
+      motion: kv([['Sidebar mở/thu', 'transform, margin-left, visibility .22s ease'], ['Card hover', 'border-color, box-shadow .15s'], ['Chevron sort', 'rotate(180deg) .15s'], ['Option quiz', 'border-color, background .15s'], ['Thanh tiến độ quiz', 'width .3s ease'], ['Skeleton quiz', '@keyframes qpulse 1.4s ease-in-out infinite (opacity .45 ↔ 1)'], ['Đổi theme', 'body background .2s'], ['Toast', 'tự ẩn sau 2200ms'], ['Anchor spec', 'scroll-behavior smooth']]),
+      buttons: kv([
+        ['Primary (accent)', 'Nền --accent, chữ --accent-ink, 14/500. Header 40h pad 16 r10; Lưu 38h pad 18 r9; Quiz tiếp 44h pad 22 r10; Gửi 32h pad 14 r8. Hover opacity .9. Disabled: opacity .35–.4.'],
+        ['Ink (đậm)', 'Nền --text, chữ --bg. Login 46h r10 15/500; Chỉnh sửa 36h pad 14 r9 13/500. Hover opacity .88.'],
+        ['Secondary (viền)', '36h pad 12 r9, 1px --line, nền --surface, 13/400. Hover viền --line2 (Trắc nghiệm: viền + chữ accent).'],
+        ['Ghost / back', '32h pad 0 10 0 4, r8, không viền, chữ muted 13. Hover chữ --text, nền --surface2.'],
+        ['Icon button', '32–40 vuông, r8–10. Nền trong suốt hoặc --surface + viền. Hover nền --surface2; xoá hover chữ --hi.'],
+        ['Danger', 'Nền --hi / chữ --surface 32h r8 13/500; bên cạnh nút “Huỷ” ghost cùng màu --hi.'],
+        ['Text link', 'Không nền, chữ --accent 12–13/500 (Xoá bộ lọc, + Làm bài, Xoá).'],
+        ['Aa (giao diện)', '40h min-w 40 r10, viền --line, Serif 17/600 “A” + 12 “a”.'],
+        ['Toolbar tool', 'min-w 32, 32h, r7, 14/500; B đậm serif 700, I nghiêng, U gạch chân, S gạch ngang. onMouseDown preventDefault để giữ vùng chọn.'],
+      ]),
+      inputs: kv([
+        ['Login input', '46h, pad-x 14, r10, 1px --line2, nền --surface, 15px. Focus: viền --accent, không outline. Label 13/500 muted, gap 6.'],
+        ['Search', '42h, pad-x 12, r10, 1px --line → --accent khi mở gợi ý. Icon 17 faint, input 14, nút xoá 24×24 r6 --surface2, kbd “/”.'],
+        ['Tiêu đề editor', 'Không viền, nền trong, Serif 38/600 -0.02em, placeholder “Tiêu đề ghi chú”.'],
+        ['Mô tả editor', 'Textarea 2 dòng, 17/1.55 muted, resize none.'],
+        ['Tag input', 'min-h 44, pad 8, r10, gap 6. Enter hoặc “,” để thêm; Backspace khi rỗng xoá thẻ cuối; không phân biệt dấu khi so trùng.'],
+        ['Ghi chú phiên bản', '40h pad-x 12 r10, 13px, focus viền accent. Gợi ý bên dưới 12 faint.'],
+        ['Font-size slider', 'range 14–22 bước 1, accent-color --accent, nút A nhỏ/lớn 30×30 r8, xem trước trên nền --surface2.'],
+        ['Dropzone ảnh', 'pad 20/16, 1px dashed --line2, r10, 13 muted. Khi kéo: viền --accent, nền --accent-soft. Click mở file picker (multiple, image/*).'],
+      ]),
+      cardSpec: kv([['Khung', 'nền --surface, 1px --line, r14, pad 18/20/16, gap 10, min-h 200'], ['Hover', 'viền --line2 + --shadow, .15s'], ['Hàng trên', '28h: nhãn ưu tiên trái, sao 32×32 phải (margin-right -8)'], ['Tiêu đề', 'Serif 20/600 lh 1.3, text-wrap pretty'], ['Mô tả', '14/1.55 muted, clamp 2 dòng'], ['Spacer', 'flex 1 đẩy tag + footer xuống đáy'], ['Tags', 'tối đa 3 chip'], ['Footer', 'pad-top 12, viền trên --line, 12 faint, gap 14: thời gian · ảnh · bình luận · vN (mono)'], ['Click', 'mở chi tiết; sao stopPropagation → bật/tắt yêu thích'], ['Mỗi trang', '6 ghi chú (tweak pageSize)']]),
+      navSpec: kv([
+        ['Nav item', '38h pad-x 10 r8, 14px. Chọn: nền --surface2, chữ --text 500; thường: trong suốt, muted 400. Số đếm mono 12 faint.'],
+        ['Priority / tag item', '34h / 32h, flex-shrink 0; chấm 8px màu ưu tiên / “#” mono faint. Click lần 2 bỏ lọc.'],
+        ['Danh sách thẻ', 'Sắp theo số lượng giảm dần rồi A–Z (vi); cuộn độc lập (overflow-y auto).'],
+        ['Chân sidebar', 'Avatar 32 “BS”, tên 13/500, username mono 12, nút đăng xuất 34×34; viền trên --line.'],
+        ['Pagination', 'Prev/next 36×36 viền r8 (opacity .35 khi hết); số trang min-w 36 mono 13/500; trang hiện tại nền --text chữ --bg. “Hiển thị a–b trên n” 13 muted. Chuyển trang cuộn lên đầu.'],
+        ['Version item', 'pad 10/10/10/8 r10, dot 9 viền 2px (chọn: accent đặc; thường: --surface + --line2), “vN · ghi chú” 13/500, ngày 12 faint + “· hiện tại”. Mới nhất ở trên.'],
+        ['Lịch sử quiz', '“4/5 · 80%” + thời gian tương đối, thanh 4px màu theo điểm. Click mở review.'],
+      ]),
+      feedbackSpec: kv([
+        ['Banner phiên bản cũ', 'pad 12/16 r12, nền --med-soft, chữ --med 14, icon đồng hồ 16. Hành động: “Về bản hiện tại” (ghost) + “Khôi phục bản này” (đặc). Highlight bị tắt khi xem bản cũ.'],
+        ['Banner xoá', 'pad 14/16 r12, nền --hi-soft, chữ --hi. Xác nhận inline, không dùng dialog hệ thống.'],
+        ['Toast', 'fixed đáy 28, căn giữa, pad 11/18 r10, nền --text chữ --bg 14, --shadow; ẩn sau 2.2s.'],
+        ['Popup highlight', 'fixed, đặt giữa phía trên vùng chọn (translate -50%, -100% - 10px), kẹp 90px mép ngang, tối thiểu top 56. Nền --text, nút 32h. Đóng khi mousedown ra ngoài hoặc cuộn.'],
+        ['Empty state', 'pad 80/24, viền dashed --line2 r14, tiêu đề Serif 22/600, gợi ý cú pháp #thẻ, nút “Xoá bộ lọc”.'],
+        ['Lightbox', 'fixed inset 0, nền rgba(8,9,10,.88); ảnh max 92vw × 78vh r8; nút đóng 40 góc phải; ← → khi > 1 ảnh; nhãn + “i / n” mono. Ảnh mẫu dùng placeholder sọc 135°.'],
+      ]),
+      quizStates: [
+        { name: 'idle / hover viền accent', key: 'A', text: '0,5 mg tiêm bắp', border: 'var(--line)', bg: 'var(--surface)', keyBg: 'var(--surface2)', keyColor: 'var(--muted)', verdict: '' },
+        { name: 'đúng', key: 'B', text: '0,5 mg tiêm bắp mặt trước ngoài đùi', border: 'var(--ok)', bg: 'var(--ok-soft)', keyBg: 'var(--ok)', keyColor: 'var(--surface)', verdict: 'Đúng' },
+        { name: 'sai (đã chọn)', key: 'C', text: '1 mg tiêm tĩnh mạch', border: 'var(--hi)', bg: 'var(--hi-soft)', keyBg: 'var(--hi)', keyColor: 'var(--surface)', verdict: 'Sai' },
+        { name: 'không chọn (sau khi trả lời)', key: 'D', text: '0,1 mg dưới da', border: 'var(--line)', bg: 'var(--surface)', keyBg: 'var(--surface2)', keyColor: 'var(--muted)', verdict: '' },
+      ],
+      quizSpec: kv([
+        ['Modal', 'Toàn màn hình, fixed inset 0, nền --bg, z 95. Header 64: ô icon 32 accent-soft, “Trắc nghiệm” 14/600 + tên note 12 faint, bộ đếm mono “2 / 5”, nút đóng 40.'],
+        ['Tiến độ', 'Thanh 3px nền --line, phần đã làm --accent, width .3s.'],
+        ['Loading', '“Đang soạn câu hỏi…” Serif 26 + 5 skeleton (22h, 4×52h r12) nhấp nháy.'],
+        ['Câu hỏi', 'Nhãn “CÂU 2 / 5” mono 12/500 accent; câu hỏi Serif 28/600 lh 1.35.'],
+        ['Option', 'pad 14/16 r12 gap 14, ô key 26×26 r7 mono 12/600, text 16/1.5. Chỉ chọn 1 lần; phản hồi ngay.'],
+        ['Phản hồi', 'pad 16/18 r12, nền ok-soft/hi-soft; tiêu đề 14/600 “Chính xác” / “Chưa đúng — đáp án là X”; giải thích 15/1.6.'],
+        ['Kết quả', 'Nhãn “HOÀN THÀNH”, điểm Serif 64, “%, Nắm vững/Cần ôn thêm/Nên đọc lại ghi chú”, ngày giờ; nút “Làm bộ câu hỏi mới” + “Về ghi chú”; danh sách xem lại có dấu ✓/✕ tròn 24.'],
+        ['Nguồn câu hỏi', 'Claude (5 câu, 4 lựa chọn, JSON, tránh lặp câu cũ) → dự phòng offline: sinh từ mục H2/H3 + phương án nhiễu từ mục/ghi chú khác + câu về thẻ. Lưu lịch sử vào note.quizzes.'],
+      ]),
+      screens: [
+        { n: 'S1', name: 'Đăng nhập', items: ['Một người dùng, không đăng ký. Demo: bacsi / 123456.', 'Logo 40×40 r11 accent + “S” serif 22/700.', 'Tiêu đề Serif 32, mô tả 15 muted, gap form 28.', 'Sai thông tin: “Sai tên đăng nhập hoặc mật khẩu.” 13 --hi; gõ lại xoá lỗi.', 'Enter submit (form onSubmit).', 'Gợi ý demo mono 12 faint.'] },
+        { n: 'S2', name: 'Dashboard', items: ['H1 động: Tất cả ghi chú / Yêu thích / Ưu tiên … / #thẻ / Kết quả tìm kiếm + “n ghi chú”.', 'Sort tuỳ biến: Mới cập nhật · Ưu tiên (cao → thấp, rồi mới nhất) · Tên A–Z (locale vi).', 'Chuyển grid ↔ list, nhớ lựa chọn.', 'Filter chip gỡ được + “Xoá bộ lọc”.', 'Phân trang 6/trang, đổi bộ lọc về trang 1.', 'Empty state khi 0 kết quả.'] },
+        { n: 'S3', name: 'Chi tiết', items: ['Pill ưu tiên + tag (click → lọc theo tag).', 'Hành động: Yêu thích · Xoá · Trắc nghiệm · Chỉnh sửa.', 'Prose theo cỡ chữ người dùng; ảnh inline mở lightbox.', 'Bôi đen → Đánh dấu; click đoạn đánh dấu → Bỏ đánh dấu (không tạo phiên bản).', 'Lưới ảnh đính kèm minmax(160, 1fr) tỉ lệ 4:3.', 'Bình luận: danh sách + ô nhập, xoá từng bình luận.', 'Rail: Lịch sử phiên bản, Lịch sử trắc nghiệm, Đoạn đã đánh dấu, Thông tin (tạo, cập nhật, số từ, số ảnh).'] },
+        { n: 'S4', name: 'Soạn thảo (WYSIWYG)', items: ['contentEditable + execCommand: B, I, U, S | H2, H3, ¶ | •, 1., ❝, — | ↶, ↷ | Ảnh (chèn tại con trỏ).', 'Toolbar sticky dưới header (top 64).', 'Panel phải: Mức ưu tiên (segmented), Thẻ (chip + gợi ý tối đa 6), Ảnh đính kèm (lưới 3 cột, kéo thả), Ghi chú phiên bản.', 'Nút “Lưu vN” hiển thị số phiên bản sẽ tạo.', 'Chỉ tạo phiên bản mới khi tiêu đề hoặc nội dung đổi; mặc định “Cập nhật nội dung”.', 'Huỷ → về chi tiết (hoặc dashboard nếu note mới).'] },
+        { n: 'S5', name: 'Trắc nghiệm', items: ['Mở từ nút “Trắc nghiệm” hoặc “+ Làm bài” trong rail.', 'Loading → 5 câu → Kết quả → Lưu lịch sử.', 'Mở lịch sử = chế độ xem lại (không tạo bản ghi mới).', 'Esc đóng; đóng khi đang tải huỷ kết quả trả về.'] },
+        { n: 'S6', name: 'Lớp phủ dùng chung', items: ['Popover giao diện: Sáng/Tối, cỡ chữ 14–22, Đăng xuất.', 'Gợi ý tìm kiếm: Tìm gần đây (5, xoá được) · Thẻ (8 / 6 khớp) · Mở gần đây (4) / Ghi chú khớp (6) · “Xem tất cả kết quả”.', 'Drawer sidebar mobile + backdrop.', 'Lightbox, toast, popup highlight.'] },
+      ],
+      keys: kv([['/', 'Focus ô tìm kiếm (khi không đang gõ)'], ['Enter', 'Trong search: xem tất cả kết quả + lưu tìm gần đây'], ['Esc', 'Đóng gợi ý, popover, sort, drawer, lightbox, quiz'], ['← →', 'Ảnh trước/sau trong lightbox'], ['1 – 4', 'Chọn đáp án A–D trong quiz'], ['Enter', 'Câu tiếp theo / Xem kết quả'], ['⌘/Ctrl + Enter', 'Gửi bình luận'], ['Enter hoặc ,', 'Thêm thẻ trong editor'], ['Backspace', 'Xoá thẻ cuối khi ô thẻ rỗng'], ['⌘/Ctrl + Z / B / I', 'Hoàn tác, đậm, nghiêng (mặc định của trình duyệt trong editor)']]),
+      rules: kv([
+        ['Tìm kiếm', 'Khớp tiêu đề, mô tả, thẻ; không phân biệt hoa thường và dấu (NFD, đ → d). Tiền tố # chỉ tìm trong thẻ.'],
+        ['Thời gian', '< 1 phút “vừa xong”; < 60 “x phút trước”; < 24h “x giờ trước”; < 7 ngày “x ngày trước”; còn lại dd/mm/yyyy.'],
+        ['Phiên bản', 'v1 khi tạo; +1 mỗi lần lưu có thay đổi; Khôi phục = tạo phiên bản mới “Khôi phục từ vN”.'],
+        ['Yêu thích', 'Bật/tắt từ card, list row hoặc chi tiết; sao --med đặc khi bật.'],
+        ['Highlight', 'Bọc text node bằng <mark data-hl="id">, hỗ trợ vùng chọn qua nhiều phần tử; bỏ = unwrap + normalize.'],
+        ['Ảnh', 'Chỉ nhận image/*; đọc thành data URL; ảnh inline chèn tại vị trí con trỏ đã lưu.'],
+        ['Theme', 'Lưu theo người dùng, áp lên <html data-theme>. Cỡ chữ áp qua --fs.'],
+        ['Sidebar', 'Desktop: nút thu gọn trong sidebar, nút mở trên header (chỉ hiện khi đã thu). Mobile: drawer.'],
+        ['Đăng xuất', 'Giữ dữ liệu, chỉ đặt authed = false.'],
+      ]),
+      copy: kv([
+        ['Brand', 'Sổ Lâm Sàng'], ['Mô tả login', 'Sổ tay kiến thức lâm sàng cá nhân. Đăng nhập để tiếp tục.'], ['Nút chính', 'Đăng nhập · Ghi chú mới · Chỉnh sửa · Trắc nghiệm · Lưu vN · Gửi'],
+        ['Placeholder search', 'Tìm theo tiêu đề, mô tả hoặc #thẻ'], ['Placeholder editor', 'Tiêu đề ghi chú · Mô tả ngắn — giúp tìm kiếm nhanh hơn · Bắt đầu ghi chép…'],
+        ['Placeholder khác', 'Thêm thẻ… · VD: Cập nhật liều theo ESC 2024 · Thêm bình luận, kinh nghiệm thực tế, ca bệnh liên quan…'],
+        ['Nhãn section', 'MỨC ƯU TIÊN · THẺ · HÌNH ẢNH · LỊCH SỬ PHIÊN BẢN · LỊCH SỬ TRẮC NGHIỆM · ĐOẠN ĐÃ ĐÁNH DẤU · THÔNG TIN · GHI CHÚ PHIÊN BẢN'],
+        ['Mức ưu tiên', 'Cao · Trung bình · Thấp (pill: “Ưu tiên cao”)'], ['Sắp xếp', 'Mới cập nhật · Ưu tiên · Tên A–Z'],
+        ['Gợi ý search', 'Tìm gần đây · Thẻ / Thẻ khớp · Mở gần đây / Ghi chú khớp · Xem tất cả kết quả cho “…” · Không có gợi ý cho “…”'],
+        ['Toast', 'Đã lưu · phiên bản vN · Đã khôi phục thành vN · Đã xoá ghi chú · Ghi chú chưa đủ nội dung để tạo câu hỏi'],
+        ['Xác nhận xoá', 'Xoá vĩnh viễn ghi chú này và toàn bộ phiên bản?'], ['Phiên bản cũ', 'Đang xem vN — dd/mm/yyyy · ghi chú · Về bản hiện tại · Khôi phục bản này'],
+        ['Hint phiên bản', 'Nội dung thay đổi sẽ được lưu thành phiên bản vN; các bản cũ vẫn xem và khôi phục được.'],
+        ['Highlight', 'Đánh dấu · Bỏ đánh dấu · Bôi đen một đoạn trong nội dung để đánh dấu.'],
+        ['Quiz', 'Đang soạn câu hỏi… · CÂU n / 5 · Chính xác · Chưa đúng — đáp án là X · Câu tiếp theo · Xem kết quả · HOÀN THÀNH · Nắm vững / Cần ôn thêm / Nên đọc lại ghi chú · Làm bộ câu hỏi mới · Về ghi chú'],
+        ['Quiz trống', 'Chưa có lần làm bài nào. Ôn lại kiến thức bằng bộ câu hỏi tạo từ ghi chú này.'],
+        ['Dropzone', 'Kéo thả ảnh vào đây / hoặc chọn từ máy'], ['Empty', 'Không tìm thấy ghi chú · Thử từ khoá khác, hoặc tìm theo thẻ với cú pháp #thẻ.'],
+        ['Lỗi login', 'Sai tên đăng nhập hoặc mật khẩu.'],
+      ]),
+      model: [
+        ['id', 'string', 'n1…, "n" + timestamp cho note mới'], ['title', 'string', 'Mặc định “Ghi chú không tiêu đề”'], ['desc', 'string', 'Dùng cho tìm kiếm và card'],
+        ['tags', 'string[]', 'Không trùng (so không dấu)'], ['priority', "'high' | 'medium' | 'low'", 'Mặc định medium khi tạo'], ['fav', 'boolean', ''],
+        ['created / updated', 'ISO string', ''], ['content', 'HTML string', 'Nội dung hiện tại, gồm <mark data-hl>'],
+        ['images', '{id, label, src}[]', 'src rỗng = placeholder sọc'], ['comments', '{id, text, date}[]', ''],
+        ['versions', '{v, date, note, title, content}[]', 'Tăng dần; phần tử cuối = hiện tại'], ['quizzes', '{id, date, score, total, questions, picks, source}[]', 'Mới nhất ở đầu; source: ai | offline'],
+        ['question', '{q, options[4], answer, explain}', 'answer là chỉ số 0–3'], ['recent', 'string[]', 'Tối đa 5 từ khoá tìm gần đây'],
+        ['view', "'grid' | 'list'", 'Chế độ dashboard'], ['fs', 'number 14–22', 'Cỡ chữ nội dung'],
+      ].map(([k, tt, v]) => ({ k, t: tt, v })),
+    };
+  }
+}
+</script>
+</body>
+</html>
