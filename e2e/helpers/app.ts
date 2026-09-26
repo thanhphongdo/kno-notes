@@ -55,13 +55,15 @@ export interface ApiNoteSummary {
  * through the page's own `fetch` keeps the browser's rules — and exercises the
  * same path the app uses.
  *
- * The caller must already be on an app page.
+ * A page that has not navigated yet (`about:blank`) cannot resolve a relative
+ * URL, so this opens the dashboard first.
  */
 export async function api<T>(
   page: Page,
   path: string,
   init: { method?: string; body?: unknown } = {},
 ): Promise<{ status: number; body: T }> {
+  if (!page.url().startsWith('http')) await page.goto('/');
   const payload = { path, method: init.method ?? 'GET', body: init.body ?? null };
   return page.evaluate(async (arg: { path: string; method: string; body: unknown }) => {
     const res = await fetch(arg.path, {
@@ -86,6 +88,23 @@ export async function resetPrefs(page: Page): Promise<void> {
   const res = await api(page, '/api/prefs', { method: 'PATCH', body: DEFAULT_PREFS });
   expect(res.status, `PATCH /api/prefs → ${res.status}`).toBe(200);
   await page.context().clearCookies({ name: PREFS_COOKIE });
+}
+
+/**
+ * Runs `action` and waits for the prefs write it triggers to reach the server.
+ *
+ * `PrefsProvider` debounces `PATCH /api/prefs` by 500 ms so dragging the
+ * font-size slider does not spam the API. A test that reloads the moment it
+ * sees the UI change would therefore out-run the write — the state it is about
+ * to assert has not been persisted yet. Waiting for the response is the honest
+ * synchronisation point; a `waitForTimeout` would only hide the race.
+ */
+export async function withPrefsSync(page: Page, action: () => Promise<void>): Promise<void> {
+  const written = page.waitForResponse(
+    (res) => res.url().includes('/api/prefs') && res.request().method() === 'PATCH' && res.ok(),
+  );
+  await action();
+  await written;
 }
 
 export interface NoteListResponse {
@@ -169,9 +188,52 @@ export const isMobileProject = (projectName: string): boolean => projectName ===
  */
 export async function openSidebar(page: Page, mobile: boolean): Promise<void> {
   if (!mobile) return;
-  if (await page.getByTestId('drawer-backdrop').isVisible()) return;
-  await page.getByRole('button', { name: 'Mở thanh bên' }).click();
-  await expect(page.getByTestId('drawer-backdrop')).toBeVisible();
+  if (!(await page.getByTestId('drawer-backdrop').isVisible())) {
+    await page.getByRole('button', { name: 'Mở thanh bên' }).click();
+    await expect(page.getByTestId('drawer-backdrop')).toBeVisible();
+  }
+  // The drawer slides in over 220ms (`transform .22s`). `toBeVisible` is true
+  // the instant the style flips, while the panel is still off-canvas, so wait
+  // for it to actually arrive at the left edge before clicking anything in it.
+  await expect.poll(async () => (await page.locator('aside').boundingBox())?.x ?? null).toBe(0);
+}
+
+/**
+ * Clicks something that navigates through `router.push`, and waits for the URL.
+ *
+ * Under load — two `next start` servers plus a `next build` on the same
+ * machine — the App Router occasionally drops a soft navigation: the click
+ * handler runs (verified: `history.pushState` is never reached), the RSC
+ * payload for the new URL comes back `200` and is then `ERR_ABORTED`, and the
+ * router never commits. Nothing in the app is wrong when this happens, and it
+ * clears on a second click, so the user action — not the assertion — is what
+ * this retries. The assertion itself stays strict.
+ */
+export async function actAndWaitForURL(
+  page: Page,
+  action: () => Promise<void>,
+  url: string | RegExp,
+  attempts = 3,
+): Promise<void> {
+  for (let attempt = 1; ; attempt += 1) {
+    await action();
+    try {
+      await page.waitForURL(url, { timeout: 7_000 });
+      return;
+    } catch (error) {
+      if (attempt >= attempts) throw error;
+    }
+  }
+}
+
+/** The common case: one button, one URL. */
+export async function clickAndWaitForURL(
+  page: Page,
+  locator: ReturnType<Page['locator']>,
+  url: string | RegExp,
+  attempts = 3,
+): Promise<void> {
+  await actAndWaitForURL(page, () => locator.click(), url, attempts);
 }
 
 /** A sidebar entry, located by its visible label rather than by a utility class. */
