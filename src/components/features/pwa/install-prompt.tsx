@@ -103,7 +103,7 @@ export function InstallPrompt() {
       role="dialog"
       aria-label="Cài đặt ứng dụng"
       data-install-prompt={advice}
-      className="fixed inset-x-16 bottom-16 mx-auto flex max-w-420 items-center gap-12 rounded-12 border border-line bg-surface px-16 py-14 shadow-card"
+      className="fixed inset-x-16 bottom-16 mx-auto flex max-w-420 flex-wrap items-center gap-x-12 gap-y-10 rounded-12 border border-line bg-surface px-16 py-14 shadow-card min-[820px]:flex-nowrap"
       style={{ zIndex: Z.settingsBackdrop }}
     >
       {advice === 'ios-safari' ? (
@@ -111,7 +111,8 @@ export function InstallPrompt() {
           <Icon name="download" size={17} />
         </span>
       ) : null}
-      <span className="flex-1 text-13 leading-[1.5]">{message}</span>
+      <span className="min-w-180 flex-1 text-13 leading-[1.5]">{message}</span>
+      <span className="ml-auto flex items-center gap-8">
       <Button variant="ghost" size="32" onClick={dismiss}>
         {advice === 'prompt' ? 'Để sau' : 'Đã hiểu'}
       </Button>
@@ -120,6 +121,7 @@ export function InstallPrompt() {
           Cài đặt
         </Button>
       ) : null}
+      </span>
     </div>
   );
 }
