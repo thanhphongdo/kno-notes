@@ -1,10 +1,21 @@
 import { cn } from '@/lib/utils';
 
 /** First two letters of the display name, uppercased with Vietnamese locale rules. */
+/**
+ * Word initials, like the prototype's `BS` for "Bác sĩ".
+ *
+ * Slicing the first two characters would give "BÁ" here, and "NG" for
+ * "Nguyễn Văn An" — initials of the first and last word read as a name.
+ * Falls back to the first two characters for a single-word name.
+ */
 export function initialsOf(name: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return '?';
-  return trimmed.slice(0, 2).toLocaleUpperCase('vi-VN');
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  const letters =
+    words.length === 1
+      ? words[0].slice(0, 2)
+      : (words[0][0] ?? '') + (words[words.length - 1][0] ?? '');
+  return letters.toLocaleUpperCase('vi-VN');
 }
 
 export interface AvatarProps {

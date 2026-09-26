@@ -92,7 +92,9 @@ describe('Sidebar', () => {
     renderSidebar({ user: { displayName: 'Nguyễn An', username: 'annguyen' } });
     expect(screen.getByText('Nguyễn An')).toBeInTheDocument();
     expect(screen.getByText('annguyen').className).toContain('font-mono');
-    expect(screen.getByText('NG')).toBeInTheDocument();
+    // Word initials, like the prototype's BS for "Bác sĩ" — not the first
+    // two characters, which would read "NG".
+    expect(screen.getByText('NA')).toBeInTheDocument();
   });
 
   it('fires onLogout', async () => {

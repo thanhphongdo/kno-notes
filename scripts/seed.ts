@@ -55,7 +55,13 @@ export async function seed(
 
   await db.insert(userPrefs).values({ userId: user.id }).onConflictDoNothing();
 
-  const notes = SEED();
+  // Seeded comments predate the user row, so stamp the author here rather than
+  // letting the detail page fall back to its unknown-author placeholder ("?").
+  const author = { id: user.id, displayName };
+  const notes = SEED().map((note) => ({
+    ...note,
+    comments: note.comments.map((c) => ({ ...c, author })),
+  }));
   const storage = getStorage();
   for (const note of notes) {
     await storage.writeNote(user.id, note);

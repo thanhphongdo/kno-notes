@@ -14,7 +14,7 @@ const eslintConfig = [
       'test-results/**', 'playwright-report/**', 'docs/**',
       'drizzle/**', 'next-env.d.ts', 'public/sw.js',
       // Next build output, including the per-slot e2e directories.
-      '.next/**', '.next-e2e*/**',
+      '.next*/**',
       // Filesystem storage adapter content, including per-slot e2e data.
       '.data/**', '.data-test*/**',
     ],
