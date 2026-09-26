@@ -11,7 +11,7 @@ const eslintConfig = [
   {
     ignores: [
       'node_modules/**', 'out/**', 'build/**', 'coverage/**',
-      'test-results/**', 'playwright-report/**', 'docs/**',
+      'test-results*/**', 'playwright-report*/**', 'docs/**',
       'drizzle/**', 'next-env.d.ts', 'public/sw.js',
       // Next build output, including the per-slot e2e directories.
       '.next*/**',

@@ -12,6 +12,15 @@ const VERIFY_BACKOFF_MS = [100, 200, 400, 800, 1200] as const;
 
 export type NavigateMode = 'push' | 'replace';
 
+export interface NavigateOptions {
+  /**
+   * Scroll to the top on arrival. Dashboard filter controls keep the reading
+   * position (`false`); sidebar navigation starts a new listing, so it scrolls
+   * like the prototype's `goDash` does.
+   */
+  scroll?: boolean;
+}
+
 /**
  * Navigation that verifies it happened.
  *
@@ -35,7 +44,7 @@ export type NavigateMode = 'push' | 'replace';
  * matches the target the check stops, and an in-flight navigation that lands
  * between attempts also stops it.
  */
-export function useVerifiedNavigate(): (href: string, mode: NavigateMode) => void {
+export function useVerifiedNavigate(): (href: string, mode: NavigateMode, options?: NavigateOptions) => void {
   const router = useRouter();
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -48,11 +57,10 @@ export function useVerifiedNavigate(): (href: string, mode: NavigateMode) => voi
   );
 
   return useCallback(
-    (href: string, mode: NavigateMode) => {
+    (href: string, mode: NavigateMode, options?: NavigateOptions) => {
+      const opts = { scroll: options?.scroll ?? false };
       const go = () =>
-        mode === 'replace'
-          ? router.replace(href, { scroll: false })
-          : router.push(href, { scroll: false });
+        mode === 'replace' ? router.replace(href, opts) : router.push(href, opts);
 
       go();
       if (typeof window === 'undefined') return;
@@ -60,10 +68,16 @@ export function useVerifiedNavigate(): (href: string, mode: NavigateMode) => voi
       let step = 0;
       const verify = () => {
         if (window.location.pathname + window.location.search === href) return;
-        go();
         const delay = VERIFY_BACKOFF_MS[step];
         step += 1;
-        if (delay === undefined) return;
+        if (delay === undefined) {
+          // Every soft retry was dropped too. A full page load always works —
+          // it costs a round trip, but silently doing nothing is far worse
+          // than navigating slowly.
+          window.location.assign(href);
+          return;
+        }
+        go();
         timers.current.push(setTimeout(verify, delay));
       };
       timers.current.push(setTimeout(verify, VERIFY_BACKOFF_MS[0]));

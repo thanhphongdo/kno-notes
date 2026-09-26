@@ -66,13 +66,13 @@ describe('ShellClient', () => {
     mount();
 
     await user.click(screen.getByText('Yêu thích'));
-    expect(push).toHaveBeenLastCalledWith('/?fav=1');
+    expect(push).toHaveBeenLastCalledWith('/?fav=1', { scroll: true });
 
     await user.click(screen.getByText('Cao'));
-    expect(push).toHaveBeenLastCalledWith('/?priority=high');
+    expect(push).toHaveBeenLastCalledWith('/?priority=high', { scroll: true });
 
     await user.click(screen.getByText('Tim mạch'));
-    expect(push).toHaveBeenLastCalledWith('/?tag=Tim+m%E1%BA%A1ch');
+    expect(push).toHaveBeenLastCalledWith('/?tag=Tim+m%E1%BA%A1ch', { scroll: true });
   });
 
   it('clears a filter that is already active rather than re-applying it', async () => {
@@ -81,7 +81,7 @@ describe('ShellClient', () => {
     mount();
 
     await user.click(screen.getByText('Cao'));
-    expect(push).toHaveBeenLastCalledWith('/');
+    expect(push).toHaveBeenLastCalledWith('/', { scroll: true });
   });
 
   it('marks "Tất cả ghi chú" current only on an unfiltered dashboard', () => {
@@ -155,7 +155,7 @@ describe('ShellClient', () => {
     await user.click(screen.getByRole('button', { name: 'Đăng xuất' }));
 
     expect(fetch).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' });
-    expect(replace).toHaveBeenCalledWith('/login');
+    expect(replace).toHaveBeenCalledWith('/login', { scroll: false });
     expect(refresh).toHaveBeenCalled();
   });
 

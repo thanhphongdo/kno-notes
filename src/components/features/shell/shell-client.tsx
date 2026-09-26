@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useVerifiedNavigate } from '@/lib/nav/navigate';
 import {
   AppHeader, AppShell, PRIORITIES, PRIORITY_CLASS, PRIORITY_LABEL,
   SettingsPopover, Sidebar, SidebarNavItem, SidebarSection,
@@ -31,6 +32,7 @@ export type { ShellNavData } from './shell-data';
  */
 export function ShellClient({ data, children }: { data: ShellNavData; children: ReactNode }) {
   const router = useRouter();
+  const navigate = useVerifiedNavigate();
   const params = useSearchParams();
   const isMobile = useIsMobile();
   const { prefs, setPrefs } = usePrefs();
@@ -50,9 +52,9 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
   const go = useCallback(
     (href: string) => {
       setDrawerOpen(false);
-      router.push(href);
+      navigate(href, 'push', { scroll: true });
     },
-    [router],
+    [navigate],
   );
 
   const openSidebar = useCallback(() => {
@@ -82,9 +84,9 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
     } catch {
       /* the cookie may already be gone; send them to /login either way */
     }
-    router.replace(loginPath());
+    navigate(loginPath(), 'replace');
     router.refresh();
-  }, [router]);
+  }, [navigate, router]);
 
   const sidebar = (
     <Sidebar
