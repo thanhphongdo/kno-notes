@@ -43,3 +43,7 @@ yarn-error.log*
 # filesystem storage adapter (dev/test note + image store) — never commit user data
 .data/
 .data-test/
+
+# parallel e2e slots (per-agent db data dir + build output)
+.data-test-*/
+.next-e2e*/

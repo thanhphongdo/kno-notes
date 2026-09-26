@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { chromium, type FullConfig } from '@playwright/test';
 import { STORAGE_STATE, login } from './fixtures/auth';
-import { E2E_ENV } from '../playwright.config';
+import { E2E_DB, E2E_ENV } from '../playwright.config';
 
 /**
  * Playwright global setup.
@@ -21,7 +21,8 @@ import { E2E_ENV } from '../playwright.config';
  * inside npm.
  */
 
-const DB_NAME = 'kno_notes_test';
+/** Slot-aware: set E2E_SLOT to give a parallel run its own database. */
+const DB_NAME = E2E_DB;
 const ROOT = process.cwd();
 const DATA_DIR = path.resolve(ROOT, E2E_ENV.DATA_DIR ?? '.data-test');
 

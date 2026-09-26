@@ -20,6 +20,29 @@ if (loaded.error) {
 }
 
 const env = loaded.parsed ?? {};
+
+/**
+ * Parallel agents each need their own database, storage directory, build
+ * output and port. Two concurrent `next build` runs sharing `.next` corrupt
+ * each other's output and produce convincing phantom runtime errors, and a
+ * shared `kno_notes_test` gets dropped out from under a live request.
+ *
+ * Set `E2E_SLOT=<name>` to isolate a run. Unset keeps the original defaults.
+ */
+const SLOT = (process.env.E2E_SLOT ?? '').trim();
+const suffix = SLOT ? `_${SLOT}` : '';
+const dashSuffix = SLOT ? `-${SLOT}` : '';
+
+const BASE_DB = 'kno_notes_test';
+export const E2E_DB = `${BASE_DB}${suffix}`;
+const E2E_DATA_DIR = `.data-test${dashSuffix}`;
+const E2E_DIST_DIR = `.next-e2e${dashSuffix}`;
+
+/** Point the connection string at this slot's database. */
+function withDatabase(url: string, database: string): string {
+  return url.replace(/\/[^/?]*(\?|$)/, `/${database}$1`);
+}
+
 const PORT = Number(process.env.E2E_PORT ?? 3100);
 const baseURL = `http://127.0.0.1:${PORT}`;
 
@@ -30,6 +53,9 @@ export const E2E_ENV: Record<string, string> = {
   // never download ~30 MB of model weights.
   NEXT_PUBLIC_DISABLE_SEMANTIC_SEARCH: '1',
   PORT: String(PORT),
+  DATABASE_URL: withDatabase(env.DATABASE_URL ?? '', E2E_DB),
+  DATA_DIR: E2E_DATA_DIR,
+  NEXT_DIST_DIR: E2E_DIST_DIR,
 };
 
 export default defineConfig({
@@ -83,7 +109,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && npm run start',
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !process.env.CI && !SLOT,
     timeout: 240_000,
     stdout: 'pipe',
     stderr: 'pipe',
