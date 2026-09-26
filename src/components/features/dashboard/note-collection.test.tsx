@@ -36,8 +36,8 @@ const wrapper = ({ children }: { children: ReactNode }) => (
   <PrefsProvider initial={DEFAULT_PREFS}>{children}</PrefsProvider>
 );
 
-const show = (notes: NoteSummary[], total = notes.length, pages = 1) =>
-  render(<NoteCollection notes={notes} total={total} pages={pages} />, { wrapper });
+const show = (notes: NoteSummary[], total = notes.length, pages = 1, page = 1) =>
+  render(<NoteCollection notes={notes} total={total} pages={pages} page={page} />, { wrapper });
 
 describe('NoteCollection', () => {
   beforeEach(() => {
@@ -74,9 +74,19 @@ describe('NoteCollection', () => {
   it('renders the range sentence and paginates', async () => {
     const user = userEvent.setup();
     vi.stubGlobal('scrollTo', vi.fn());
-    show([note('n1')], 14, 3);
+    show([note('n1')], 14, 3, 1);
     expect(screen.getByText('Hiển thị 1–6 trên 14')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Trang 2' }));
+    expect(push).toHaveBeenCalledWith('/?page=2', { scroll: false });
+  });
+
+  it('pages from the page the server served, not the one in the URL', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('scrollTo', vi.fn());
+    search = new URLSearchParams('page=999');
+    show([note('n1')], 14, 3, 1);
+    expect(screen.getByText('Hiển thị 1–6 trên 14')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Trang sau' }));
     expect(push).toHaveBeenCalledWith('/?page=2', { scroll: false });
   });
 

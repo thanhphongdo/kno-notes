@@ -34,22 +34,35 @@ export default async function DashboardPage({ searchParams }: Search) {
   const prefs = parsePrefsCookie(jar.get(PREFS_COOKIE)?.value);
   const filters = parseNoteFilters(searchParamsFrom(await searchParams), prefs.view);
 
-  const { notes, total, pages } = await listNotes(session.id, {
+  const query = {
     query: filters.q,
-    nav: filters.fav ? 'fav' : 'all',
+    nav: filters.fav ? ('fav' as const) : ('all' as const),
     priority: filters.priority,
     tag: filters.tag,
     sort: filters.sort,
-    page: filters.page,
     pageSize: PAGE_SIZE,
-  });
+  };
+
+  // `listNotes` clamps an out-of-range page to the last one, which would leave
+  // the pager reading "Hiển thị 5989–14 trên 14". Contracts §4: a garbage deep
+  // link shows the FIRST page of the default sort, so ask again for page 1 and
+  // let the effective page — never the one in the URL — drive the pager.
+  let result = await listNotes(session.id, { ...query, page: filters.page });
+  if (result.page !== filters.page) result = await listNotes(session.id, { ...query, page: 1 });
+
+  const { notes, total, pages, page } = result;
 
   const now = Date.now();
 
   return (
     <div className="mx-auto flex w-full max-w-1160 flex-col gap-24 px-16 pt-20 pb-64 min-[820px]:px-40 min-[820px]:pt-36">
       <DashboardToolbar total={total} />
-      <NoteCollection notes={notes.map((n) => toNoteCardSummary(n, now))} total={total} pages={pages} />
+      <NoteCollection
+        notes={notes.map((n) => toNoteCardSummary(n, now))}
+        total={total}
+        pages={pages}
+        page={page}
+      />
     </div>
   );
 }

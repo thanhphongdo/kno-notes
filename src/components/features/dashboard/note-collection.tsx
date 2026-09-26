@@ -15,6 +15,12 @@ export interface NoteCollectionProps {
   notes: readonly NoteSummary[];
   total: number;
   pages: number;
+  /**
+   * The page the server actually served. It differs from the one in the URL
+   * when a deep link asks for a page that does not exist, and it — not the
+   * URL — is what the pager must show.
+   */
+  page: number;
 }
 
 const hrefFor = (note: NoteSummary) => notePath(note.id);
@@ -25,7 +31,7 @@ const hrefFor = (note: NoteSummary) => notePath(note.id);
  * server is told, and `router.refresh()` re-runs the server component so a
  * `fav=1` filter stays honest. A rejected write rolls the star back.
  */
-export function NoteCollection({ notes, total, pages }: NoteCollectionProps) {
+export function NoteCollection({ notes, total, pages, page }: NoteCollectionProps) {
   const { filters, setPage, clearAll } = useNoteFilters();
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -80,7 +86,7 @@ export function NoteCollection({ notes, total, pages }: NoteCollectionProps) {
       )}
 
       <Pagination
-        page={filters.page}
+        page={page}
         pageCount={pages}
         total={total}
         pageSize={PAGE_SIZE}
