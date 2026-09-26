@@ -1,6 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import {
+  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
+  type RefObject,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import { SearchBox, SearchSuggestions, type SuggestionNote, type SuggestionTag } from '@/components/shared';
 import { usePrefs } from '@/hooks/use-prefs';
@@ -21,6 +24,16 @@ export const HISTORY_POP_FALLBACK_MS = 200;
 
 /** Marks the throwaway entry the mobile overlay pushes, for debugging only. */
 const OVERLAY_HISTORY_KEY = 'knoSearchOverlay';
+
+/**
+ * The entry has to be pushed while the page still has its real scroll offset,
+ * because the browser records that offset against the entry it is leaving and
+ * replays it on the way back. `SearchOverlay` pins the body in a passive
+ * effect, and every layout effect runs before every passive one — so this is
+ * the ordering, not a preference. The component renders on the server, hence
+ * the guard.
+ */
+const useHistoryEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 /** Prototype counts: idle shows 8 tags / 4 notes, typing narrows to 6 / 6. */
 const TAGS_IDLE = 8;
@@ -95,14 +108,12 @@ export function SearchContainer({ tags, isMobile, inputRef, open, onOpenChange }
    * so it is popped again on every close path; Back from the dashboard then
    * does what it did before the user ever tapped search.
    */
-  useEffect(() => {
+  useHistoryEffect(() => {
     if (!isMobile || !open) return;
 
-    window.history.pushState(
-      { ...window.history.state, [OVERLAY_HISTORY_KEY]: true },
-      '',
-      window.location.href,
-    );
+    // No URL argument: the entry is the page the user is already on, and
+    // Next only re-dispatches its router state when a URL is handed over.
+    window.history.pushState({ ...window.history.state, [OVERLAY_HISTORY_KEY]: true }, '');
     entry.current = true;
 
     const onPop = () => {

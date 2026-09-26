@@ -63,6 +63,10 @@ export function SearchOverlay({ input, children, onClose, className }: SearchOve
       body.style.right = prev.right;
       body.style.width = prev.width;
       body.style.overflow = prev.overflow;
+      // Reading layout forces the reflow that gives the document its height
+      // back. Without it the browser is still measuring a pinned body and
+      // clamps the restore below to 0.
+      document.body.getBoundingClientRect();
       if (y) window.scrollTo(0, y);
     };
   }, []);

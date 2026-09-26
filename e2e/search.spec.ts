@@ -248,3 +248,177 @@ test('panel vẫn hoạt động khi bộ nhúng ngữ nghĩa không khả dụn
   expect(errors).toEqual([]);
   expect(modelRequests).toEqual([]);
 });
+
+/**
+ * Mobile (`< 820px`) turns the suggestion dropdown into a full-screen overlay:
+ * the anchored panel is unusable under a 42px box inside a 64px header on a
+ * 390×844 phone. Everything below is about the overlay *as a surface* — the
+ * suggestion behaviour itself is covered by the tests above, which run on both
+ * projects and must keep passing unchanged.
+ */
+test.describe('lớp phủ tìm kiếm toàn màn hình (mobile)', () => {
+  // The app's one breakpoint, read off the project's viewport.
+  test.skip(({ viewport }) => (viewport?.width ?? 0) >= 820, 'Chỉ áp dụng cho viewport < 820px');
+
+  const overlay = (page: Page) => page.locator('[data-search-overlay]');
+
+  /** Seed one recent term through the real flow so every section can appear. */
+  async function seedRecent(page: Page): Promise<void> {
+    await box(page).click();
+    await type(page, 'adrenalin');
+    await submitAndPersist(page);
+    await expect(page).toHaveURL(/[?&]q=adrenalin/);
+    await page.goto('/');
+  }
+
+  test('chạm ô tìm kiếm mở lớp phủ, ô nhập được focus và đủ các mục', async ({ page }) => {
+    await seedRecent(page);
+    await expect(overlay(page)).toHaveCount(0);
+
+    await box(page).click();
+
+    await expect(overlay(page)).toBeVisible();
+    await expect(box(page)).toBeFocused();
+    await expect(box(page)).toHaveAttribute('placeholder', 'Tìm theo tiêu đề, mô tả hoặc #thẻ');
+
+    // The panel is inside the overlay, not hanging off the header.
+    await expect(overlay(page).locator('[data-search-suggestions]')).toBeVisible();
+    await expect(page.locator('[data-search-suggestions]')).toHaveAttribute('data-density', 'comfortable');
+
+    await expect(panel(page).getByText('Tìm gần đây')).toBeVisible();
+    await expect(panel(page).getByRole('button', { name: 'Xoá', exact: true })).toBeVisible();
+    await expect(panel(page).getByText('Thẻ', { exact: true })).toBeVisible();
+    await expect(panel(page).getByText('Mở gần đây')).toBeVisible();
+
+    // It really covers the viewport, and the rows are thumb-sized (§06).
+    const size = page.viewportSize()!;
+    const frame = (await overlay(page).boundingBox())!;
+    expect(frame.width).toBeCloseTo(size.width, 0);
+    expect(frame.height).toBeCloseTo(size.height, 0);
+
+    const row = (await panel(page).getByRole('button', { name: 'adrenalin' }).boundingBox())!;
+    expect(Math.round(row.height)).toBeGreaterThanOrEqual(44);
+    const close = (await overlay(page).getByRole('button', { name: 'Đóng' }).boundingBox())!;
+    expect(Math.round(close.height)).toBeGreaterThanOrEqual(44);
+  });
+
+  test('phím / cũng mở lớp phủ, và dòng xem tất cả kết quả nằm trong đó', async ({ page }) => {
+    await page.locator('h1').first().click();
+    await page.keyboard.press('/');
+
+    await expect(overlay(page)).toBeVisible();
+    await expect(box(page)).toBeFocused();
+    await expect(box(page)).toHaveValue('');
+
+    await type(page, 'ECG');
+    await expect(overlay(page).getByText('Ghi chú khớp')).toBeVisible();
+    await expect(overlay(page).getByText(SEED.ecg)).toBeVisible();
+    await expect(overlay(page).getByText('Xem tất cả kết quả cho “ECG”')).toBeVisible();
+  });
+
+  test('Esc đóng lớp phủ và trả lại đúng vị trí cuộn của trang', async ({ page }) => {
+    await page.evaluate(() => window.scrollTo(0, 260));
+    const before = await page.evaluate(() => Math.round(window.scrollY));
+    expect(before).toBeGreaterThan(0);
+
+    // `/`, not a tap: Playwright scrolls the document to the top before
+    // clicking anything in the sticky header, which a thumb never does.
+    await page.keyboard.press('/');
+    await expect(overlay(page)).toBeVisible();
+    expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(0);
+    // The page behind is pinned, not merely overflow-hidden (mobile Safari).
+    expect(await page.evaluate(() => getComputedStyle(document.body).position)).toBe('fixed');
+
+    await page.keyboard.press('Escape');
+    await expect(overlay(page)).toHaveCount(0);
+    expect(await page.evaluate(() => getComputedStyle(document.body).position)).not.toBe('fixed');
+    await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBe(before);
+  });
+
+  test('cử chỉ Back đóng lớp phủ mà không giữ người dùng lại trên trang', async ({ page }) => {
+    await page.goto('/?priority=high');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.goto('/');
+
+    await box(page).click();
+    await expect(overlay(page)).toBeVisible();
+
+    await page.goBack();
+    await expect(overlay(page)).toHaveCount(0);
+    await expect(page).toHaveURL('/');
+
+    // The overlay left nothing behind: one more Back is one real step back.
+    await page.goBack();
+    await expect(page).toHaveURL(/priority=high/);
+  });
+
+  test('nút Đóng cũng không để lại mục lịch sử thừa', async ({ page }) => {
+    await page.goto('/?priority=high');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await page.goto('/');
+
+    await box(page).click();
+    await expect(overlay(page)).toBeVisible();
+    await overlay(page).getByRole('button', { name: 'Đóng' }).click();
+    await expect(overlay(page)).toHaveCount(0);
+    await expect(box(page)).toBeVisible();
+
+    await page.goBack();
+    await expect(page).toHaveURL(/priority=high/);
+  });
+
+  test('chọn một thẻ đóng lớp phủ và lọc dashboard', async ({ page }) => {
+    await box(page).click();
+    await type(page, SEED.tag);
+    const chip = overlay(page).getByRole('button', { name: new RegExp(`#${SEED.tag}`) }).first();
+    await expect(chip).toBeVisible();
+    await chip.click();
+
+    await expect(overlay(page)).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: `#${SEED.tag}`, level: 1 })).toBeVisible();
+    await expect(page.locator('[data-note-card], [data-note-row]').first()).toBeVisible();
+
+    // Back returns to the unfiltered dashboard, not to the overlay.
+    await page.goBack();
+    await expect(page).toHaveURL('/');
+    await expect(overlay(page)).toHaveCount(0);
+  });
+
+  test('chọn một ghi chú đóng lớp phủ và mở trang chi tiết', async ({ page }) => {
+    await box(page).click();
+    await type(page, 'Glasgow');
+    const row = overlay(page).getByRole('button').filter({ hasText: 'Thang điểm Glasgow' });
+    await expect(row).toBeVisible();
+    await row.click();
+
+    await expect(page).toHaveURL(/\/notes\/n7$/);
+    await expect(overlay(page)).toHaveCount(0);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Glasgow');
+
+    await page.goBack();
+    await expect(page).toHaveURL('/');
+  });
+
+  test('Enter trong lớp phủ đi tới dashboard kết quả', async ({ page }) => {
+    await box(page).click();
+    await type(page, 'ECG');
+    await submitAndPersist(page);
+
+    await expect(overlay(page)).toHaveCount(0);
+    await expect(page).toHaveURL('/?q=ECG');
+    await expect(page.getByRole('heading', { name: 'Kết quả tìm kiếm', level: 1 })).toBeVisible();
+  });
+});
+
+test.describe('desktop giữ nguyên panel neo dưới ô tìm kiếm', () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) < 820, 'Chỉ áp dụng cho viewport ≥ 820px');
+
+  test('không có lớp phủ, panel neo và nền chặn vẫn như cũ', async ({ page }) => {
+    await box(page).click();
+    await expect(panel(page)).toBeVisible();
+    await expect(page.locator('[data-search-overlay]')).toHaveCount(0);
+    await expect(page.getByTestId('search-backdrop')).toBeVisible();
+    await expect(panel(page)).toHaveAttribute('data-density', 'compact');
+    expect(await page.evaluate(() => getComputedStyle(document.body).position)).not.toBe('fixed');
+  });
+});
