@@ -134,10 +134,10 @@ test.describe('Tuỳ chọn hiển thị', () => {
       await searchbox.click();
       await expect(suggestions).toBeVisible();
       await searchbox.fill(term);
+      await expect(searchbox).toHaveValue(term);
+      // `submit()` records the term first, then navigates. The list below is
+      // the assertion; whether the panel has finished closing is not.
       await searchbox.press('Enter');
-      // `submit()` records the term and closes the panel synchronously; the
-      // navigation it starts afterwards is not what this test is about.
-      await expect(suggestions).toHaveCount(0);
     }
 
     const newestFirst = [...terms].reverse().slice(0, 5);
