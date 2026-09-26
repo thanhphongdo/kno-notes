@@ -10,7 +10,9 @@ import { Icon, useToast } from '@/components/ui';
 import { fmt, rel } from '@/lib/text';
 import type { Note, NoteImage } from '@/lib/types';
 import { dashboardPath, notePath, tagPath } from './routes';
+import { CommentsSection } from './comments-section';
 import { DetailActions } from './detail-actions';
+import { DetailRail } from './detail-rail';
 
 export interface DetailViewData {
   note: Note;
@@ -31,6 +33,7 @@ export function DetailClient({ data }: { data: DetailViewData }) {
   const [lightbox, setLightbox] = useState<{ images: NoteImage[]; index: number } | null>(null);
 
   const selected = note.versions.find((v) => v.v === selectedVersion);
+  const words = note.content.replace(/<[^>]+>/g, ' ').split(/\s+/).filter(Boolean).length;
 
   const restore = useCallback(async () => {
     const res = await fetch(
@@ -111,7 +114,20 @@ export function DetailClient({ data }: { data: DetailViewData }) {
               />
             </div>
           ) : null}
+
+          <CommentsSection noteId={note.id} comments={note.comments} />
         </article>
+
+        <DetailRail
+          note={note}
+          selectedVersion={selectedVersion}
+          latestVersion={latestVersion}
+          highlights={[]}
+          onRemoveHighlight={() => undefined}
+          words={words}
+          onStartQuiz={() => undefined}
+          onOpenQuizAttempt={() => undefined}
+        />
       </div>
 
       {lightbox ? (
