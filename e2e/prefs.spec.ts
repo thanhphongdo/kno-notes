@@ -131,13 +131,16 @@ test.describe('Tuỳ chọn hiển thị', () => {
     const suggestions = page.locator('[data-search-suggestions]');
 
     for (const term of terms) {
-      await searchbox.click();
-      await expect(suggestions).toBeVisible();
-      await searchbox.fill(term);
-      await expect(searchbox).toHaveValue(term);
-      // `submit()` records the term first, then navigates. The list below is
-      // the assertion; whether the panel has finished closing is not.
-      await searchbox.press('Enter');
+      // One search at a time. `PrefsProvider` debounces its PATCH by 500ms and
+      // sends the whole list each time, so firing six searches inside one
+      // debounce window lets two writes race and the later row can lose.
+      await withPrefsSync(page, async () => {
+        await searchbox.click();
+        await expect(suggestions).toBeVisible();
+        await searchbox.fill(term);
+        await expect(searchbox).toHaveValue(term);
+        await searchbox.press('Enter');
+      });
     }
 
     const newestFirst = [...terms].reverse().slice(0, 5);
