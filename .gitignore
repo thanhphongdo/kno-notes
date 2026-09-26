@@ -39,3 +39,7 @@ yarn-error.log*
 
 # local scratch
 .scratch/
+
+# filesystem storage adapter (dev/test note + image store) — never commit user data
+.data/
+.data-test/
