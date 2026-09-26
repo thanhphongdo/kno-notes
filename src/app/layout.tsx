@@ -26,6 +26,12 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180' }],
   },
+  other: {
+    // Next emits the standard `mobile-web-app-capable`, which iOS ignores.
+    // Without the apple-prefixed one, "Thêm vào Màn hình chính" opens the app
+    // in a Safari tab with browser chrome instead of standalone.
+    'apple-mobile-web-app-capable': 'yes',
+  },
 };
 
 export const viewport: Viewport = {

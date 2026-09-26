@@ -235,6 +235,24 @@
   vertical-align: top;
 }
 [data-prose] th { color: var(--muted); font-weight: 500; }
+
+/* Below the single 820px breakpoint a wide table has nowhere to go: the
+   columns get squeezed until every cell wraps to three or four lines and the
+   table reads as broken. Let it scroll sideways instead, with a floor on
+   column width so the content stays legible. Desktop is unchanged. */
+@media (width < 820px) {
+  [data-prose] table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  [data-prose] th,
+  [data-prose] td { min-width: 104px; }
+  [data-prose] th:first-child,
+  [data-prose] td:first-child { min-width: 136px; }
+}
 [data-prose] mark {
   background: var(--hl);
   color: inherit;

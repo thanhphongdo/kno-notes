@@ -71,3 +71,32 @@ describe('InstallPrompt', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });
+
+describe('InstallPrompt on iOS, where beforeinstallprompt never fires', () => {
+  function setUserAgent(value: string) {
+    Object.defineProperty(window.navigator, 'userAgent', { value, configurable: true });
+  }
+
+  const realUserAgent = window.navigator.userAgent;
+  afterEach(() => setUserAgent(realUserAgent));
+
+  it('tells iPhone Safari how to add the app to the Home Screen', () => {
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+    );
+    render(<InstallPrompt />);
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-install-prompt', 'ios-safari');
+    expect(screen.getByText(/Thêm vào Màn hình chính/)).toBeInTheDocument();
+    // A button that cannot work must not be offered.
+    expect(screen.queryByRole('button', { name: 'Cài đặt' })).toBeNull();
+  });
+
+  it('sends other iOS browsers to Safari, which is the only one that can install', () => {
+    setUserAgent(
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/126.0 Mobile/15E148 Safari/604.1',
+    );
+    render(<InstallPrompt />);
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-install-prompt', 'ios-other-browser');
+    expect(screen.getByText(/mở trang này bằng Safari/)).toBeInTheDocument();
+  });
+});
