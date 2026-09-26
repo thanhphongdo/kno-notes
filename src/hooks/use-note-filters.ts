@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useVerifiedNavigate } from '@/lib/nav/navigate';
 import type { FilterChipDescriptor } from '@/components/shared';
 import { usePrefs } from '@/hooks/use-prefs';
 import {
@@ -33,7 +34,7 @@ export interface UseNoteFilters {
 }
 
 export function useNoteFilters(): UseNoteFilters {
-  const router = useRouter();
+  const go = useVerifiedNavigate();
   const sp = useSearchParams();
   const { prefs, setPrefs } = usePrefs();
 
@@ -41,11 +42,9 @@ export function useNoteFilters(): UseNoteFilters {
 
   const navigate = useCallback(
     (next: NoteFilters, mode: 'push' | 'replace') => {
-      const href = toHref(next);
-      if (mode === 'replace') router.replace(href, { scroll: false });
-      else router.push(href, { scroll: false });
+      go(toHref(next), mode);
     },
-    [router],
+    [go],
   );
 
   const setFilters = useCallback(
