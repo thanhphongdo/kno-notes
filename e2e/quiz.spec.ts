@@ -1,4 +1,5 @@
 import { test, expect, type Page } from './fixtures/auth';
+import { api, cleanupNotes } from './helpers/app';
 
 /**
  * The quiz modal (SPEC §1.3 items 19–20, §3 "Quiz state machine").
@@ -305,5 +306,109 @@ test.describe('trắc nghiệm — đường AI', () => {
 
     await page.getByRole('button', { name: 'Về ghi chú' }).click();
     await expect(page.locator('[data-quiz-history-item]')).toHaveCount(before + 1);
+  });
+});
+
+/**
+ * Bộ câu hỏi soạn sẵn.
+ *
+ * Đây là nguồn chính của bài trắc nghiệm khi không có API key AI — khác hẳn
+ * bộ sinh tự động ở chỗ nội dung câu hỏi do người soạn quyết định. Điều duy
+ * nhất thay đổi giữa các lần làm là thứ tự bốn lựa chọn.
+ */
+test.describe('bộ câu hỏi soạn sẵn', () => {
+  const created: string[] = [];
+
+  const BANK = [
+    {
+      q: 'E2E · Ngưỡng chẩn đoán tăng huyết áp tại phòng khám là bao nhiêu?',
+      options: ['≥ 120/80 mmHg', '≥ 130/85 mmHg', '≥ 140/90 mmHg', '≥ 160/100 mmHg'],
+      answer: 2,
+      explain: 'Ngưỡng tại phòng khám là 140/90 mmHg, lặp lại ở ít nhất hai lần khám.',
+    },
+    {
+      q: 'E2E · Holter 24 giờ chẩn đoán tăng huyết áp khi trung bình vượt mức nào?',
+      options: ['≥ 125/75 mmHg', '≥ 130/80 mmHg', '≥ 135/85 mmHg', '≥ 140/90 mmHg'],
+      answer: 1,
+      explain: 'Holter 24 giờ dùng ngưỡng trung bình 130/80 mmHg.',
+    },
+  ];
+
+  test.afterEach(async ({ page }) => {
+    await cleanupNotes(page, created);
+  });
+
+  async function noteWithBank(page: Page): Promise<string> {
+    const res = await api<{ note: { id: string } }>(page, '/api/notes', {
+      method: 'POST',
+      body: {
+        title: `Ghi chú E2E · câu hỏi soạn sẵn ${Date.now().toString(36)}`,
+        desc: 'Do e2e tạo',
+        tags: [],
+        priority: 'medium',
+        content: '<h2>Ngưỡng</h2><p>HA phòng khám ≥ 140/90 mmHg.</p>',
+        images: [],
+        questions: BANK,
+        changeNote: '',
+      },
+    });
+    expect(res.status).toBe(200);
+    created.push(res.body.note.id);
+    return res.body.note.id;
+  }
+
+  test('bài trắc nghiệm lấy đúng những câu đã soạn', async ({ page }) => {
+    const id = await noteWithBank(page);
+    await page.goto(`/notes/${id}`);
+
+    // Nhãn xuất hiện ở cả rail desktop lẫn khối thông tin mobile.
+    await expect(page.getByText('Câu hỏi soạn sẵn').first()).toBeVisible();
+
+    await page.getByRole('button', { name: 'Trắc nghiệm' }).click();
+    await expect(page.locator('[data-quiz-counter]')).toHaveText('1 / 2');
+    await expect(dialog(page).getByText(/^E2E · /)).toBeVisible();
+  });
+
+  test('màn hình kết quả nói rõ câu hỏi đến từ bộ soạn sẵn', async ({ page }) => {
+    const id = await noteWithBank(page);
+    await page.goto(`/notes/${id}`);
+    await page.getByRole('button', { name: 'Trắc nghiệm' }).click();
+    await answerAllFrom(page, 1, 2);
+
+    await expect(page.locator('[data-quiz-source]')).toHaveAttribute('data-quiz-source', 'bank');
+    await expect(page.getByText('Bộ câu hỏi soạn sẵn của ghi chú')).toBeVisible();
+  });
+
+  /**
+   * Soạn sẵn nghĩa là câu hỏi cố định, KHÔNG phải đáp án luôn nằm ở một chỗ —
+   * nếu không người làm bài sẽ thuộc vị trí thay vì thuộc bài.
+   */
+  test('vị trí các lựa chọn đổi giữa các lần làm, nội dung câu hỏi thì không', async ({ page }) => {
+    const id = await noteWithBank(page);
+
+    const orders = new Set<string>();
+    let wording = '';
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const res = await api<{ questions: { q: string; options: string[]; answer: number }[] }>(
+        page,
+        `/api/notes/${id}/quiz/generate`,
+        { method: 'POST', body: {} },
+      );
+      const asked = res.body.questions.find((q) => q.q === BANK[0]!.q)!;
+      expect(asked, 'câu đã soạn phải xuất hiện nguyên văn').toBeTruthy();
+      // Đáp án đúng luôn phải là cùng một chuỗi, dù đứng ở vị trí nào.
+      expect(asked.options[asked.answer]).toBe(BANK[0]!.options[BANK[0]!.answer]);
+      expect([...asked.options].sort()).toEqual([...BANK[0]!.options].sort());
+      orders.add(asked.options.join('|'));
+      wording = asked.q;
+    }
+    expect(wording).toBe(BANK[0]!.q);
+    expect(orders.size, 'thứ tự lựa chọn phải có đổi').toBeGreaterThan(1);
+  });
+
+  test('ghi chú chưa soạn câu hỏi vẫn làm bài được bằng bộ sinh tự động', async ({ page }) => {
+    await page.goto(`/notes/${PLAIN_NOTE}`);
+    await page.getByRole('button', { name: 'Trắc nghiệm' }).click();
+    await expect(page.locator('[data-quiz-option]')).toHaveCount(4);
   });
 });

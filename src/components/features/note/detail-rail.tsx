@@ -82,6 +82,9 @@ export function DetailRail({
             { key: 'Cập nhật', value: fmt(note.updated) },
             { key: 'Số từ', value: String(words) },
             { key: 'Hình ảnh', value: String(note.images.length) },
+            // Để thấy được ghi chú nào đã có câu hỏi soạn sẵn mà không phải
+            // bấm vào làm bài mới biết.
+            { key: 'Câu hỏi soạn sẵn', value: String(note.questions?.length ?? 0) },
           ]}
         />
       </RailSection>

@@ -126,14 +126,19 @@ data/users/<userId>/index.json               // (tuỳ chọn) snapshot để re
   - `POST /api/v1/notes`, `GET|PATCH|DELETE /api/v1/notes/{id}`
   - `GET /api/v1/tags`
   - `POST /api/v1/notes/{id}/quizzes`, `GET /api/v1/notes/{id}/quizzes`
+  - `GET|PUT /api/v1/notes/{id}/questions` — bộ câu hỏi soạn sẵn
   - `POST /api/v1/notes/{id}/comments`
 - **MCP** `/api/mcp` (Streamable HTTP), cùng auth bearer, tools:
-  `list_notes, search_notes, get_note, create_note, update_note, delete_note, list_tags, create_quiz, list_quizzes`.
+  `list_notes, search_notes, get_note, create_note, update_note, delete_note, list_tags, set_quiz_questions, get_quiz_questions, create_quiz, list_quizzes`.
+  `create_note`/`update_note` nhận luôn `questions`; `set_quiz_questions` thay toàn bộ bộ câu hỏi của ghi chú đã có mà không đụng nội dung.
 - API key sinh ở trang `/settings/api-keys`, hiển thị 1 lần, lưu hash (sha256).
 
-### 2.5 Quiz LLM
-- Server route `POST /api/notes/{id}/quiz/generate` gọi Gemini (`gemini-2.0-flash`) với prompt tiếng Việt y như prototype (5 câu, 4 đáp án, JSON, tránh lặp câu cũ).
-- Không có `GOOGLE_GENERATIVE_AI_API_KEY` hoặc lỗi/parse fail → **fallback offline** dùng đúng thuật toán `sections()` + `offlineQuiz()` trong prototype, `source: 'offline'`.
+### 2.5 Quiz
+- **Nguồn chính là bộ câu hỏi soạn sẵn của ghi chú** (`note.questions`), do người dùng hoặc một tác nhân AI soạn qua MCP / `PUT /api/v1/notes/{id}/questions`. Mỗi lần làm bài: xáo thứ tự câu, lấy tối đa 5, và **luôn đảo vị trí 4 lựa chọn** (`answer` đi theo đáp án đúng, đảo theo chỉ số để không sai khi hai lựa chọn trùng chữ). Nội dung câu hỏi không đổi — đó là điểm của việc soạn trước.
+- Thứ tự chọn nguồn trong `POST /api/notes/{id}/quiz/generate`: **Gemini** (chỉ khi có `GOOGLE_GENERATIVE_AI_API_KEY`) → **bộ soạn sẵn** → **bộ sinh tự động**. Có key nghĩa là người dùng chủ động muốn dùng AI; AI lỗi/hết quota thì rơi về bộ soạn sẵn, cuối cùng mới tới `offlineQuiz()`.
+- Prompt Gemini giữ nguyên như prototype (5 câu, 4 đáp án, JSON, tránh lặp 10 câu gần nhất).
+- `Quiz.source` = `'ai' | 'bank' | 'offline'`, **hiện trên màn hình kết quả**. Trước đây nguồn là vô hình nên AI hỏng mà không ai biết.
+- Sửa bộ câu hỏi **không tạo phiên bản mới** (cùng lý do như đánh dấu đoạn). `PATCH` ghi chú mà bỏ trống `questions` = giữ nguyên bộ cũ; gửi `[]` mới là xoá.
 - Kết quả lưu vào `note.quizzes` (mới nhất đầu) trong GitHub JSON + tăng `quiz_count` ở note_index.
 
 ---

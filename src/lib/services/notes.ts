@@ -13,6 +13,7 @@ import {
   type NoteFilters,
   type NoteListResult,
   type NoteSummary,
+  type Question,
   type Quiz,
   type SessionUser,
   type SortKey,
@@ -182,6 +183,7 @@ export async function createNote(
       },
     ],
     quizzes: [],
+    questions: input.questions ?? [],
   };
 
   await getStorage().writeNote(userId, note);
@@ -216,6 +218,8 @@ export async function updateNote(
     tags: input.tags ?? [],
     priority: input.priority ?? existing.priority,
     images: input.images ?? [],
+    // `undefined` = không đụng tới. Xem chú thích ở `UpdateNoteInput`.
+    questions: input.questions ?? existing.questions ?? [],
     content,
     updated: now,
     versions: changed
@@ -352,6 +356,21 @@ export async function saveHighlights(
   // the client's cached embedding stays valid. It is returned anyway so the
   // client can confirm that.
   return { ok: true, contentSha: computeContentSha(note), note };
+}
+
+/**
+ * Thay bộ câu hỏi soạn sẵn. KHÔNG tạo phiên bản mới: câu hỏi là thứ gắn kèm
+ * ghi chú, không phải nội dung bài — cùng lý do như đánh dấu đoạn.
+ */
+export async function setQuestions(
+  userId: string,
+  noteId: string,
+  questions: Question[],
+): Promise<{ note: Note; count: number }> {
+  const existing = await getNote(userId, noteId);
+  const note: Note = { ...existing, questions };
+  await persist(userId, note);
+  return { note, count: questions.length };
 }
 
 /** Lịch sử quiz — mới nhất ở ĐẦU mảng, đúng như prototype. */

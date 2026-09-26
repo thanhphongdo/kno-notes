@@ -1,4 +1,4 @@
-import type { Question, Quiz } from '@/lib/types';
+import type { Question, Quiz, QuizSource } from '@/lib/types';
 
 export type QuizStatus = 'loading' | 'asking' | 'done';
 
@@ -8,7 +8,7 @@ export interface QuizState {
   /** Index of the question on screen. */
   i: number;
   picks: (number | null)[];
-  source: 'ai' | 'offline' | null;
+  source: QuizSource | null;
   /** True when a stored attempt is being reviewed: nothing is recorded. */
   review: boolean;
   attempt: Quiz | null;
@@ -16,7 +16,7 @@ export interface QuizState {
 
 export type QuizAction =
   | { type: 'restart' }
-  | { type: 'loaded'; questions: Question[]; source: 'ai' | 'offline' }
+  | { type: 'loaded'; questions: Question[]; source: QuizSource }
   | { type: 'pick'; index: number }
   | { type: 'next' }
   | { type: 'finish'; attempt: Quiz }

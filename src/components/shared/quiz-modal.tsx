@@ -9,6 +9,7 @@ import { IconButton } from '@/components/ui/icon-button';
 import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
 import { QuizFeedback } from './quiz-feedback';
 import { QUIZ_LETTERS, QuizOption, quizOptionState, type QuizQuestion } from './quiz-option';
+import type { QuizSource } from '@/lib/types';
 import { QuizResult } from './quiz-result';
 
 export type QuizStatus = 'loading' | 'asking' | 'done';
@@ -23,6 +24,8 @@ export interface QuizModalProps {
   index: number;
   isMobile: boolean;
   completedAtLabel?: string;
+  /** Đề này lấy từ đâu — hiện ở màn hình kết quả. */
+  source?: QuizSource | null;
   onPick: (optionIndex: number) => void;
   onNext: () => void;
   onRetry: () => void;
@@ -32,7 +35,7 @@ export interface QuizModalProps {
 /** Full-screen: fixed inset-0 · --bg · z95. Header 64, progress 3px, body max 760. */
 export function QuizModal({
   open, noteTitle, review, status, questions, picks, index, isMobile,
-  completedAtLabel, onPick, onNext, onRetry, onClose,
+  completedAtLabel, source, onPick, onNext, onRetry, onClose,
 }: QuizModalProps) {
   const total = questions.length;
   const question = questions[index];
@@ -180,6 +183,7 @@ export function QuizModal({
               picks={picks}
               review={review}
               completedAtLabel={completedAtLabel}
+              source={source}
               onRetry={onRetry}
               onClose={onClose}
             />

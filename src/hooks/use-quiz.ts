@@ -7,7 +7,7 @@ import {
 } from '@/components/features/quiz/quiz-reducer';
 import { useToast } from '@/components/ui';
 import { fmt } from '@/lib/text';
-import type { Question, Quiz } from '@/lib/types';
+import type { Question, Quiz, QuizSource } from '@/lib/types';
 
 export const NOT_ENOUGH_CONTENT = 'Ghi chú chưa đủ nội dung để tạo câu hỏi';
 const GENERATE_FAILED = 'Không tạo được câu hỏi';
@@ -75,7 +75,7 @@ export function useQuiz({ noteId, attempts, reviewAttemptId, onClose }: UseQuizO
         fail(res.status === 422 ? NOT_ENOUGH_CONTENT : GENERATE_FAILED);
         return;
       }
-      const data = (await res.json()) as { questions?: Question[]; source?: 'ai' | 'offline' };
+      const data = (await res.json()) as { questions?: Question[]; source?: QuizSource };
       if (token.current !== mine) return;
       if (!data.questions?.length) {
         fail(NOT_ENOUGH_CONTENT);

@@ -2,7 +2,7 @@
 // Logic của tool sống TÁCH KHỎI transport: file này không biết gì về JSON-RPC,
 // nên test được mà không cần transport, và đổi transport chỉ sửa route.ts.
 import { z } from 'zod';
-import { PrioritySchema } from '@/lib/api/schemas';
+import { PrioritySchema, QuestionSchema } from '@/lib/api/schemas';
 import { HttpError } from '@/lib/http';
 import {
   addQuizRecord,
@@ -10,11 +10,12 @@ import {
   deleteNote,
   getNote,
   listNotes,
+  setQuestions,
   updateNote,
 } from '@/lib/services/notes';
 import { generateQuiz } from '@/lib/services/quiz';
 import { listTags } from '@/lib/services/tags';
-import { DEFAULT_PAGE_SIZE, type Priority, type SortKey } from '@/lib/types';
+import { DEFAULT_PAGE_SIZE, type Priority, type Question, type SortKey } from '@/lib/types';
 
 export interface McpTool<S extends z.ZodTypeAny = z.ZodTypeAny> {
   name: string;
@@ -47,6 +48,16 @@ const toFilters = (i: Record<string, unknown>) => ({
 });
 
 const IdShape = { id: z.string().min(1).max(128).describe('Mã ghi chú, vd "n1".') };
+
+const QuestionsShape = {
+  questions: z
+    .array(QuestionSchema)
+    .max(50)
+    .optional()
+    .describe(
+      'Bộ câu hỏi trắc nghiệm soạn sẵn cho ghi chú. Mỗi câu: {q, options (đúng 4), answer (chỉ số 0-3 của đáp án đúng), explain}. Đây là nguồn chính của bài trắc nghiệm; người làm bài sẽ thấy bốn lựa chọn bị đảo thứ tự. Bỏ trống nghĩa là giữ nguyên bộ hiện có.',
+    ),
+};
 
 const listNotesTool: McpTool = {
   name: 'list_notes',
@@ -89,6 +100,7 @@ const createNoteTool: McpTool = {
       .describe('Danh sách thẻ, vd ["Tim mạch"].'),
     priority: PrioritySchema.optional().describe('Mặc định "medium".'),
     content: z.string().max(400_000).optional().describe('Nội dung HTML.'),
+    ...QuestionsShape,
     changeNote: z.string().max(200).optional().describe('Ghi chú thay đổi. Mặc định "Tạo ghi chú".'),
   }),
   run: (userId, input) => {
@@ -100,6 +112,7 @@ const createNoteTool: McpTool = {
       priority: (i.priority as Priority) ?? 'medium',
       content: (i.content as string) ?? '',
       images: [],
+      questions: (i.questions as Question[] | undefined) ?? [],
       changeNote: i.changeNote as string | undefined,
     });
   },
@@ -116,6 +129,7 @@ const updateNoteTool: McpTool = {
     tags: z.array(z.string().min(1).max(80)).max(20).optional(),
     priority: PrioritySchema.optional(),
     content: z.string().max(400_000).optional(),
+    ...QuestionsShape,
     changeNote: z.string().max(200).optional().describe('Mặc định "Cập nhật nội dung".'),
   }),
   run: async (userId, input) => {
@@ -129,6 +143,7 @@ const updateNoteTool: McpTool = {
       priority: (i.priority as Priority) ?? current.priority,
       content: (i.content as string) ?? current.content,
       images: current.images,
+      questions: i.questions as Question[] | undefined,
       changeNote: i.changeNote as string | undefined,
     });
   },
@@ -152,10 +167,41 @@ const listTagsTool: McpTool = {
   run: async (userId) => ({ tags: await listTags(userId) }),
 };
 
+const setQuizQuestionsTool: McpTool = {
+  name: 'set_quiz_questions',
+  description:
+    'Thay TOÀN BỘ bộ câu hỏi trắc nghiệm soạn sẵn của một ghi chú đã có. Dùng khi muốn soạn câu hỏi cho ghi chú cũ mà không đụng tới nội dung bài — thao tác này KHÔNG tạo phiên bản mới. Gửi mảng rỗng để xoá bộ câu hỏi.',
+  inputSchema: z.object({
+    ...IdShape,
+    questions: z
+      .array(QuestionSchema)
+      .max(50)
+      .describe(
+        'Bộ câu hỏi đầy đủ. Mỗi câu: {q, options (đúng 4), answer (chỉ số 0-3 của đáp án đúng), explain}. Danh sách này THAY THẾ bộ cũ, không cộng dồn.',
+      ),
+  }),
+  run: async (userId, input) => {
+    const i = input as { id: string; questions: Question[] };
+    const { count } = await setQuestions(userId, i.id, i.questions);
+    return { ok: true, count };
+  },
+};
+
+const getQuizQuestionsTool: McpTool = {
+  name: 'get_quiz_questions',
+  description:
+    'Lấy bộ câu hỏi soạn sẵn hiện có của một ghi chú. Dùng trước set_quiz_questions khi muốn bổ sung thay vì thay mới, vì set_quiz_questions ghi đè toàn bộ.',
+  inputSchema: z.object(IdShape),
+  run: async (userId, input) => {
+    const note = await getNote(userId, (input as { id: string }).id);
+    return { questions: note.questions ?? [] };
+  },
+};
+
 const createQuizTool: McpTool = {
   name: 'create_quiz',
   description:
-    'Sinh bộ câu hỏi trắc nghiệm từ nội dung ghi chú và lưu vào lịch sử. Dùng Gemini nếu có API key, nếu không thì sinh offline từ chính nội dung ghi chú. Điểm ghi nhận là 0 vì chưa ai làm bài.',
+    'Sinh một đề trắc nghiệm rồi lưu vào LỊCH SỬ làm bài (điểm 0 vì chưa ai làm). Nguồn theo thứ tự: Gemini nếu có API key, rồi bộ câu hỏi soạn sẵn của ghi chú, rồi bộ sinh tự động từ nội dung. Muốn SOẠN câu hỏi cho ghi chú thì dùng set_quiz_questions, không phải tool này.',
   inputSchema: z.object(IdShape),
   run: async (userId, input) => {
     const id = (input as { id: string }).id;
@@ -191,6 +237,8 @@ export const TOOLS: readonly McpTool[] = [
   updateNoteTool,
   deleteNoteTool,
   listTagsTool,
+  setQuizQuestionsTool,
+  getQuizQuestionsTool,
   createQuizTool,
   listQuizzesTool,
 ];

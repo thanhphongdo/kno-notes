@@ -21,7 +21,7 @@ afterAll(async () => {
 });
 
 describe('tool registry', () => {
-  it('exposes exactly the nine tools SPEC 2.4 names, in order', () => {
+  it('exposes exactly the tools SPEC 2.4 names, in order', () => {
     expect(TOOLS.map((t) => t.name)).toEqual([
       'list_notes',
       'search_notes',
@@ -30,6 +30,8 @@ describe('tool registry', () => {
       'update_note',
       'delete_note',
       'list_tags',
+      'set_quiz_questions',
+      'get_quiz_questions',
       'create_quiz',
       'list_quizzes',
     ]);
@@ -224,5 +226,99 @@ describe('create_quiz / list_quizzes', () => {
     await expect(callTool('create_quiz', userB, { id: created.note.id })).rejects.toMatchObject({
       status: 404,
     });
+  });
+});
+
+describe('bộ câu hỏi soạn sẵn qua MCP', () => {
+  const run = (name: string, input: unknown) => callTool(name, userA, input);
+
+  const q = (n: number) => ({
+    q: `Câu ${n}?`,
+    options: [`${n}A`, `${n}B`, `${n}C`, `${n}D`],
+    answer: 2,
+    explain: `Vì ${n}`,
+  });
+
+  it('creates a note with its questions in one call', async () => {
+    const { note } = (await run('create_note', {
+      title: 'Ghi chú có sẵn câu hỏi',
+      content: '<p>x</p>',
+      questions: [q(1), q(2)],
+    })) as { note: { id: string; questions: unknown[] } };
+
+    expect(note.questions).toHaveLength(2);
+    const read = (await run('get_quiz_questions', { id: note.id })) as { questions: unknown[] };
+    expect(read.questions).toHaveLength(2);
+  });
+
+  it('sets the bank of an existing note without touching its content or versions', async () => {
+    const { note } = (await run('create_note', {
+      title: 'Ghi chú soạn sau',
+      content: '<p>nội dung gốc</p>',
+    })) as { note: { id: string; versions: unknown[] } };
+    const versionsBefore = note.versions.length;
+
+    const res = (await run('set_quiz_questions', { id: note.id, questions: [q(1)] })) as {
+      ok: boolean;
+      count: number;
+    };
+    expect(res).toEqual({ ok: true, count: 1 });
+
+    const after = (await run('get_note', { id: note.id })) as {
+      note: { content: string; versions: unknown[]; questions: unknown[] };
+    };
+    expect(after.note.content).toBe('<p>nội dung gốc</p>');
+    expect(after.note.versions).toHaveLength(versionsBefore);
+    expect(after.note.questions).toHaveLength(1);
+  });
+
+  it('replaces the bank rather than appending to it', async () => {
+    const { note } = (await run('create_note', {
+      title: 'Ghi chú thay bộ câu hỏi',
+      questions: [q(1), q(2), q(3)],
+    })) as { note: { id: string } };
+
+    await run('set_quiz_questions', { id: note.id, questions: [q(9)] });
+    const read = (await run('get_quiz_questions', { id: note.id })) as {
+      questions: { q: string }[];
+    };
+    expect(read.questions.map((x) => x.q)).toEqual(['Câu 9?']);
+  });
+
+  /**
+   * Chỗ dễ mất dữ liệu nhất: `update_note` là thay-toàn-phần, nên nếu bỏ
+   * trống `questions` mà bị hiểu thành "xoá sạch" thì mỗi lần sửa tiêu đề là
+   * mất bộ câu hỏi.
+   */
+  it('keeps the bank when an update does not mention it', async () => {
+    const { note } = (await run('create_note', {
+      title: 'Ghi chú giữ câu hỏi',
+      questions: [q(1), q(2)],
+    })) as { note: { id: string } };
+
+    await run('update_note', { id: note.id, title: 'Tiêu đề mới' });
+
+    const read = (await run('get_quiz_questions', { id: note.id })) as { questions: unknown[] };
+    expect(read.questions).toHaveLength(2);
+  });
+
+  it('empties the bank only when asked explicitly', async () => {
+    const { note } = (await run('create_note', {
+      title: 'Ghi chú xoá câu hỏi',
+      questions: [q(1)],
+    })) as { note: { id: string } };
+
+    await run('set_quiz_questions', { id: note.id, questions: [] });
+    const read = (await run('get_quiz_questions', { id: note.id })) as { questions: unknown[] };
+    expect(read.questions).toEqual([]);
+  });
+
+  it('refuses a question that is not answerable', async () => {
+    await expect(
+      run('set_quiz_questions', {
+        id: 'n1',
+        questions: [{ q: 'thiếu lựa chọn', options: ['a', 'b'], answer: 0, explain: '' }],
+      }),
+    ).rejects.toThrow();
   });
 });

@@ -57,13 +57,19 @@ export interface Question {
   explain: string;
 }
 
+export type QuizSource = 'ai' | 'bank' | 'offline';
+
 export interface Quiz {
   id: string;
   /** ISO-8601 */
   date: string;
   score: number;
   total: number;
-  source: 'ai' | 'offline';
+  /**
+   * Câu hỏi đến từ đâu: `bank` = bộ soạn sẵn của ghi chú, `ai` = Gemini,
+   * `offline` = bộ sinh tự động từ chính nội dung bài.
+   */
+  source: QuizSource;
   /** Lựa chọn của người dùng theo từng câu; `null` nếu bỏ qua. */
   picks: (number | null)[];
   questions: Question[];
@@ -89,6 +95,12 @@ export interface Note {
   versions: NoteVersion[];
   /** Mới nhất ở đầu mảng. */
   quizzes: Quiz[];
+  /**
+   * Bộ câu hỏi soạn sẵn của ghi chú — nguồn chính của bài trắc nghiệm.
+   * Tuỳ chọn vì các ghi chú tạo trước tính năng này không có trường đó trong
+   * file JSON; mọi nơi đọc đều phải chịu được `undefined`.
+   */
+  questions?: Question[];
 }
 
 /**
@@ -222,6 +234,8 @@ export interface CreateNoteInput {
   priority: Priority;
   content: string;
   images: NoteImage[];
+  /** Bộ câu hỏi soạn sẵn. Bỏ trống thì ghi chú chưa có câu hỏi nào. */
+  questions?: Question[];
   /** Rỗng => "Tạo ghi chú". */
   changeNote?: string;
 }
@@ -233,6 +247,12 @@ export interface UpdateNoteInput {
   priority: Priority;
   content: string;
   images: NoteImage[];
+  /**
+   * Bộ câu hỏi soạn sẵn. `undefined` nghĩa là KHÔNG ĐỤNG TỚI — khác hẳn `[]`,
+   * vốn có nghĩa "xoá sạch". Trình soạn thảo không gửi trường này, nên nếu
+   * `undefined` mà bị hiểu thành `[]` thì mỗi lần sửa bài là mất bộ câu hỏi.
+   */
+  questions?: Question[];
   /** Rỗng => "Cập nhật nội dung". */
   changeNote?: string;
 }

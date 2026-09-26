@@ -2,8 +2,21 @@
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import type { QuizSource } from '@/lib/types';
 import { QUIZ_LETTERS, type QuizQuestion } from './quiz-option';
 import { SectionLabel } from './section-label';
+
+/**
+ * Nguồn của đề, nói bằng tiếng người.
+ *
+ * Có mặt ở đây vì trước kia nó vô hình: khi API key của Gemini hỏng, app âm
+ * thầm rơi về bộ sinh tự động và không ai biết vì sao câu hỏi bỗng nông đi.
+ */
+export const QUIZ_SOURCE_LABEL: Record<QuizSource, string> = {
+  bank: 'Bộ câu hỏi soạn sẵn của ghi chú',
+  ai: 'Câu hỏi do AI tạo',
+  offline: 'Câu hỏi tự dựng từ nội dung ghi chú',
+};
 
 export function quizScore(questions: readonly QuizQuestion[], picks: readonly (number | null)[]): number {
   return questions.reduce((sum, q, i) => sum + (picks[i] === q.answer ? 1 : 0), 0);
@@ -34,13 +47,15 @@ export interface QuizResultProps {
   review: boolean;
   /** 'dd/mm/yyyy · HH:MM'. */
   completedAtLabel?: string;
+  /** Đề này lấy từ đâu. */
+  source?: QuizSource | null;
   onRetry: () => void;
   onClose: () => void;
   className?: string;
 }
 
 export function QuizResult({
-  questions, picks, review, completedAtLabel, onRetry, onClose, className,
+  questions, picks, review, completedAtLabel, source, onRetry, onClose, className,
 }: QuizResultProps) {
   const total = questions.length;
   const score = quizScore(questions, picks);
@@ -57,6 +72,11 @@ export function QuizResult({
           </span>
         </div>
         {completedAtLabel ? <span className="text-14 text-muted">{completedAtLabel}</span> : null}
+        {source ? (
+          <span data-quiz-source={source} className="text-13 text-faint">
+            {QUIZ_SOURCE_LABEL[source]}
+          </span>
+        ) : null}
         <div className="mt-10 flex flex-wrap gap-8">
           <Button variant="primary" size="42" onClick={onRetry}>
             Làm bộ câu hỏi mới

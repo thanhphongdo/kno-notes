@@ -33,6 +33,7 @@ export function QuizController({
       index={quiz.i}
       isMobile={isMobile}
       completedAtLabel={quiz.completedAtLabel}
+      source={quiz.source}
       onPick={quiz.pick}
       onNext={quiz.next}
       onRetry={quiz.retry}

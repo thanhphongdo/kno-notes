@@ -1,10 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from 'vitest';
 import { closeDb } from '@/lib/db';
-import type { Note } from '@/lib/types';
+import type { Note, Question } from '@/lib/types';
 import { useTempStorage, makeUser, dropUser } from './helpers';
 import { createNote } from './notes';
-import { offlineQuiz, buildPrompt, parseAiQuestions, generateQuiz } from './quiz';
+import {
+  offlineQuiz, buildPrompt, parseAiQuestions, generateQuiz, bankQuiz, shuffleQuestion, QUIZ_LENGTH,
+} from './quiz';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -420,5 +422,93 @@ describe('generateQuiz without an API key', () => {
 
   it('404s for a note the user does not own', async () => {
     await expect(generateQuiz(uid, 'n-does-not-exist')).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('bộ câu hỏi soạn sẵn', () => {
+  const q = (n: number): Question => ({
+    q: `Câu ${n}?`,
+    options: [`${n}A`, `${n}B`, `${n}C`, `${n}D`],
+    answer: 1,
+    explain: `Giải thích ${n}`,
+  });
+
+  const withBank = (questions: Question[]): Note => note({ id: 'n1', questions });
+
+  describe('shuffleQuestion', () => {
+    it('keeps the same options and keeps answer pointing at the right one', () => {
+      const original = q(1);
+      for (let i = 0; i < 40; i += 1) {
+        const shuffled = shuffleQuestion(original);
+        expect([...shuffled.options].sort()).toEqual([...original.options].sort());
+        expect(shuffled.options[shuffled.answer]).toBe(original.options[original.answer]);
+      }
+    });
+
+    it('leaves the wording and the explanation alone', () => {
+      const shuffled = shuffleQuestion(q(1));
+      expect(shuffled.q).toBe('Câu 1?');
+      expect(shuffled.explain).toBe('Giải thích 1');
+    });
+
+    /** Bốn lựa chọn giống hệt nhau thì đảo kiểu gì cũng vẫn đúng. */
+    it('survives duplicate option text', () => {
+      const dup: Question = { q: 'x', options: ['a', 'a', 'a', 'a'], answer: 2, explain: '' };
+      const shuffled = shuffleQuestion(dup);
+      expect(shuffled.options[shuffled.answer]).toBe('a');
+    });
+
+    it('does actually reorder, given enough tries', () => {
+      const original = q(1);
+      const seen = new Set<string>();
+      for (let i = 0; i < 60; i += 1) seen.add(shuffleQuestion(original).options.join('|'));
+      expect(seen.size).toBeGreaterThan(1);
+    });
+  });
+
+  describe('bankQuiz', () => {
+    it('uses the note own questions', () => {
+      const picked = bankQuiz(withBank([q(1), q(2)]));
+      expect(picked).toHaveLength(2);
+      expect(picked.map((x) => x.q).sort()).toEqual(['Câu 1?', 'Câu 2?']);
+    });
+
+    it('is empty for a note with no bank at all', () => {
+      expect(bankQuiz(note({ id: 'n1' }))).toEqual([]);
+      expect(bankQuiz(withBank([]))).toEqual([]);
+    });
+
+    it(`never hands out more than ${QUIZ_LENGTH} questions`, () => {
+      const bank = Array.from({ length: 12 }, (_, i) => q(i));
+      expect(bankQuiz(withBank(bank))).toHaveLength(QUIZ_LENGTH);
+    });
+
+    it('draws a different selection from a large bank, so repeats feel new', () => {
+      const bank = Array.from({ length: 12 }, (_, i) => q(i));
+      const seen = new Set<string>();
+      for (let i = 0; i < 40; i += 1) {
+        seen.add(bankQuiz(withBank(bank)).map((x) => x.q).join('|'));
+      }
+      expect(seen.size).toBeGreaterThan(1);
+    });
+
+    /** Bộ câu hỏi đến từ API nên phải coi là dữ liệu lạ cho tới khi kiểm. */
+    it('drops entries that are not usable questions', () => {
+      const broken = [
+        { q: '', options: ['a', 'b', 'c', 'd'], answer: 0, explain: '' },
+        { q: 'thiếu lựa chọn', options: ['a', 'b'], answer: 0, explain: '' },
+        { q: 'đáp án ngoài khoảng', options: ['a', 'b', 'c', 'd'], answer: 9, explain: '' },
+        q(7),
+      ] as Question[];
+      const picked = bankQuiz(withBank(broken));
+      expect(picked.map((x) => x.q)).toEqual(['Câu 7?']);
+    });
+
+    it('shuffles the options of what it hands out', () => {
+      const bank = [q(1)];
+      const seen = new Set<string>();
+      for (let i = 0; i < 60; i += 1) seen.add(bankQuiz(withBank(bank))[0]!.options.join('|'));
+      expect(seen.size).toBeGreaterThan(1);
+    });
   });
 });

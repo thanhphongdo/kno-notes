@@ -6,10 +6,60 @@ import { HttpError } from '@/lib/http';
 import { getStorage } from '@/lib/storage';
 import { clip, shuffle } from '@/lib/text';
 import { sections, stripHtml } from '@/lib/text/server';
-import type { Note, Question } from '@/lib/types';
+import type { Note, Question, QuizSource } from '@/lib/types';
 import { getNote } from './notes';
 
 export const GEMINI_MODEL = 'gemini-2.0-flash';
+
+/** Số câu mỗi lần làm bài. */
+export const QUIZ_LENGTH = 5;
+
+/**
+ * Một câu hỏi chỉ dùng được khi nó thật sự hỏi được: có đề, đúng 4 lựa chọn,
+ * và chỉ số đáp án nằm trong 4 lựa chọn đó. Bộ câu hỏi soạn sẵn đến từ API
+ * nên phải coi là dữ liệu lạ cho tới khi kiểm.
+ */
+export function isUsableQuestion(q: Question | undefined | null): q is Question {
+  return (
+    Boolean(q) &&
+    typeof q!.q === 'string' &&
+    q!.q.trim().length > 0 &&
+    Array.isArray(q!.options) &&
+    q!.options.length === 4 &&
+    Number.isInteger(q!.answer) &&
+    q!.answer >= 0 &&
+    q!.answer < 4
+  );
+}
+
+/**
+ * Đảo vị trí bốn lựa chọn, `answer` đi theo đáp án đúng.
+ *
+ * Đảo theo CHỈ SỐ chứ không tìm lại đáp án bằng `indexOf` trên chuỗi: hai lựa
+ * chọn trùng chữ sẽ làm `indexOf` trỏ nhầm cái đầu tiên.
+ */
+export function shuffleQuestion(q: Question): Question {
+  const order = shuffle(q.options.map((_, i) => i));
+  return {
+    ...q,
+    options: order.map((i) => q.options[i]),
+    answer: order.indexOf(q.answer),
+  };
+}
+
+/**
+ * Một đề lấy từ bộ câu hỏi soạn sẵn của ghi chú.
+ *
+ * Soạn sẵn không có nghĩa là lần nào cũng y hệt: thứ tự câu được xáo, bộ nào
+ * nhiều hơn 5 câu thì mỗi lần rút một tổ hợp khác, và bốn lựa chọn của mỗi câu
+ * luôn được đảo. Nội dung câu hỏi thì không đổi — đó chính là điểm của việc
+ * soạn trước.
+ */
+export function bankQuiz(note: Note): Question[] {
+  const bank = (note.questions ?? []).filter(isUsableQuestion);
+  if (!bank.length) return [];
+  return shuffle(bank).slice(0, QUIZ_LENGTH).map(shuffleQuestion);
+}
 
 /** Bộ sinh quiz offline — port NGUYÊN VĂN `offlineQuiz()` của prototype. */
 export function offlineQuiz(n: Note, all: Note[]): Question[] {
@@ -157,19 +207,29 @@ async function tryGemini(note: Note, avoid: string[]): Promise<Question[] | null
 }
 
 /**
- * Gemini trước, offline sau. KHÔNG BAO GIỜ ném vì lỗi LLM — chỉ ném 404 khi
- * không có note, và 422 NOT_ENOUGH_CONTENT khi không dựng nổi câu hỏi nào.
- * Hoạt động bình thường khi KHÔNG có GOOGLE_GENERATIVE_AI_API_KEY.
+ * Ba nguồn, theo thứ tự: Gemini → bộ soạn sẵn → bộ sinh tự động.
+ *
+ * Gemini đứng trước vì nó chỉ chạy khi người dùng CHỦ ĐỘNG cắm API key; có
+ * key nghĩa là muốn dùng AI. Không có key, hoặc AI lỗi/hết quota, thì bộ câu
+ * hỏi soạn sẵn của ghi chú là thứ tốt nhất còn lại — người viết ra nó biết
+ * mình muốn hỏi gì. Bộ sinh tự động chỉ là lưới an toàn cuối cùng cho những
+ * ghi chú chưa ai soạn câu hỏi.
+ *
+ * KHÔNG BAO GIỜ ném vì lỗi LLM — chỉ ném 404 khi không có note, và 422
+ * NOT_ENOUGH_CONTENT khi không dựng nổi câu hỏi nào từ bất kỳ nguồn nào.
  */
 export async function generateQuiz(
   userId: string,
   noteId: string,
   avoid: string[] = [],
-): Promise<{ questions: Question[]; source: 'ai' | 'offline' }> {
+): Promise<{ questions: Question[]; source: QuizSource }> {
   const note = await getNote(userId, noteId);
 
   const ai = await tryGemini(note, avoid);
   if (ai) return { questions: ai, source: 'ai' };
+
+  const bank = bankQuiz(note);
+  if (bank.length) return { questions: bank, source: 'bank' };
 
   const all = [note, ...(await otherNotes(userId, noteId))];
   const questions = offlineQuiz(note, all);

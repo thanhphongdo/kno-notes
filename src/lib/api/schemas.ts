@@ -10,20 +10,6 @@ export const NoteImageSchema = z.object({
   src: z.string().max(500),
 });
 
-export const NoteWriteSchema = z.object({
-  title: z.string().max(300).default(''),
-  desc: z.string().max(1000).default(''),
-  tags: z.array(z.string().min(1).max(80)).max(20).default([]),
-  priority: PrioritySchema.default('medium'),
-  content: z.string().max(400_000).default(''),
-  images: z.array(NoteImageSchema).max(50).default([]),
-  changeNote: z.string().max(200).optional(),
-});
-
-export const CommentSchema = z.object({ text: z.string().min(1).max(4000) });
-
-export const HighlightSchema = z.object({ content: z.string().max(400_000) });
-
 export const QuestionSchema = z.object({
   q: z.string().min(1).max(1000),
   options: z.array(z.string().max(500)).length(4),
@@ -31,10 +17,39 @@ export const QuestionSchema = z.object({
   explain: z.string().max(2000).default(''),
 });
 
+/**
+ * Bộ câu hỏi soạn sẵn gửi kèm khi tạo/sửa ghi chú, hoặc gửi riêng qua
+ * `PUT /api/v1/notes/{id}/questions`.
+ */
+export const QuestionBankSchema = z.object({
+  questions: z.array(QuestionSchema).max(50),
+});
+
+export const NoteWriteSchema = z.object({
+  title: z.string().max(300).default(''),
+  desc: z.string().max(1000).default(''),
+  tags: z.array(z.string().min(1).max(80)).max(20).default([]),
+  priority: PrioritySchema.default('medium'),
+  content: z.string().max(400_000).default(''),
+  images: z.array(NoteImageSchema).max(50).default([]),
+  /**
+   * CỐ Ý không có `.default([])`: bỏ trống nghĩa là "không đụng tới bộ câu
+   * hỏi", còn `[]` nghĩa là "xoá sạch". Trình soạn thảo không gửi trường này,
+   * nên mặc định thành `[]` sẽ xoá bộ câu hỏi mỗi lần người dùng sửa bài.
+   */
+  questions: z.array(QuestionSchema).max(50).optional(),
+  changeNote: z.string().max(200).optional(),
+});
+
+export const CommentSchema = z.object({ text: z.string().min(1).max(4000) });
+
+export const HighlightSchema = z.object({ content: z.string().max(400_000) });
+
+
 export const QuizRecordSchema = z.object({
   score: z.number().int().min(0),
   total: z.number().int().min(0),
-  source: z.enum(['ai', 'offline']),
+  source: z.enum(['ai', 'bank', 'offline']),
   picks: z.array(z.number().int().min(0).max(3).nullable()).max(50),
   questions: z.array(QuestionSchema).max(50),
 });
