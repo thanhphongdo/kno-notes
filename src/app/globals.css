@@ -1,3 +1,246 @@
-/* PLACEHOLDER — replaced by design-system tasks D2/D3.
-   Do not build on this file; D2 defines the full @theme token set. */
 @import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ── Runtime tokens: exact names and values from So Lam Sang.dc.html ───────── */
+:root {
+  --bg: #f6f6f3;
+  --surface: #ffffff;
+  --surface2: #f0f0ec;
+  --line: #e5e4df;
+  --line2: #d3d2cb;
+  --text: #1a1c1e;
+  --muted: #63676c;
+  --faint: #989ca1;
+  --accent: #17756b;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2efec;
+  --hi: #b3382e;
+  --hi-soft: #f8e7e4;
+  --med: #9c630f;
+  --med-soft: #f5ecda;
+  --low: #5a6670;
+  --low-soft: #eceeef;
+  --ok: #23794a;
+  --ok-soft: #e3f2e8;
+  --hl: #fbe9a6;
+  --hl2: #f6db78;
+  --shadow: 0 1px 2px rgba(20, 20, 20, .04), 0 10px 30px rgba(20, 20, 20, .07);
+  --seg-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+  --fs: 17px;
+}
+
+[data-theme="dark"] {
+  --bg: #0f1112;
+  --surface: #16191a;
+  --surface2: #1d2122;
+  --line: #252a2b;
+  --line2: #343a3c;
+  --text: #e6e7e5;
+  --muted: #9ca1a5;
+  --faint: #6b7175;
+  --accent: #5cc3b3;
+  --accent-ink: #0c1a18;
+  --accent-soft: #15302c;
+  --hi: #f0897e;
+  --hi-soft: #391f1c;
+  --med: #e2b35f;
+  --med-soft: #342a17;
+  --low: #a4aeb5;
+  --low-soft: #242a2d;
+  --ok: #6cc98f;
+  --ok-soft: #173022;
+  --hl: rgba(226, 179, 95, .28);
+  --hl2: rgba(226, 179, 95, .42);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 30px rgba(0, 0, 0, .35);
+  --seg-shadow: 0 1px 2px rgba(0, 0, 0, .4);
+}
+
+/* ── Accent variants (Design Spec §01) ─────────────────────────────────────── */
+[data-accent="indigo"] { --accent: #4351a6; --accent-soft: #e8eaf6; --accent-ink: #ffffff; }
+[data-accent="plum"]   { --accent: #8a3e74; --accent-soft: #f5e7f0; --accent-ink: #ffffff; }
+[data-theme="dark"][data-accent="indigo"] { --accent: #9ea8f2; --accent-soft: #1f2340; --accent-ink: #0c1a18; }
+[data-theme="dark"][data-accent="plum"]   { --accent: #dc9cc8; --accent-soft: #34202e; --accent-ink: #0c1a18; }
+
+/* ── Z-index scale (Design Spec §04) — mirrored by `Z` in src/lib/z.ts ─────── */
+:root {
+  --z-toolbar: 5;
+  --z-sort-backdrop: 20;
+  --z-sort-menu: 21;
+  --z-header: 30;
+  --z-sug-backdrop: 31;
+  --z-sug-box: 32;
+  --z-sug-panel: 33;
+  --z-drawer-backdrop: 40;
+  --z-sidebar: 50;
+  --z-settings-backdrop: 60;
+  --z-settings-popover: 61;
+  --z-highlight-popup: 80;
+  --z-toast: 90;
+  --z-quiz: 95;
+  --z-lightbox: 100;
+}
+
+/* ── Tailwind theme: `inline` so utilities emit var(--token), keeping runtime
+      theme switching working with a single attribute flip. ─────────────────── */
+@theme inline {
+  /* 1px spacing base: every numeric utility is a literal pixel value. */
+  --spacing: 1px;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-line: var(--line);
+  --color-line2: var(--line2);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-hi: var(--hi);
+  --color-hi-soft: var(--hi-soft);
+  --color-med: var(--med);
+  --color-med-soft: var(--med-soft);
+  --color-low: var(--low);
+  --color-low-soft: var(--low-soft);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-hl: var(--hl);
+  --color-hl2: var(--hl2);
+
+  --shadow-card: var(--shadow);
+  --shadow-seg: var(--seg-shadow);
+
+  --font-serif: var(--font-source-serif), Georgia, serif;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  --radius-2: 2px;
+  --radius-3: 3px;
+  --radius-4: 4px;
+  --radius-5: 5px;
+  --radius-6: 6px;
+  --radius-7: 7px;
+  --radius-8: 8px;
+  --radius-9: 9px;
+  --radius-10: 10px;
+  --radius-11: 11px;
+  --radius-12: 12px;
+  --radius-14: 14px;
+  --radius-full: 999px;
+  --radius-circle: 50%;
+
+  --text-11: 11px;
+  --text-12: 12px;
+  --text-13: 13px;
+  --text-14: 14px;
+  --text-15: 15px;
+  --text-16: 16px;
+  --text-17: 17px;
+  --text-18: 18px;
+  --text-20: 20px;
+  --text-22: 22px;
+  --text-26: 26px;
+  --text-28: 28px;
+  --text-30: 30px;
+  --text-32: 32px;
+  --text-36: 36px;
+  --text-38: 38px;
+  --text-44: 44px;
+  --text-52: 52px;
+  --text-64: 64px;
+  --text-fs: var(--fs);
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-plex-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background .2s;
+  }
+  input, textarea, button, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  ::placeholder { color: var(--faint); }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  input[type=range] { accent-color: var(--accent); }
+  @keyframes qpulse { 0%, 100% { opacity: .45 } 50% { opacity: 1 } }
+}
+
+/* ── [data-prose] — ported verbatim from So Lam Sang.dc.html ───────────────── */
+[data-prose] {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: var(--fs);
+  line-height: 1.72;
+  color: var(--text);
+  outline: none;
+  word-wrap: break-word;
+}
+[data-prose] > *:first-child { margin-top: 0; }
+[data-prose] p { margin: 0 0 .9em; }
+[data-prose] h2 {
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  font-size: 1.12em;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  margin: 1.9em 0 .6em;
+}
+[data-prose] h3 {
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  font-size: .98em;
+  font-weight: 600;
+  margin: 1.5em 0 .4em;
+}
+[data-prose] ul, [data-prose] ol { padding-left: 1.35em; margin: 0 0 1em; }
+[data-prose] li { margin: .28em 0; padding-left: .2em; }
+[data-prose] li::marker { color: var(--accent); }
+[data-prose] blockquote {
+  margin: 1.3em 0;
+  padding: .1em 0 .1em 1.1em;
+  border-left: 2px solid var(--accent);
+  color: var(--muted);
+  font-style: italic;
+}
+[data-prose] hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+[data-prose] img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
+  display: block;
+  margin: 1.3em 0;
+  cursor: zoom-in;
+}
+[data-prose] strong, [data-prose] b { font-weight: 600; }
+[data-prose] table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  font-size: .86em;
+  margin: 1em 0 1.4em;
+}
+[data-prose] th, [data-prose] td {
+  border-bottom: 1px solid var(--line);
+  padding: .55em .7em;
+  text-align: left;
+  vertical-align: top;
+}
+[data-prose] th { color: var(--muted); font-weight: 500; }
+[data-prose] mark {
+  background: var(--hl);
+  color: inherit;
+  border-radius: 3px;
+  padding: .05em .1em;
+  cursor: pointer;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+[data-prose] mark:hover { background: var(--hl2); }
+[data-prose][contenteditable="true"]:empty:before {
+  content: attr(data-ph);
+  color: var(--faint);
+}
