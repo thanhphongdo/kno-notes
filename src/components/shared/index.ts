@@ -54,10 +54,17 @@ export {
   RichTextEditor, EDITOR_PLACEHOLDER,
   type RichTextEditorHandle, type RichTextEditorProps,
 } from './rich-text-editor';
-export { SearchBox, SEARCH_PLACEHOLDER, type SearchBoxProps } from './search-box';
+export {
+  SearchBox, SEARCH_PLACEHOLDER,
+  type SearchBoxProps, type SearchBoxVariant,
+} from './search-box';
+export {
+  SearchOverlay, SEARCH_OVERLAY_LABEL, SEARCH_OVERLAY_CLOSE_LABEL,
+  type SearchOverlayProps,
+} from './search-overlay';
 export {
   SearchSuggestions,
-  type SearchSuggestionsProps, type SuggestionNote, type SuggestionTag,
+  type SearchSuggestionsProps, type SuggestionDensity, type SuggestionNote, type SuggestionTag,
 } from './search-suggestions';
 export { SectionLabel, type SectionLabelProps } from './section-label';
 export { SettingsPopover, type SettingsPopoverProps } from './settings-popover';

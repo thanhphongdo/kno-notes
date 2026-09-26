@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRef, useState, type ReactNode } from 'react';
 import { PrefsProvider } from '@/components/providers/prefs-provider';
@@ -32,19 +32,22 @@ vi.mock('@/hooks/use-semantic-search', () => ({
   useSemanticSearch: () => semantic,
 }));
 
+/** The key `SearchContainer` stamps on its throwaway history entry. */
+const OVERLAY_KEY = 'knoSearchOverlay';
+
 const tags = [
   { name: 'Cấp cứu', count: 4 },
   { name: 'ECG', count: 2 },
 ];
 
 /** Mounts the container the way the shell header does. */
-function Harness() {
+function Harness({ isMobile = false }: { isMobile?: boolean }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   return (
     <SearchContainer
       tags={tags}
-      isMobile={false}
+      isMobile={isMobile}
       inputRef={inputRef}
       open={open}
       onOpenChange={setOpen}
@@ -52,12 +55,14 @@ function Harness() {
   );
 }
 
-const show = (recent: string[] = []) =>
-  render(<Harness />, {
+const show = (recent: string[] = [], isMobile = false) =>
+  render(<Harness isMobile={isMobile} />, {
     wrapper: ({ children }: { children: ReactNode }) => (
       <PrefsProvider initial={{ ...DEFAULT_PREFS, recentSearches: recent }}>{children}</PrefsProvider>
     ),
   });
+
+const overlay = () => document.body.querySelector('[data-search-overlay]');
 
 describe('SearchContainer', () => {
   beforeEach(() => {
@@ -214,5 +219,114 @@ describe('SearchContainer', () => {
     await user.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByText('Tìm gần đây')).toBeNull());
     expect(screen.getByRole('searchbox')).not.toHaveFocus();
+  });
+});
+
+describe('SearchContainer trên mobile (< 820px)', () => {
+  beforeEach(() => {
+    push.mockClear();
+    replace.mockClear();
+    search = new URLSearchParams('');
+    semantic = {
+      ready: false,
+      docs: items,
+      vectors: null,
+      embedQuery: vi.fn().mockResolvedValue(null),
+      warmUp: vi.fn(),
+    };
+  });
+
+  afterEach(async () => {
+    // Leave the harness history at the entry the next test starts from.
+    while (window.history.state && OVERLAY_KEY in window.history.state) {
+      await act(async () => {
+        window.history.back();
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+  });
+
+  it('opens a full-screen overlay instead of the anchored dropdown', async () => {
+    const user = userEvent.setup();
+    show(['sốc phản vệ'], true);
+    expect(overlay()).toBeNull();
+
+    await user.click(screen.getByRole('searchbox'));
+
+    const panel = await screen.findByText('Tìm gần đây');
+    expect(overlay()).not.toBeNull();
+    expect(overlay()!.contains(panel)).toBe(true);
+    expect(screen.queryByTestId('search-backdrop')).toBeNull();
+    expect(document.querySelector('[data-search-suggestions]'))
+      .toHaveAttribute('data-density', 'comfortable');
+  });
+
+  it('keeps the anchored dropdown on desktop', async () => {
+    const user = userEvent.setup();
+    show(['sốc phản vệ']);
+    await user.click(screen.getByRole('searchbox'));
+    await screen.findByText('Tìm gần đây');
+    expect(overlay()).toBeNull();
+    expect(screen.getByTestId('search-backdrop')).toBeInTheDocument();
+    expect(document.querySelector('[data-search-suggestions]'))
+      .toHaveAttribute('data-density', 'compact');
+  });
+
+  it('pushes one throwaway history entry and takes it back on close', async () => {
+    const user = userEvent.setup();
+    show(['sốc phản vệ'], true);
+
+    await user.click(screen.getByRole('searchbox'));
+    await screen.findByText('Tìm gần đây');
+    expect(window.history.state?.[OVERLAY_KEY]).toBe(true);
+
+    await user.click(screen.getByRole('button', { name: 'Đóng' }));
+    await waitFor(() => expect(overlay()).toBeNull());
+    await waitFor(() => expect(window.history.state?.[OVERLAY_KEY]).toBeUndefined());
+  });
+
+  it('closes on the Back gesture without leaving the page', async () => {
+    const user = userEvent.setup();
+    show(['sốc phản vệ'], true);
+    await user.click(screen.getByRole('searchbox'));
+    await screen.findByText('Tìm gần đây');
+
+    window.history.back();
+
+    await waitFor(() => expect(overlay()).toBeNull());
+    expect(window.history.state?.[OVERLAY_KEY]).toBeUndefined();
+  });
+
+  it('opens a suggested note only after its history entry is gone', async () => {
+    const user = userEvent.setup();
+    show([], true);
+    await user.click(screen.getByRole('searchbox'));
+    await user.type(screen.getByRole('searchbox'), 'ECG');
+    await user.click(await screen.findByText('Đọc ECG trong 10 bước'));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/notes/n2'));
+    expect(window.history.state?.[OVERLAY_KEY]).toBeUndefined();
+    await waitFor(() => expect(overlay()).toBeNull());
+  });
+
+  it('filters by tag from the overlay and closes it', async () => {
+    const user = userEvent.setup();
+    show([], true);
+    await user.click(screen.getByRole('searchbox'));
+    const [chip] = await screen.findAllByRole('button', { name: /#ECG/ });
+    await user.click(chip!);
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/?tag=ECG', { scroll: false }));
+    await waitFor(() => expect(overlay()).toBeNull());
+  });
+
+  it('submits from the overlay and closes it', async () => {
+    const user = userEvent.setup();
+    show([], true);
+    await user.click(screen.getByRole('searchbox'));
+    await user.type(screen.getByRole('searchbox'), 'sốc{Enter}');
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith('/?q=s%E1%BB%91c', { scroll: false }));
+    await waitFor(() => expect(overlay()).toBeNull());
   });
 });

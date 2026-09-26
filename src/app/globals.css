@@ -75,6 +75,7 @@
   --z-sidebar: 50;
   --z-settings-backdrop: 60;
   --z-settings-popover: 61;
+  --z-search-overlay: 70;
   --z-highlight-popup: 80;
   --z-toast: 90;
   --z-quiz: 95;
@@ -170,6 +171,9 @@
   a:hover { text-decoration: underline; }
   input[type=range] { accent-color: var(--accent); }
   @keyframes qpulse { 0%, 100% { opacity: .45 } 50% { opacity: 1 } }
+  /* Mobile full-screen search. Applied through `motion-safe:` so
+     `prefers-reduced-motion: reduce` gets the panel with no movement. */
+  @keyframes searchOverlayIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
 }
 
 /* ── [data-prose] — ported verbatim from So Lam Sang.dc.html ───────────────── */

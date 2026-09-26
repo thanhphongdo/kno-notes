@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import { SearchBox, SearchSuggestions, type SuggestionNote, type SuggestionTag } from '@/components/shared';
 import { usePrefs } from '@/hooks/use-prefs';
@@ -12,6 +12,15 @@ import { norm, rel } from '@/lib/text';
 
 /** Long enough that a fast typist embeds once, short enough to feel live. */
 export const QUERY_DEBOUNCE_MS = 180;
+
+/**
+ * If `popstate` never arrives — a browser that swallows a programmatic
+ * traversal — navigate anyway rather than leave the tap doing nothing.
+ */
+export const HISTORY_POP_FALLBACK_MS = 200;
+
+/** Marks the throwaway entry the mobile overlay pushes, for debugging only. */
+const OVERLAY_HISTORY_KEY = 'knoSearchOverlay';
 
 /** Prototype counts: idle shows 8 tags / 4 notes, typing narrows to 6 / 6. */
 const TAGS_IDLE = 8;
@@ -38,6 +47,11 @@ export interface SearchContainerProps {
  * slow, failed or superseded resolves to `null` — the panel keeps working.
  *
  * `/` focus is the shell's `KeyboardLayer`; this component only owns the box.
+ *
+ * Below 820px the same box and the same panel are rendered inside
+ * `SearchOverlay` instead of the anchored dropdown, and this component owns the
+ * one history entry that makes the Back gesture close the overlay: see
+ * `closeThen` for why every close path has to go through the same place.
  */
 export function SearchContainer({ tags, isMobile, inputRef, open, onOpenChange }: SearchContainerProps) {
   const router = useRouter();
@@ -72,39 +86,104 @@ export function SearchContainer({ tags, isMobile, inputRef, open, onOpenChange }
     };
   }, [embedQuery, q, ready]);
 
-  const close = useCallback(() => {
-    onOpenChange(false);
-    inputRef.current?.blur();
-  }, [inputRef, onOpenChange]);
+  /** True while the throwaway history entry below is the current one. */
+  const entry = useRef(false);
+
+  /**
+   * Back must close the overlay, not leave the page — so opening it pushes an
+   * entry at the same URL. That entry is rubbish the moment the overlay closes,
+   * so it is popped again on every close path; Back from the dashboard then
+   * does what it did before the user ever tapped search.
+   */
+  useEffect(() => {
+    if (!isMobile || !open) return;
+
+    window.history.pushState(
+      { ...window.history.state, [OVERLAY_HISTORY_KEY]: true },
+      '',
+      window.location.href,
+    );
+    entry.current = true;
+
+    const onPop = () => {
+      entry.current = false;
+      onOpenChange(false);
+    };
+    window.addEventListener('popstate', onPop);
+
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // Closed by a path that did not consume the entry itself — the shell's
+      // global Esc, the box's own Esc, an unmount. Drop it now.
+      if (entry.current) {
+        entry.current = false;
+        window.history.back();
+      }
+    };
+  }, [isMobile, onOpenChange, open]);
+
+  /**
+   * Close, then navigate — in that order, and only once the overlay's history
+   * entry has actually been popped. Pushing a route on top of that entry
+   * instead would strand the user on a dashboard they have to Back through
+   * twice, and `history.back()` is asynchronous, so the navigation waits for
+   * `popstate` rather than racing it.
+   */
+  const closeThen = useCallback(
+    (after?: () => void) => {
+      onOpenChange(false);
+      inputRef.current?.blur();
+
+      if (!entry.current) {
+        after?.();
+        return;
+      }
+      entry.current = false;
+
+      if (!after) {
+        window.history.back();
+        return;
+      }
+
+      let done = false;
+      const run = () => {
+        if (done) return;
+        done = true;
+        window.removeEventListener('popstate', run);
+        after();
+      };
+      window.addEventListener('popstate', run);
+      window.setTimeout(run, HISTORY_POP_FALLBACK_MS);
+      window.history.back();
+    },
+    [inputRef, onOpenChange],
+  );
 
   const submit = useCallback(
     (raw?: string) => {
       const term = (raw ?? value).trim();
       if (term) pushRecentSearch(term);
-      close();
-      setQuery(term);
+      closeThen(() => setQuery(term));
     },
-    [close, pushRecentSearch, setQuery, value],
+    [closeThen, pushRecentSearch, setQuery, value],
   );
 
   const onTagSelect = useCallback(
     (name: string) => {
       pushRecentSearch(`#${name}`);
       setValue('');
-      close();
-      setFilters({ tag: name, q: '', priority: null, fav: false });
+      closeThen(() => setFilters({ tag: name, q: '', priority: null, fav: false }));
     },
-    [close, pushRecentSearch, setFilters],
+    [closeThen, pushRecentSearch, setFilters],
   );
 
   const onNoteSelect = useCallback(
     (id: string) => {
       if (q) pushRecentSearch(q);
       setValue('');
-      close();
-      router.push(notePath(id));
+      closeThen(() => router.push(notePath(id)));
     },
-    [close, pushRecentSearch, q, router],
+    [closeThen, pushRecentSearch, q, router],
   );
 
   const suggestionTags = useMemo<SuggestionTag[]>(() => {
@@ -139,10 +218,12 @@ export function SearchContainer({ tags, isMobile, inputRef, open, onOpenChange }
         if (next) warmUp();
       }}
       showKbdHint={!value && !isMobile}
+      variant={isMobile ? 'overlay' : 'anchored'}
       inputRef={inputRef}
       suggestions={
         <SearchSuggestions
           query={value}
+          density={isMobile ? 'comfortable' : 'compact'}
           recent={prefs.recentSearches}
           onRecentSelect={(term) => {
             setValue(term);

@@ -19,6 +19,13 @@ export interface SuggestionNote {
   priority: Priority;
 }
 
+/**
+ * `compact` — the desktop dropdown, exactly the prototype's metrics.
+ * `comfortable` — the mobile full-screen overlay: same type, same order, rows
+ * grown to the ≥ 44px touch target of Design Spec §06.
+ */
+export type SuggestionDensity = 'compact' | 'comfortable';
+
 export interface SearchSuggestionsProps {
   query: string;
   /** Hidden while the query is non-empty. */
@@ -34,26 +41,40 @@ export interface SearchSuggestionsProps {
   notesTitle: string;
   onNoteSelect: (id: string) => void;
   onSubmit: () => void;
+  /** `isMobile ? 'comfortable' : 'compact'`. Defaults to the desktop dropdown. */
+  density?: SuggestionDensity;
 }
 
 export function SearchSuggestions({
   query, recent, onRecentSelect, onClearRecent,
   tags, tagsTitle, onTagSelect, notes, notesTitle, onNoteSelect, onSubmit,
+  density = 'compact',
 }: SearchSuggestionsProps) {
   const typing = query.trim().length > 0;
   const showRecent = !typing && recent.length > 0;
   const empty = typing && tags.length === 0 && notes.length === 0;
+  const roomy = density === 'comfortable';
+
+  const padX = roomy ? 'px-14' : 'px-10';
+  const heading = cn(padX, roomy ? 'pt-12 pb-6' : 'pt-6 pb-4');
 
   return (
-    <div data-search-suggestions="" className="flex min-w-0 flex-col gap-6">
+    <div
+      data-search-suggestions=""
+      data-density={density}
+      className={cn('flex min-w-0 flex-col', roomy ? 'gap-10' : 'gap-6')}
+    >
       {showRecent ? (
         <div className="flex flex-col">
-          <div className="flex items-center justify-between px-10 pt-6 pb-4">
+          <div className={cn('flex items-center justify-between', heading)}>
             <SectionLabel size={11}>Tìm gần đây</SectionLabel>
             <button
               type="button"
               onClick={onClearRecent}
-              className="border-0 bg-transparent p-0 text-12 text-faint hover:text-text"
+              className={cn(
+                'flex items-center border-0 bg-transparent p-0 text-12 text-faint hover:text-text',
+                roomy && 'h-44 px-10 -my-12 -mr-10',
+              )}
             >
               Xoá
             </button>
@@ -63,7 +84,11 @@ export function SearchSuggestions({
               key={term}
               type="button"
               onClick={() => onRecentSelect(term)}
-              className="flex h-36 items-center gap-10 rounded-8 border-0 bg-transparent px-10 text-left text-14 text-text hover:bg-surface2"
+              className={cn(
+                'flex items-center gap-10 rounded-8 border-0 bg-transparent text-left text-14 text-text hover:bg-surface2',
+                padX,
+                roomy ? 'h-48' : 'h-36',
+              )}
             >
               <Icon name="history" size={15} className="text-faint" />
               {term}
@@ -73,9 +98,9 @@ export function SearchSuggestions({
       ) : null}
 
       {tags.length > 0 ? (
-        <div className="flex flex-col gap-6 px-10 pt-4 pb-8">
+        <div className={cn('flex flex-col gap-6', padX, roomy ? 'pt-8 pb-10' : 'pt-4 pb-8')}>
           <SectionLabel size={11}>{tagsTitle}</SectionLabel>
-          <div className="flex flex-wrap gap-6">
+          <div className={cn('flex flex-wrap', roomy ? 'gap-8' : 'gap-6')}>
             {tags.map((tag) => (
               <TagChip
                 key={tag.name}
@@ -83,7 +108,7 @@ export function SearchSuggestions({
                 hash
                 count={tag.count}
                 onClick={() => onTagSelect(tag.name)}
-                className="h-28"
+                className={roomy ? 'h-36 px-12' : 'h-28'}
               />
             ))}
           </div>
@@ -92,13 +117,17 @@ export function SearchSuggestions({
 
       {notes.length > 0 ? (
         <div className="flex flex-col">
-          <SectionLabel size={11} className="px-10 pt-6 pb-4">{notesTitle}</SectionLabel>
+          <SectionLabel size={11} className={heading}>{notesTitle}</SectionLabel>
           {notes.map((note) => (
             <button
               key={note.id}
               type="button"
               onClick={() => onNoteSelect(note.id)}
-              className="flex items-start gap-10 rounded-8 border-0 bg-transparent px-10 py-9 text-left text-text hover:bg-surface2"
+              className={cn(
+                'flex items-start gap-10 rounded-8 border-0 bg-transparent text-left text-text hover:bg-surface2',
+                padX,
+                roomy ? 'py-12' : 'py-9',
+              )}
             >
               <PriorityDot priority={note.priority} size={7} className="mt-7" />
               <span className="flex min-w-0 flex-1 flex-col gap-2">
@@ -111,7 +140,9 @@ export function SearchSuggestions({
       ) : null}
 
       {empty ? (
-        <div className="px-10 py-20 text-center text-13 text-muted">{`Không có gợi ý cho “${query}”`}</div>
+        <div className={cn('text-center text-13 text-muted', padX, roomy ? 'py-28' : 'py-20')}>
+          {`Không có gợi ý cho “${query}”`}
+        </div>
       ) : null}
 
       {typing ? (
@@ -119,8 +150,10 @@ export function SearchSuggestions({
           type="button"
           onClick={onSubmit}
           className={cn(
-            'mt-2 flex h-38 items-center gap-10 border-0 border-t border-line bg-transparent px-10 text-left text-13 text-accent hover:bg-surface2',
+            'mt-2 flex items-center gap-10 border-0 border-t border-line bg-transparent text-left text-13 text-accent hover:bg-surface2',
             'rounded-b-8',
+            padX,
+            roomy ? 'h-52' : 'h-38',
           )}
         >
           <Icon name="search" size={15} />

@@ -11,6 +11,8 @@ export const Z = {
   sidebar: 50,
   settingsBackdrop: 60,
   settingsPopover: 61,
+  /** Mobile full-screen search: above every piece of app chrome, below quiz/toast. */
+  searchOverlay: 70,
   highlightPopup: 80,
   toast: 90,
   quiz: 95,

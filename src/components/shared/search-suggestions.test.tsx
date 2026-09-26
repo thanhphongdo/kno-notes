@@ -80,4 +80,38 @@ describe('SearchSuggestions', () => {
     render(<SearchSuggestions {...BASE} />);
     expect(screen.queryByText(/Xem tất cả kết quả/)).toBeNull();
   });
+
+  it('keeps the prototype metrics by default and reports its density', () => {
+    const { container } = render(<SearchSuggestions {...BASE} query="ecg" />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root).toHaveAttribute('data-density', 'compact');
+    expect(screen.getByRole('button', { name: /Đọc ECG trong 10 bước/ }).className).toContain('py-9');
+    expect(screen.getByRole('button', { name: /Xem tất cả kết quả cho/ }).className).toContain('h-38');
+  });
+
+  it('grows every row to a 44px+ touch target at comfortable density', () => {
+    const { container } = render(<SearchSuggestions {...BASE} density="comfortable" />);
+    expect(container.firstElementChild).toHaveAttribute('data-density', 'comfortable');
+    expect(screen.getByRole('button', { name: 'sốc phản vệ' }).className).toContain('h-48');
+    expect(screen.getByRole('button', { name: 'Xoá' }).className).toContain('h-44');
+    expect(screen.getByRole('button', { name: /#Cấp cứu/ }).className).toContain('h-36');
+    expect(screen.getByRole('button', { name: /Đọc ECG trong 10 bước/ }).className).toContain('py-12');
+  });
+
+  it('shows the same sections in the same order at either density', () => {
+    const order = (density: 'compact' | 'comfortable') => {
+      const { container, unmount } = render(<SearchSuggestions {...BASE} density={density} />);
+      const text = (container.textContent ?? '');
+      unmount();
+      return ['Tìm gần đây', 'Thẻ', 'Mở gần đây'].map((label) => text.indexOf(label));
+    };
+    const compact = order('compact');
+    expect(compact).toEqual([...compact].sort((a, b) => a - b));
+    expect(order('comfortable')).toEqual(compact);
+  });
+
+  it('keeps the comfortable full-results row at 52px', () => {
+    render(<SearchSuggestions {...BASE} query="ecg" density="comfortable" />);
+    expect(screen.getByRole('button', { name: /Xem tất cả kết quả cho/ }).className).toContain('h-52');
+  });
 });
