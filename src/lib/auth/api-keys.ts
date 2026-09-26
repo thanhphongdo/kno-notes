@@ -7,6 +7,9 @@ import type { ApiKey, SessionUser } from '@/lib/types';
 
 const KEY_RE = /^kn_[0-9a-f]{32}$/;
 
+/** Cập nhật `lastUsedAt` gần nhất đang chạy nền — xem `__flushLastUsed()`. */
+let pendingTouch: Promise<void> = Promise.resolve();
+
 export function hashApiKey(key: string): string {
   return createHash('sha256').update(key, 'utf8').digest('hex');
 }
@@ -83,10 +86,23 @@ export async function resolveApiKey(key: string): Promise<SessionUser | null> {
 
   if (!row || !hashesEqual(row.tokenHash, hash)) return null;
 
-  // Fire and forget: a failed timestamp update must not fail the request.
-  void Promise.resolve(
+  // Fire and forget: a failed timestamp update must not fail the request, and
+  // an API call should not wait on a bookkeeping write.
+  pendingTouch = Promise.resolve(
     db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, row.keyId)),
-  ).catch(() => {});
+  ).then(
+    () => {},
+    () => {},
+  );
 
   return { id: row.id, username: row.username, displayName: row.displayName };
+}
+
+/**
+ * Test seam: `resolveApiKey` cập nhật `lastUsedAt` ở chế độ fire-and-forget,
+ * nên test phải đợi nó xong thay vì `setTimeout` đoán chừng (dễ flaky khi
+ * chạy song song cả bộ test).
+ */
+export function __flushLastUsed(): Promise<void> {
+  return pendingTouch;
 }

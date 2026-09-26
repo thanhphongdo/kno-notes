@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { db, closeDb, users, noteIndex, tags, userPrefs, apiKeys } from './index';
 
 let userA = '';
@@ -52,8 +52,15 @@ describe('note_index', () => {
       tagSlugs: [],
       tagNames: [],
     });
-    const rows = await db.select().from(noteIndex).where(eq(noteIndex.noteId, 'n1'));
+    // Scope to the two users THIS test created: the test database is also
+    // seeded (`npm run db:seed:test` writes a note_index row with note_id n1
+    // for `bacsi`), so an unscoped count would depend on seed state.
+    const rows = await db
+      .select()
+      .from(noteIndex)
+      .where(and(inArray(noteIndex.userId, [userA, userB]), eq(noteIndex.noteId, 'n1')));
     expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.title).sort()).toEqual(['A', 'B']);
   });
 
   it('rejects a duplicate (user_id, note_id)', async () => {

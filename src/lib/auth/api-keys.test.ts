@@ -10,6 +10,7 @@ import {
   listApiKeys,
   revokeApiKey,
   resolveApiKey,
+  __flushLastUsed,
 } from './api-keys';
 
 let userA = '';
@@ -89,7 +90,7 @@ describe('resolveApiKey', () => {
     const { apiKey, key } = await createApiKey(userA, 'touch me');
     expect(apiKey.lastUsedAt).toBeNull();
     await resolveApiKey(key);
-    await new Promise((r) => setTimeout(r, 50));
+    await __flushLastUsed();
     const [row] = await db.select().from(apiKeys).where(eq(apiKeys.id, apiKey.id));
     expect(row.lastUsedAt).not.toBeNull();
   });
