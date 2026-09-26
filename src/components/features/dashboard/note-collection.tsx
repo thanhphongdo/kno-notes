@@ -9,6 +9,8 @@ import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useNoteFilters } from '@/hooks/use-note-filters';
 import { PAGE_SIZE } from '@/lib/nav/filters';
 import { notePath } from '@/lib/nav/paths';
+import { useOffline } from '@/components/providers/offline-provider';
+import { isNetworkFailure } from '@/lib/offline/queue';
 
 export interface NoteCollectionProps {
   /** The current page, already mapped to the shared card shape on the server. */
@@ -37,22 +39,37 @@ export function NoteCollection({ notes, total, pages, page }: NoteCollectionProp
   const isMobile = useIsMobile();
   const [, startTransition] = useTransition();
   const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  const offline = useOffline();
 
   const onToggleFavorite = useCallback(
     (id: string) => {
-      const current = overrides[id] ?? notes.find((n) => n.id === id)?.favorite ?? false;
+      const note = notes.find((n) => n.id === id);
+      const current = overrides[id] ?? note?.favorite ?? false;
       setOverrides((m) => ({ ...m, [id]: !current }));
       void (async () => {
+        const path = `/api/notes/${encodeURIComponent(id)}/favorite`;
         try {
-          const res = await fetch(`/api/notes/${encodeURIComponent(id)}/favorite`, { method: 'POST' });
+          const res = await fetch(path, { method: 'POST' });
           if (!res.ok) throw new Error('favorite failed');
           startTransition(() => router.refresh());
-        } catch {
-          setOverrides((m) => ({ ...m, [id]: current }));
+        } catch (error) {
+          // Mất mạng thì giữ nguyên sao vừa bấm và xếp hàng gửi sau; máy chủ
+          // từ chối thì mới trả sao về như cũ.
+          const queued =
+            isNetworkFailure(error) &&
+            (await offline?.queueWrite({
+              kind: 'note.favorite',
+              path,
+              method: 'POST',
+              body: null,
+              label: `Yêu thích “${note?.title ?? id}”`,
+              noteId: id,
+            }));
+          if (!queued) setOverrides((m) => ({ ...m, [id]: current }));
         }
       })();
     },
-    [notes, overrides, router],
+    [notes, offline, overrides, router],
   );
 
   if (notes.length === 0) {

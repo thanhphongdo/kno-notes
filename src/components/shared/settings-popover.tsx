@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import type { Theme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import { Z } from '@/lib/z';
@@ -16,12 +17,14 @@ export interface SettingsPopoverProps {
   fontSize: number;
   onFontSizeChange: (size: number) => void;
   onLogout: () => void;
+  /** `<OfflineStatus/>`. Bảng này là chỗ duy nhất app nói về cài đặt. */
+  offline?: ReactNode;
   className?: string;
 }
 
 /** Trigger h40 min-w40 px-10 r10 1px --line, Serif 17/600 "A" + 12 "a". Panel 288 r14 p18 gap 20. */
 export function SettingsPopover({
-  open, onOpenChange, theme, onThemeChange, fontSize, onFontSizeChange, onLogout, className,
+  open, onOpenChange, theme, onThemeChange, fontSize, onFontSizeChange, onLogout, offline, className,
 }: SettingsPopoverProps) {
   return (
     <Popover
@@ -54,6 +57,8 @@ export function SettingsPopover({
       </div>
 
       <FontSizeControl value={fontSize} onChange={onFontSizeChange} />
+
+      {offline}
 
       <button
         type="button"

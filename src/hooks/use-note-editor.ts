@@ -5,6 +5,8 @@ import { useCallback, useRef, useState } from 'react';
 import { uploadImages } from '@/components/features/editor/upload';
 import type { ImagePosition, RichTextEditorHandle } from '@/components/shared';
 import { useToast } from '@/components/ui';
+import { useOffline } from '@/components/providers/offline-provider';
+import { isNetworkFailure } from '@/lib/offline/queue';
 import { dashboardPath, notePath } from '@/lib/nav/paths';
 import type { NoteImage, Priority } from '@/lib/types';
 
@@ -37,6 +39,7 @@ export const versionHintFor = (isExisting: boolean, nextVersion: number): string
 export function useNoteEditor({ initial, nextVersion }: UseNoteEditorOptions) {
   const router = useRouter();
   const { flash } = useToast();
+  const offline = useOffline();
   const handleRef = useRef<RichTextEditorHandle | null>(null);
   const [draft, setDraft] = useState<EditorDraft>(initial);
   const [saving, setSaving] = useState(false);
@@ -110,7 +113,7 @@ export function useNoteEditor({ initial, nextVersion }: UseNoteEditorOptions) {
     setSaving(true);
     try {
       // PATCH is a full replace, so every field travels on every save.
-      const body = JSON.stringify({
+      const payload = {
         title: draft.title,
         desc: draft.desc,
         tags: draft.tags,
@@ -118,18 +121,35 @@ export function useNoteEditor({ initial, nextVersion }: UseNoteEditorOptions) {
         content: handleRef.current?.getHtml() ?? draft.content,
         images: draft.images,
         changeNote: draft.changeNote.trim(),
-      });
-      const res = draft.id
-        ? await fetch(`/api${notePath(draft.id)}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body,
-          })
-        : await fetch('/api/notes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body,
-          });
+      };
+      const body = JSON.stringify(payload);
+      const path = draft.id ? `/api${notePath(draft.id)}` : '/api/notes';
+      const method = draft.id ? 'PATCH' : 'POST';
+
+      let res: Response;
+      try {
+        res = await fetch(path, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        });
+      } catch (error) {
+        // Mất mạng giữa lúc bấm Lưu là lúc dễ mất công nhất. Giữ bài lại
+        // trong hàng đợi và nói thật rằng nó chưa lên máy chủ.
+        const queued =
+          isNetworkFailure(error) &&
+          (await offline?.queueWrite({
+            kind: draft.id ? 'note.update' : 'note.create',
+            path,
+            method,
+            body: payload,
+            label: `Lưu “${payload.title || 'Ghi chú không tiêu đề'}”`,
+            noteId: draft.id,
+          }));
+        flash(queued ? 'Chưa có mạng — sẽ lưu khi kết nối lại' : 'Không lưu được ghi chú');
+        return;
+      }
+
       if (!res.ok) {
         flash('Không lưu được ghi chú');
         return;
@@ -141,7 +161,7 @@ export function useNoteEditor({ initial, nextVersion }: UseNoteEditorOptions) {
     } finally {
       setSaving(false);
     }
-  }, [draft, flash, router, saving]);
+  }, [draft, flash, offline, router, saving]);
 
   const cancel = useCallback(() => {
     router.push(draft.id ? notePath(draft.id) : dashboardPath());

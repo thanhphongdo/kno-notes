@@ -4,9 +4,10 @@ import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useVerifiedNavigate } from '@/lib/nav/navigate';
 import {
-  AppHeader, AppShell, PRIORITIES, PRIORITY_CLASS, PRIORITY_LABEL,
+  AppHeader, AppShell, OfflineStatus, PRIORITIES, PRIORITY_CLASS, PRIORITY_LABEL,
   SettingsPopover, Sidebar, SidebarNavItem, SidebarSection,
 } from '@/components/shared';
+import { useOffline } from '@/components/providers/offline-provider';
 import { usePrefs } from '@/hooks/use-prefs';
 import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useNoteFilters } from '@/hooks/use-note-filters';
@@ -43,6 +44,7 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
   const isMobile = useIsMobile();
   const { prefs, setPrefs } = usePrefs();
   const { theme, setTheme, fontSize, setFontSize } = useTheme();
+  const offline = useOffline();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -105,9 +107,12 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
     } catch {
       /* the cookie may already be gone; send them to /login either way */
     }
+    // Máy này có thể được người khác dùng tiếp: bản sao ngoại tuyến phải đi
+    // cùng phiên đăng nhập, không được ở lại.
+    await offline?.forget().catch(() => undefined);
     navigate(loginPath(), 'replace');
     router.refresh();
-  }, [navigate, router]);
+  }, [navigate, offline, router]);
 
   const sidebar = (
     <Sidebar
@@ -191,6 +196,18 @@ export function ShellClient({ data, children }: { data: ShellNavData; children: 
               fontSize={fontSize}
               onFontSizeChange={setFontSize}
               onLogout={logout}
+              offline={
+                offline ? (
+                  <OfflineStatus
+                    online={offline.online}
+                    phase={offline.phase}
+                    cached={offline.cached}
+                    total={offline.total}
+                    pending={offline.pending}
+                    onSyncNow={offline.syncNow}
+                  />
+                ) : null
+              }
             />
           }
         />

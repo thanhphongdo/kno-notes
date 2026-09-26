@@ -35,6 +35,8 @@ export {
   type Priority, type PriorityDotProps, type PriorityLabelProps,
   type PriorityPillProps, type PrioritySegmentedProps,
 } from './priority';
+export { NoteBriefRow, type NoteBriefRowProps } from './note-brief-row';
+export { OfflineStatus, offlineSummary, OFFLINE_TITLE, OFFLINE_SYNC_ACTION, type OfflineStatusProps } from './offline-status';
 export { PromptBar, type PromptBarProps } from './prompt-bar';
 export { Prose, type ProseProps } from './prose';
 export { QuizFeedback, type QuizFeedbackProps } from './quiz-feedback';

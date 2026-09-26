@@ -71,6 +71,31 @@ function strategyFor(request) {
   return mayCache(pathname) ? 'stale-while-revalidate' : 'network-only';
 }
 
+/**
+ * Trang /offline có bundle JavaScript riêng, và bundle đó KHÔNG BAO GIỜ được
+ * tải trong lúc người dùng còn online — nên nó không thể lọt vào cache theo
+ * kiểu stale-while-revalidate như các chunk khác. Thiếu nó, lúc mất mạng
+ * trang chỉ hiện được phần tĩnh còn trình đọc ngoại tuyến không chạy.
+ *
+ * Nên: đọc chính HTML của /offline và nạp trước những `/_next/static/*` mà nó
+ * tham chiếu. Tên file có hash nên danh sách này tự đúng theo từng bản build.
+ */
+async function precacheOfflineAssets() {
+  try {
+    const res = await fetch(OFFLINE_URL, { cache: 'reload' });
+    if (!res.ok) return;
+    const html = await res.text();
+    const cache = await caches.open(ASSET_CACHE);
+    const urls = new Set();
+    const re = /(?:src|href)="(\/_next\/static\/[^"]+)"/g;
+    let match;
+    while ((match = re.exec(html)) !== null) urls.add(match[1]);
+    await Promise.all([...urls].map((url) => cache.add(url).catch(() => undefined)));
+  } catch {
+    /* cài đặt vẫn phải thành công dù không nạp trước được gì */
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(SHELL_CACHE).then(async (cache) => {
@@ -78,6 +103,7 @@ self.addEventListener('install', (event) => {
       // a partial deploy, leaving the app with no offline page at all. Add them
       // one at a time and let the misses go.
       await Promise.all(PRECACHE_URLS.map((url) => cache.add(url).catch(() => undefined)));
+      await precacheOfflineAssets();
       await self.skipWaiting();
     }),
   );

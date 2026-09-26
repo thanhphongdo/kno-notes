@@ -3,8 +3,8 @@
 import { cn } from '@/lib/utils';
 import { Icon } from '@/components/ui/icon';
 import { Kbd } from '@/components/ui/kbd';
-import { HighlightSnippet } from './highlight-snippet';
-import { PriorityDot, type Priority } from './priority';
+import { NoteBriefRow } from './note-brief-row';
+import type { Priority } from './priority';
 import { SectionLabel } from './section-label';
 import { TagChip } from './tag-chip';
 
@@ -125,25 +125,15 @@ export function SearchSuggestions({
         <div className="flex flex-col">
           <SectionLabel size={11} className={heading}>{notesTitle}</SectionLabel>
           {notes.map((note) => (
-            <button
+            <NoteBriefRow
               key={note.id}
-              type="button"
+              title={note.title}
+              sub={note.sub}
+              priority={note.priority}
+              highlight={note.highlight}
+              density={density}
               onClick={() => onNoteSelect(note.id)}
-              className={cn(
-                'flex items-start gap-10 rounded-8 border-0 bg-transparent text-left text-text hover:bg-surface2',
-                padX,
-                roomy ? 'py-12' : 'py-9',
-              )}
-            >
-              <PriorityDot priority={note.priority} size={7} className="mt-7" />
-              <span className="flex min-w-0 flex-1 flex-col gap-2">
-                <span className="truncate font-serif text-15 font-semibold">{note.title}</span>
-                <span className="truncate text-12 text-muted">{note.sub}</span>
-                {note.highlight ? (
-                  <HighlightSnippet text={note.highlight} lines={1} size="13" className="mt-2 max-w-full self-start" />
-                ) : null}
-              </span>
-            </button>
+            />
           ))}
         </div>
       ) : null}
