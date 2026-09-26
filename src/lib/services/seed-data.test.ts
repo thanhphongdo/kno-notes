@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { sections } from '@/lib/text';
+import { sections } from '@/lib/text/server';
 import { SEED0, SEED, scoreOf } from './seed-data';
 
 describe('SEED0', () => {

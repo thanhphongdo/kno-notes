@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
     if (!isServer) {
       config.resolve = config.resolve ?? {};
       config.resolve.alias = { ...config.resolve.alias, 'onnxruntime-node': false };
+    }
+    // linkedom lazily requires `canvas`, which is a native module we do not
+    // need and cannot resolve. Stub it on both builds to keep output clean.
+    config.resolve = config.resolve ?? {};
+    config.resolve.alias = { ...config.resolve.alias, canvas: false };
+    if (!isServer) {
       config.resolve.fallback = { ...config.resolve.fallback, fs: false, path: false, crypto: false };
     }
     return config;

@@ -2,7 +2,7 @@
 import { eq } from 'drizzle-orm';
 import { db, noteIndex } from '@/lib/db';
 import { getStorage } from '@/lib/storage';
-import { stripHtml } from '@/lib/text';
+import { stripHtml } from '@/lib/text/server';
 import type { Note } from '@/lib/types';
 import { computeContentSha } from './index-sync';
 

@@ -4,7 +4,8 @@ import { and, eq, ne } from 'drizzle-orm';
 import { db, noteIndex } from '@/lib/db';
 import { HttpError } from '@/lib/http';
 import { getStorage } from '@/lib/storage';
-import { clip, sections, shuffle, stripHtml } from '@/lib/text';
+import { clip, shuffle } from '@/lib/text';
+import { sections, stripHtml } from '@/lib/text/server';
 import type { Note, Question } from '@/lib/types';
 import { getNote } from './notes';
 

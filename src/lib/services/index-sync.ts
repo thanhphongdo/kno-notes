@@ -2,7 +2,8 @@
 import { createHash } from 'node:crypto';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db, noteIndex, tags, type NoteIndexDbRow } from '@/lib/db';
-import { norm, slugify, stripHtml } from '@/lib/text';
+import { norm, slugify } from '@/lib/text';
+import { stripHtml } from '@/lib/text/server';
 import type { Note, NoteSummary, Priority } from '@/lib/types';
 
 export function rowToSummary(row: NoteIndexDbRow): NoteSummary {
