@@ -51,3 +51,7 @@ yarn-error.log*
 
 # per-slot playwright artifacts
 test-results-*/
+
+# credentials supplied by the user - NEVER commit
+*-pat.txt
+*.pat
