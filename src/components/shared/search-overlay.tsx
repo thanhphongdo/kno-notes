@@ -100,7 +100,10 @@ export function SearchOverlay({ input, children, onClose, className }: SearchOve
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto overscroll-contain px-6 pt-8 pb-32">{children}</div>
+      {/* px-2 + the rows' own px-14 lands the text on the 16px mobile
+          page gutter (Design Spec §03) while the row backgrounds keep a
+          couple of pixels of air at the edge. */}
+      <div className="flex-1 overflow-y-auto overscroll-contain px-2 pt-8 pb-32">{children}</div>
     </div>,
     document.body,
   );
