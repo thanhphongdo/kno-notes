@@ -1,44 +1,22 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useAppUpdate } from '@/hooks/use-app-update';
 
 /**
- * Registers `public/sw.js` once, after load, in production only.
+ * Đăng ký service worker một lần, chỉ ở production.
  *
- * Three deliberate restraints:
- *  • Dev is skipped entirely — an active worker in front of Next's HMR
- *    endpoints makes hot reload flap.
- *  • Registration waits for `load` so it never competes with hydration, and
- *    a rejected registration is swallowed: the PWA layer is optional and must
- *    never take the app down with it.
- *  • Nothing here touches the router. The worker's own fetch handler is
- *    network-first for navigations and never caches them (contracts §4), so
- *    client-side navigation is untouched either way.
+ * Việc đăng ký nằm trong `useAppUpdate` vì URL script phải mang build id —
+ * xem `src/lib/pwa/build-id.ts`. Component này chỉ là chỗ gắn hook vào cây
+ * React ở root layout, để cả trang đăng nhập và `/offline` cũng có worker.
+ * Phần báo "đã có bản mới" là `UpdatePrompt`, nằm trong layout đã đăng nhập.
+ *
+ * Hai chỗ cùng gọi `register()` với CÙNG một URL là vô hại: trình duyệt trả
+ * lại đúng registration đang có chứ không tạo thêm.
+ *
+ * Dev bị bỏ qua: một worker đứng trước endpoint HMR của Next làm hot reload
+ * chập chờn.
  */
 export function RegisterServiceWorker(): null {
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') return;
-    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-
-    let cancelled = false;
-    const register = () => {
-      if (cancelled) return;
-      void navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
-        /* PWA support is optional */
-      });
-    };
-
-    if (document.readyState === 'complete') {
-      register();
-      return () => { cancelled = true; };
-    }
-
-    window.addEventListener('load', register, { once: true });
-    return () => {
-      cancelled = true;
-      window.removeEventListener('load', register);
-    };
-  }, []);
-
+  useAppUpdate();
   return null;
 }

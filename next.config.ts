@@ -1,6 +1,16 @@
 import type { NextConfig } from 'next';
+import { buildIdFrom } from './src/lib/pwa/build-id';
+
+/**
+ * Đọc MỘT LẦN lúc build. Trên Vercel là SHA của commit đang deploy; ở nơi khác
+ * là thời điểm build, để mỗi lần `next build` vẫn ra một id khác. Service
+ * worker đăng ký kèm id này nên bản đã cài trên máy người dùng nhận được bản
+ * deploy mới — xem `src/lib/pwa/build-id.ts`.
+ */
+const BUILD_ID = buildIdFrom(process.env.VERCEL_GIT_COMMIT_SHA || String(Date.now()));
 
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_BUILD_ID: BUILD_ID },
   // Parallel e2e slots build into their own directory so two concurrent
   // `next build` runs cannot clobber each other's output.
   distDir: process.env.NEXT_DIST_DIR || '.next',

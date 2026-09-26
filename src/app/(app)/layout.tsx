@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { InstallPrompt } from '@/components/features/pwa/install-prompt';
+import { UpdatePrompt } from '@/components/features/pwa/update-prompt';
 import { ShellClient } from '@/components/features/shell/shell-client';
 import { getShellNavData } from '@/components/features/shell/shell-data';
 import { getSession } from '@/lib/auth/session';
@@ -24,6 +25,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <Suspense>
       <ShellClient data={data}>{children}</ShellClient>
       <InstallPrompt />
+      <UpdatePrompt />
     </Suspense>
   );
 }

@@ -149,3 +149,51 @@ test.describe('service worker', () => {
     }
   });
 });
+
+/**
+ * Bản đã cài phải nhận được bản deploy mới.
+ *
+ * `sw.js` giống hệt nhau qua mọi lần deploy, nên nếu đăng ký bằng một URL cố
+ * định thì trình duyệt không thấy gì mới và máy người dùng kẹt ở bản cũ mãi.
+ * Build id nằm trong query là thứ phá thế kẹt đó — các bài dưới đây giữ cho
+ * nó không bị ai gỡ ra.
+ */
+test.describe('cập nhật khi có bản deploy mới', () => {
+  test('service worker đăng ký kèm build id của bản deploy', async ({ page }) => {
+    await page.goto('/');
+    const scriptUrl = await page.waitForFunction(
+      async () => {
+        const reg = await navigator.serviceWorker.getRegistration('/');
+        const worker = reg?.active ?? reg?.installing ?? reg?.waiting;
+        return worker?.scriptURL ?? null;
+      },
+      undefined,
+      { timeout: 20_000 },
+    ).then((h) => h.jsonValue());
+
+    expect(scriptUrl).toContain('/sw.js?v=');
+    // Không phải chuỗi rỗng: `?v=` mà trống thì mọi bản deploy lại giống nhau.
+    expect(new URL(String(scriptUrl)).searchParams.get('v')).toBeTruthy();
+  });
+
+  test('kho cache mang tên build, nên bản deploy mới không đọc cache cũ', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForFunction(
+      async () => Boolean((await navigator.serviceWorker.getRegistration('/'))?.active),
+      undefined,
+      { timeout: 20_000 },
+    );
+
+    const [names, version] = await Promise.all([
+      page.evaluate(() => caches.keys()),
+      page.evaluate(async () => {
+        const reg = await navigator.serviceWorker.getRegistration('/');
+        const worker = reg?.active ?? reg?.installing ?? reg?.waiting;
+        return new URL(worker!.scriptURL).searchParams.get('v');
+      }),
+    ]);
+
+    expect(names.length).toBeGreaterThan(0);
+    for (const name of names) expect(name).toContain(String(version));
+  });
+});

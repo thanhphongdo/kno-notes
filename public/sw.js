@@ -18,7 +18,21 @@
  * file is served raw and cannot import from `src/`. Change both together.
  */
 
-const VERSION = 'kn-v1';
+/*
+ * Phiên bản lấy từ CHÍNH URL của script: trang đăng ký `/sw.js?v=<build id>`
+ * (`src/lib/pwa/build-id.ts`). Nhờ vậy mỗi lần deploy là một bộ cache mới và
+ * `activate` bên dưới dọn sạch bộ cũ. Không có query — bản cài từ trước khi có
+ * cơ chế này — thì rơi về 'kn-v1' và sẽ bị thay ngay ở lần đăng ký kế tiếp.
+ */
+function versionFromUrl() {
+  try {
+    return 'kn-' + (new URL(self.location.href).searchParams.get('v') || 'v1');
+  } catch {
+    return 'kn-v1';
+  }
+}
+
+const VERSION = versionFromUrl();
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const OFFLINE_URL = '/offline';

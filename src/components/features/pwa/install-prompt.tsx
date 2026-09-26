@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Icon } from '@/components/ui';
-import { Z } from '@/lib/z';
+import { Button } from '@/components/ui';
+import { PromptBar } from '@/components/shared';
 import { type InstallAdvice, installAdvice, isStandalone } from './install-advice';
 
 /** Not in the DOM lib yet — Chromium-only, and the reason this component exists. */
@@ -99,20 +99,13 @@ export function InstallPrompt() {
         : 'Cài Kno-Notes lên máy để mở nhanh và dùng ngoại tuyến.';
 
   return (
-    <div
-      role="dialog"
-      aria-label="Cài đặt ứng dụng"
-      data-install-prompt={advice}
-      className="fixed inset-x-16 bottom-16 mx-auto flex max-w-420 flex-wrap items-center gap-x-12 gap-y-10 rounded-12 border border-line bg-surface px-16 py-14 shadow-card min-[820px]:flex-nowrap"
-      style={{ zIndex: Z.settingsBackdrop }}
+    <PromptBar
+      label="Cài đặt ứng dụng"
+      message={message}
+      icon={advice === 'ios-safari' ? 'download' : undefined}
+      testId="install-prompt"
+      testValue={advice}
     >
-      {advice === 'ios-safari' ? (
-        <span className="shrink-0 text-accent" aria-hidden="true">
-          <Icon name="download" size={17} />
-        </span>
-      ) : null}
-      <span className="min-w-180 flex-1 text-13 leading-[1.5]">{message}</span>
-      <span className="ml-auto flex items-center gap-8">
       <Button variant="ghost" size="32" onClick={dismiss}>
         {advice === 'prompt' ? 'Để sau' : 'Đã hiểu'}
       </Button>
@@ -121,7 +114,6 @@ export function InstallPrompt() {
           Cài đặt
         </Button>
       ) : null}
-      </span>
-    </div>
+    </PromptBar>
   );
 }
