@@ -102,6 +102,44 @@ export const noteIndex = pgTable(
   ],
 );
 
+/**
+ * Client OAuth tự đăng ký (RFC 7591).
+ *
+ * Không có cột bí mật: đây đều là client công khai dùng PKCE, nên không có
+ * `client_secret` nào để lộ trong file cấu hình trên máy người dùng.
+ */
+export const oauthClients = pgTable('oauth_clients', {
+  clientId: text('client_id').primaryKey(),
+  name: text('name').notNull(),
+  redirectUris: text('redirect_uris').array().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Mã uỷ quyền đang chờ được đổi lấy token.
+ *
+ * Lưu BĂM chứ không lưu mã, như API key. Và phải lưu thật chứ không nhét vào
+ * một JWT: chuẩn bắt mã chỉ dùng được đúng một lần, mà "một lần" thì cần một
+ * chỗ để xoá đi sau khi dùng.
+ */
+export const oauthCodes = pgTable(
+  'oauth_codes',
+  {
+    codeHash: text('code_hash').primaryKey(),
+    clientId: text('client_id').notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    redirectUri: text('redirect_uri').notNull(),
+    /** PKCE S256. Đây là thứ ràng mã với đúng client đã xin nó. */
+    codeChallenge: text('code_challenge').notNull(),
+    scope: text('scope').notNull(),
+    resource: text('resource').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [index('oauth_codes_expires_idx').on(t.expiresAt)],
+);
+
 export const userPrefs = pgTable('user_prefs', {
   userId: uuid('user_id')
     .primaryKey()
@@ -118,3 +156,5 @@ export type ApiKeyRow = typeof apiKeys.$inferSelect;
 export type TagRow = typeof tags.$inferSelect;
 export type NoteIndexDbRow = typeof noteIndex.$inferSelect;
 export type UserPrefsRow = typeof userPrefs.$inferSelect;
+export type OAuthClientRow = typeof oauthClients.$inferSelect;
+export type OAuthCodeRow = typeof oauthCodes.$inferSelect;

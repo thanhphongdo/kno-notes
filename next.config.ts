@@ -33,6 +33,21 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  /**
+   * Client OAuth đi tìm tài liệu mô tả ở `/.well-known/...`. App Router không
+   * nhận thư mục bắt đầu bằng dấu chấm làm route, nên trỏ chúng về `/api`.
+   *
+   * Biến thể có đuôi đường dẫn (`/.well-known/oauth-protected-resource/api/mcp`)
+   * là cách một số client hỏi cho đúng một tài nguyên; ta trả về cùng tài liệu.
+   */
+  async rewrites() {
+    return [
+      { source: '/.well-known/oauth-protected-resource', destination: '/api/oauth/protected-resource' },
+      { source: '/.well-known/oauth-protected-resource/:path*', destination: '/api/oauth/protected-resource' },
+      { source: '/.well-known/oauth-authorization-server', destination: '/api/oauth/authorization-server' },
+      { source: '/.well-known/oauth-authorization-server/:path*', destination: '/api/oauth/authorization-server' },
+    ];
+  },
   async headers() {
     return [
       {

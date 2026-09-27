@@ -106,3 +106,17 @@ export async function resolveApiKey(key: string): Promise<SessionUser | null> {
 export function __flushLastUsed(): Promise<void> {
   return pendingTouch;
 }
+
+/**
+ * Tra tài khoản theo id — dùng cho access token OAuth, vốn tự chứa `sub` nên
+ * không đi kèm một hàng nào trong cơ sở dữ liệu để dựa vào.
+ */
+export async function findUserById(userId: string): Promise<SessionUser | null> {
+  if (!userId) return null;
+  const [row] = await db
+    .select({ id: users.id, username: users.username, displayName: users.displayName })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return row ?? null;
+}

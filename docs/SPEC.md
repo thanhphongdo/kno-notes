@@ -128,7 +128,16 @@ data/users/<userId>/index.json               // (tuỳ chọn) snapshot để re
   - `POST /api/v1/notes/{id}/quizzes`, `GET /api/v1/notes/{id}/quizzes`
   - `GET|PUT /api/v1/notes/{id}/questions` — bộ câu hỏi soạn sẵn
   - `POST /api/v1/notes/{id}/comments`
-- **MCP** `/api/mcp` (Streamable HTTP), cùng auth bearer, tools:
+- **OAuth cho MCP remote** — client như claude.ai không cho dán API key tĩnh, nên `/api/mcp` còn nhận access token OAuth:
+  - `/.well-known/oauth-protected-resource` (RFC 9728) và `/.well-known/oauth-authorization-server` (RFC 8414), phục vụ qua rewrite vì App Router không nhận thư mục bắt đầu bằng dấu chấm.
+  - 401 từ `/api/mcp` mang `WWW-Authenticate: Bearer … resource_metadata="…"` — con trỏ duy nhất để client lần ra đường đăng nhập.
+  - `POST /api/oauth/register` (RFC 7591): client tự đăng ký, chỉ nhận redirect_uri `https`, hoặc `http` trên máy cục bộ.
+  - `/oauth/authorize`: màn hình đồng ý, **nằm sau hàng rào đăng nhập**. Hiện tên ứng dụng và HOST của địa chỉ quay về (tên do client tự khai nên không đáng tin, host thì không giả được).
+  - `POST /api/oauth/token`: `authorization_code` + `refresh_token`. **PKCE S256 bắt buộc**, client công khai (không phát `client_secret`).
+  - Mã uỷ quyền lưu dưới dạng băm, sống 10 phút, **dùng đúng một lần** — xoá trước khi kiểm PKCE để một lần thử sai là mã cháy luôn.
+  - Token là JWT ký bằng `AUTH_SECRET`, có `typ` để không lẫn với cookie phiên, và `aud` để không dùng lại được ở tài nguyên khác. Access 1 giờ, refresh 30 ngày.
+  - `client_id` sai hoặc `redirect_uri` chưa đăng ký ⇒ **không chuyển hướng**, hiện lỗi tại chỗ.
+- **MCP** `/api/mcp` (Streamable HTTP), auth bearer = API key tĩnh HOẶC access token OAuth, tools:
   `list_notes, search_notes, get_note, create_note, update_note, delete_note, list_tags, set_quiz_questions, get_quiz_questions, create_quiz, list_quizzes`.
   `create_note`/`update_note` nhận luôn `questions`; `set_quiz_questions` thay toàn bộ bộ câu hỏi của ghi chú đã có mà không đụng nội dung.
 - API key sinh ở trang `/settings/api-keys`, hiển thị 1 lần, lưu hash (sha256).

@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { SESSION_COOKIE, verifySession } from '@/lib/auth/jwt';
 
 /** Trang cần đăng nhập. API tự kiểm tra bằng `requireUser()`. */
-const PROTECTED = [/^\/$/, /^\/notes(\/|$)/, /^\/settings(\/|$)/];
+const PROTECTED = [/^\/$/, /^\/notes(\/|$)/, /^\/settings(\/|$)/, /^\/oauth(\/|$)/];
 
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
@@ -35,5 +35,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/login', '/notes/:path*', '/settings/:path*'],
+  // `/oauth/authorize` là màn hình đồng ý: phải biết CHÍNH XÁC ai đang cấp
+  // quyền, nên nó nằm sau cùng một hàng rào đăng nhập như các trang khác.
+  matcher: ['/', '/login', '/notes/:path*', '/settings/:path*', '/oauth/:path*'],
 };

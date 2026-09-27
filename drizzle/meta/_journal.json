@@ -22,6 +22,13 @@
       "when": 1790426987303,
       "tag": "0002_note_index_image_alts",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790491882917,
+      "tag": "0003_oauth_clients_and_codes",
+      "breakpoints": true
     }
   ]
 }

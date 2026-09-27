@@ -4,6 +4,7 @@
 import type { ZodRawShape } from 'zod';
 import { createMcpHandler } from 'mcp-handler';
 import { requireBearer } from '@/lib/api/bearer';
+import { originOf, wwwAuthenticate } from '@/lib/auth/oauth';
 import { HttpError, jsonError } from '@/lib/http';
 import { TOOLS, type McpTool } from '@/lib/mcp/tools';
 import type { SessionUser } from '@/lib/types';
@@ -59,7 +60,10 @@ async function withAuth(req: Request): Promise<Response> {
     if (e instanceof HttpError) {
       const res = jsonError(e.status, e.code, e.message);
       if (e.status === 401) {
-        res.headers.set('WWW-Authenticate', 'Bearer realm="kno-notes"');
+        // Con trỏ `resource_metadata` là thứ duy nhất cho client biết đi đâu
+        // để bắt đầu luồng đăng nhập OAuth. Thiếu nó, claude.ai chỉ thấy một
+        // cái 401 câm.
+        res.headers.set('WWW-Authenticate', wwwAuthenticate(originOf(req)));
       }
       return res;
     }
