@@ -31,8 +31,23 @@ export interface DeleteParams extends GetContentParams {
   branch?: string;
 }
 
+export interface GetBlobParams {
+  owner: string;
+  repo: string;
+  file_sha: string;
+}
+export interface BlobData {
+  sha: string;
+  content?: string;
+  encoding?: string;
+  size?: number;
+}
+
 /** The slice of Octokit this adapter uses. Tests supply a fake with this shape. */
 export interface OctokitLike {
+  git: {
+    getBlob(p: GetBlobParams): Promise<{ data: BlobData }>;
+  };
   repos: {
     getContent(p: GetContentParams): Promise<{ data: unknown }>;
     createOrUpdateFileContents(
@@ -48,6 +63,11 @@ interface HttpErrorLike extends Error {
 }
 
 const CACHE_MAX = 200;
+/**
+ * Trần của Contents API. Trên mức này nó vẫn trả 200, nhưng với `content: ''`
+ * và `encoding: 'none'` — tức là metadata không kèm nội dung.
+ */
+export const CONTENTS_API_MAX_BYTES = 1024 * 1024;
 const MAX_ATTEMPTS = 3;
 const MAX_BACKOFF_MS = 5000;
 
@@ -134,16 +154,40 @@ export class GitHubStorage implements NoteStorage {
     const cached = this.blobs.get(`${filePath}@${sha}`);
     if (cached) return { data: cached, sha };
 
-    // Files over 1 MB come back with an empty `content`; the Contents API
-    // cannot serve them, so fail loudly rather than returning a truncated note.
-    if (!file.content && file.content !== '') {
-      throw new Error(
-        `GitHub returned no content for ${filePath} (file too large for the Contents API?)`,
-      );
-    }
-    const data = Buffer.from(file.content ?? '', (file.encoding as BufferEncoding) ?? 'base64');
+    const data = await this.decodeOrFetchBlob(filePath, file);
     this.blobs.set(`${filePath}@${sha}`, data);
     return { data, sha };
+  }
+
+  /**
+   * Lấy bytes thật của một file.
+   *
+   * Quá 1 MB, Contents API trả 200 kèm `content: ''` và `encoding: 'none'`.
+   * Đó KHÔNG phải lỗi, nên nếu cứ thế đưa vào `Buffer.from(content, encoding)`
+   * thì nhận `ERR_UNKNOWN_ENCODING` — và người đọc chỉ thấy ghi chú của mình
+   * không mở được, dù nó còn nguyên trên repo. Những file đó lấy qua Blobs API,
+   * nơi không có trần 1 MB.
+   */
+  private async decodeOrFetchBlob(
+    filePath: string,
+    file: { sha?: string; content?: string; encoding?: string },
+  ): Promise<Buffer> {
+    if (file.encoding === 'base64' || (file.encoding === 'utf-8' && file.content)) {
+      return Buffer.from(file.content ?? '', file.encoding as BufferEncoding);
+    }
+
+    const blob = await this.withRateLimitRetry(() =>
+      this.octokit.git.getBlob({ owner: this.owner, repo: this.repo, file_sha: file.sha ?? '' }),
+    );
+    const encoding = blob.data.encoding;
+    if (encoding !== 'base64' && encoding !== 'utf-8') {
+      // Trên 100 MB thì Blobs API cũng chịu. Thà hỏng ồn ào còn hơn trả về một
+      // ghi chú bị cắt cụt rồi ghi đè bản đầy đủ ở lần lưu sau.
+      throw new Error(
+        `GitHub returned no content for ${filePath} (encoding "${encoding ?? 'missing'}")`,
+      );
+    }
+    return Buffer.from(blob.data.content ?? '', encoding as BufferEncoding);
   }
 
   /** Writes bytes, retrying a 409 by re-reading the current sha. */

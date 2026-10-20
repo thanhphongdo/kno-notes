@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { runStorageContract, makeNote, PNG_1PX } from './contract';
 import { blobSha } from './filesystem';
-import { GitHubStorage, type OctokitLike } from './github';
+import { CONTENTS_API_MAX_BYTES, GitHubStorage, type OctokitLike } from './github';
 import { StorageConflictError } from './types';
 
 class HttpError extends Error {
@@ -18,7 +18,7 @@ class HttpError extends Error {
 /** In-memory stand-in for the GitHub Contents API. */
 function fakeOctokit() {
   const files = new Map<string, { content: Buffer; sha: string }>();
-  const calls = { getContent: 0, put: 0, del: 0 };
+  const calls = { getContent: 0, put: 0, del: 0, getBlob: 0 };
 
   const api: OctokitLike = {
     repos: {
@@ -26,12 +26,16 @@ function fakeOctokit() {
         calls.getContent++;
         const f = files.get(path);
         if (f) {
+          // Quá 1 MB thì Contents API trả về metadata với `content: ''` và
+          // `encoding: 'none'` — KHÔNG phải lỗi, nên nơi gọi phải tự nhận ra.
+          const tooBig = f.content.byteLength > CONTENTS_API_MAX_BYTES;
           return {
             data: {
               type: 'file',
               sha: f.sha,
-              encoding: 'base64',
-              content: f.content.toString('base64'),
+              encoding: tooBig ? 'none' : 'base64',
+              content: tooBig ? '' : f.content.toString('base64'),
+              size: f.content.byteLength,
               name: path.slice(path.lastIndexOf('/') + 1),
               path,
             },
@@ -63,6 +67,21 @@ function fakeOctokit() {
         if (existing.sha !== sha) throw new HttpError(409, 'Conflict');
         files.delete(path);
         return { data: {} };
+      },
+    },
+    git: {
+      async getBlob({ file_sha }) {
+        calls.getBlob++;
+        const found = [...files.values()].find((f) => f.sha === file_sha);
+        if (!found) throw new HttpError(404, 'Not Found');
+        return {
+          data: {
+            sha: file_sha,
+            content: found.content.toString('base64'),
+            encoding: 'base64',
+            size: found.content.byteLength,
+          },
+        };
       },
     },
   };
@@ -191,11 +210,45 @@ describe('GitHubStorage specifics', () => {
     vi.restoreAllMocks();
   });
 
-  it('throws rather than returning a truncated note when GitHub omits content', async () => {
+  /**
+   * Đây là lỗi đã xảy ra thật trên production: một ghi chú vượt 1 MB ghi lên
+   * thành công, rồi không bao giờ mở lại được. Contents API trả
+   * `content: ''` + `encoding: 'none'`, và `Buffer.from('', 'none')` ném
+   * `ERR_UNKNOWN_ENCODING` — người dùng chỉ thấy bài của mình biến mất.
+   */
+  it('reads a note larger than the Contents API limit, through the Blobs API', async () => {
+    const { api, calls } = fakeOctokit();
+    const s = new GitHubStorage({ octokit: api, owner: 'o', repo: 'r' });
+    const huge = makeNote('n1', { content: 'x'.repeat(CONTENTS_API_MAX_BYTES + 1000) });
+
+    await s.writeNote('u1', huge);
+    s.__clearCaches();
+
+    const before = calls.getBlob;
+    const read = await s.readNote('u1', 'n1');
+    expect(read).toEqual(huge);
+    expect(calls.getBlob - before).toBe(1);
+  });
+
+  it('does not reach for a blob when the file fits inline', async () => {
+    const { api, calls } = fakeOctokit();
+    const s = new GitHubStorage({ octokit: api, owner: 'o', repo: 'r' });
+    await s.writeNote('u1', makeNote('n1', { content: 'ngắn' }));
+    s.__clearCaches();
+
+    const before = calls.getBlob;
+    expect((await s.readNote('u1', 'n1'))?.content).toBe('ngắn');
+    expect(calls.getBlob - before).toBe(0);
+  });
+
+  it('throws rather than returning a truncated note when the blob is unusable too', async () => {
     const { api } = fakeOctokit();
     const s = new GitHubStorage({ octokit: api, owner: 'o', repo: 'r' });
     vi.spyOn(api.repos, 'getContent').mockResolvedValue({
-      data: { type: 'file', sha: 'abc', encoding: 'none', name: 'n1.json', path: 'x' },
+      data: { type: 'file', sha: 'abc', encoding: 'none', content: '', name: 'n1.json', path: 'x' },
+    });
+    vi.spyOn(api.git, 'getBlob').mockResolvedValue({
+      data: { sha: 'abc', content: '', encoding: 'none', size: 0 },
     });
     await expect(s.readNote('u1', 'n1')).rejects.toThrow(/no content/);
     vi.restoreAllMocks();
