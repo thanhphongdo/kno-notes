@@ -27,7 +27,7 @@
     "db:reset": "bash scripts/db-setup.sh --drop",
     "icons": "tsx scripts/generate-icons.ts",
     "check-env": "tsx scripts/check-env.ts",
-    "vercel-build": "next build"
+    "vercel-build": "tsx scripts/migrate.ts && next build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
