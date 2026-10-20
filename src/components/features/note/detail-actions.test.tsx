@@ -37,6 +37,18 @@ describe('DetailActions', () => {
     );
   });
 
+  it('chỉ dựng nút Trình chiếu khi ghi chú có bộ slide', async () => {
+    const onPresent = vi.fn();
+    setup({ onPresent });
+    await userEvent.click(screen.getByRole('button', { name: 'Trình chiếu' }));
+    expect(onPresent).toHaveBeenCalledTimes(1);
+  });
+
+  it('không có bộ slide thì không có nút nào cho trình chiếu', () => {
+    setup();
+    expect(screen.queryByRole('button', { name: 'Trình chiếu' })).toBeNull();
+  });
+
   it('renders the meta line with the relative update time and the version', () => {
     setup();
     expect(screen.getByText(/2 giờ trước/)).toBeInTheDocument();

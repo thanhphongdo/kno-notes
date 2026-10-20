@@ -1,0 +1,1014 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   CHẾ ĐỘ "XEM DẠNG TRÌNH CHIẾU"
+   ──────────────────────────────────────────────────────────────────────────
+   Port nguyên văn từ mockup đã được khách duyệt (`presentation-mockup.html`
+   + `backgrounds.css`). Mọi con số — khoảng cách, cỡ chữ, thời lượng — giữ
+   đúng như mockup.
+
+   BA ĐIỀU KHÁC MOCKUP, CÓ CHỦ Ý
+   1. Tên lớp mang tiền tố `kn-`. Mockup là trang độc lập nên dùng `.slide`,
+      `.bg`, `.title`; trong app những tên đó đụng ngay utility của Tailwind
+      (`.bg`, `.frame`) và CSS của trình soạn thảo.
+   2. Mỗi nền là `data-pattern` trên đúng một phần tử `.kn-bg`, thay cho 20
+      lớp `.bg-<tên>`. Lý do như trên: `.bg-*` là không gian tên của Tailwind.
+   3. Bộ màu ghi đè THẲNG lên token của app (`--bg`, `--surface`, `--text`…)
+      chứ không đặt tên mới (`--canvas`, `--panel`, `--ink`). Nhờ vậy mọi
+      component dùng chung đặt trong sân khấu (Button, IconButton, Segmented)
+      tự mang màu của bộ màu đang chọn, không phải sơn lại bằng tay. Bộ `mint`
+      của mockup CHÍNH LÀ token mặc định của app (sai lệch lớn nhất 3/255 ở
+      `--line`), nên `mint` không khai báo gì — nó là app nguyên bản.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.kn-present {
+  --ease: cubic-bezier(.2, .75, .3, 1);
+  /* Phim X-quang luôn là nền tối, bất kể bộ màu hay sáng/tối — đúng tinh thần
+     phim đọc trên đèn. Token hoá để không có mã màu nào nằm trong JSX. */
+  --kn-film-bg: #0a0c0d;
+  --kn-film-line: #22282b;
+}
+
+/* ── Bộ màu ────────────────────────────────────────────────────────────────
+   `mint` = token mặc định của app, không khai báo lại. */
+.kn-present[data-kit="midnight"] {
+  --bg: #eef0f6;
+  --surface: #ffffff;
+  --surface2: #e4e7f1;
+  --text: #171a2b;
+  --muted: #5b6076;
+  --faint: #9196ab;
+  --line: #dcdfeb;
+  --line2: #c3c7d9;
+  --accent: #3a44a0;
+  --accent-ink: #ffffff;
+  --accent-soft: #e5e7f7;
+}
+.kn-present[data-kit="paper"] {
+  --bg: #f2ece1;
+  --surface: #fbf7ef;
+  --surface2: #eae2d3;
+  --text: #221f1a;
+  --muted: #6a6356;
+  --faint: #9c9382;
+  --line: #e0d7c6;
+  --line2: #cabfa8;
+  --accent: #221f1a;
+  --accent-ink: #fbf7ef;
+  --accent-soft: #f6db78;
+}
+.kn-present[data-kit="clinic"] {
+  --bg: #edf1f3;
+  --surface: #ffffff;
+  --surface2: #e2e8ec;
+  --text: #12191d;
+  --muted: #566269;
+  --faint: #8c979d;
+  --line: #dbe2e6;
+  --line2: #bfc9cf;
+  --accent: #0f6c9c;
+  --accent-ink: #ffffff;
+  --accent-soft: #dceaf3;
+}
+
+[data-theme="dark"] .kn-present[data-kit="midnight"] {
+  --bg: #0a0d18;
+  --surface: #111526;
+  --surface2: #171d33;
+  --text: #e4e6f2;
+  --muted: #9ba2bd;
+  --faint: #6d7490;
+  --line: #1e2439;
+  --line2: #313a56;
+  --accent: #9ea8f2;
+  --accent-ink: #0a0d18;
+  --accent-soft: #1d2340;
+}
+[data-theme="dark"] .kn-present[data-kit="paper"] {
+  --bg: #15130f;
+  --surface: #1c1915;
+  --surface2: #241f19;
+  --text: #ece4d6;
+  --muted: #a89d8a;
+  --faint: #776e5e;
+  --line: #2a251e;
+  --line2: #3e372c;
+  --accent: #ece4d6;
+  --accent-ink: #15130f;
+  --accent-soft: rgba(246, 219, 120, .22);
+}
+[data-theme="dark"] .kn-present[data-kit="clinic"] {
+  --bg: #0a1114;
+  --surface: #10181c;
+  --surface2: #161f25;
+  --text: #dfe8ec;
+  --muted: #92a1a9;
+  --faint: #67747b;
+  --line: #1b252a;
+  --line2: #2c383f;
+  --accent: #58b6e6;
+  --accent-ink: #061014;
+  --accent-soft: #102b3a;
+}
+
+/* ══ SÂN KHẤU ═════════════════════════════════════════════════════════════ */
+.kn-present {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.kn-stage-wrap {
+  position: relative;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 26px 26px 6px;
+}
+.kn-stage {
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
+  max-width: min(1240px, calc((100vh - 170px) * 16 / 9));
+  aspect-ratio: 16 / 9;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(20, 20, 20, .05), 0 18px 48px rgba(20, 20, 20, .09);
+  overflow: hidden;
+  transition: background .25s ease, border-color .25s ease;
+}
+.kn-stage:focus,
+.kn-stage:focus-visible { outline: none; }
+[data-theme="dark"] .kn-stage { box-shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 18px 48px rgba(0, 0, 0, .45); }
+
+.kn-stage-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  z-index: 4;
+  pointer-events: none;
+}
+.kn-stage-progress i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width .4s cubic-bezier(.2, .7, .3, 1);
+}
+
+.kn-slide {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+/* ── Chrome của slide (3 mẫu diễn đạt khác nhau) ──────────────────────────── */
+.kn-chrome { position: absolute; z-index: 2; color: var(--faint); }
+.kn-chrome-note,
+.kn-chrome-index { font-size: clamp(10px, 1.05cqi, 13px); }
+.kn-chrome-lead { display: flex; align-items: center; gap: .9em; min-width: 0; }
+.kn-chrome-ico { color: var(--accent); }
+
+.kn-frame {
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  display: grid;
+  align-content: center;
+}
+
+/* ── Chữ chung ────────────────────────────────────────────────────────────── */
+.kn-kicker { margin: 0; color: var(--muted); }
+.kn-title { margin: 0; color: var(--text); text-wrap: balance; }
+.kn-sub { margin: 0; color: var(--muted); }
+.kn-bullets { list-style: none; margin: 0; padding: 0; }
+.kn-b-text { display: block; }
+.kn-b-mark { color: var(--accent); }
+/* Icon thay dấu đầu dòng: giữ nguyên lưới, chỉ đổi phần dấu. */
+.kn-b-mark--icon { color: var(--accent); display: flex; align-items: center; }
+
+/* ═══════════════════ MẪU 1 — BIÊN TẬP (editorial) ═══════════════════════ */
+/* Trang sách: lề trái rộng, chữ serif lớn, canh trái tuyệt đối, không khung. */
+[data-template="editorial"] .kn-slide { background: var(--surface); }
+[data-template="editorial"] .kn-chrome {
+  top: 0; bottom: 0; left: 0; width: 11.5cqi; min-width: 56px;
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; justify-content: space-between;
+  align-items: center; padding: 4.5cqi 0;
+}
+[data-template="editorial"] .kn-chrome-index {
+  font-family: var(--font-plex-mono), ui-monospace, monospace; color: var(--accent);
+  font-size: clamp(11px, 1.3cqi, 15px); letter-spacing: .04em;
+}
+[data-template="editorial"] .kn-chrome-note {
+  writing-mode: vertical-rl; text-orientation: mixed;
+  letter-spacing: .02em; max-height: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: clamp(9px, .95cqi, 12px);
+}
+[data-template="editorial"] .kn-frame {
+  padding: 6.5cqi 8cqi 6.5cqi calc(11.5cqi + 5.5cqi);
+  row-gap: 2.4cqi;
+}
+[data-template="editorial"] .kn-kicker {
+  font-family: var(--font-source-serif), Georgia, serif; font-style: italic;
+  font-size: clamp(13px, 1.75cqi, 22px); letter-spacing: .005em;
+}
+[data-template="editorial"] .kn-title {
+  font-family: var(--font-source-serif), Georgia, serif; font-weight: 600;
+  font-size: clamp(26px, 5.1cqi, 64px); line-height: 1.03;
+  letter-spacing: -.026em; max-width: 19ch;
+}
+[data-template="editorial"] .kn-sub {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: clamp(14px, 2.05cqi, 26px); line-height: 1.5; max-width: 44ch;
+}
+[data-template="editorial"] .kn-bullets { display: grid; row-gap: 1.9cqi; max-width: 58ch; }
+[data-template="editorial"] .kn-bullets li {
+  display: grid; grid-template-columns: 3.4cqi 1fr; align-items: baseline;
+  column-gap: 1.2cqi;
+}
+[data-template="editorial"] .kn-b-mark {
+  display: block; height: 1px; background: var(--accent);
+  transform: translateY(-.35em);
+}
+[data-template="editorial"] .kn-b-mark span { display: none; }
+[data-template="editorial"] .kn-b-mark--icon {
+  height: auto; background: none; transform: translateY(.1em);
+  font-size: clamp(14px, 2cqi, 24px); justify-content: flex-start;
+}
+[data-template="editorial"] .kn-chrome-lead {
+  flex-direction: column; gap: 2.6cqi; min-height: 0; overflow: hidden;
+}
+[data-template="editorial"] .kn-chrome-ico { font-size: clamp(16px, 2.2cqi, 26px); }
+[data-template="editorial"] .kn-b-text {
+  font-family: var(--font-source-serif), Georgia, serif;
+  font-size: clamp(13px, 2.05cqi, 25px); line-height: 1.46;
+}
+[data-template="editorial"] .kn-b-text b { font-weight: 600; }
+
+/* ═══════════════════ MẪU 2 — THUYẾT TRÌNH (deck) ════════════════════════ */
+/* Sân khấu: thanh accent trên đỉnh, tiêu đề sans canh giữa, nội dung dạng thẻ. */
+[data-template="deck"] .kn-slide { background: var(--surface2); }
+[data-template="deck"] .kn-chrome {
+  top: 0; left: 0; right: 0; height: 7.2cqi; min-height: 34px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4.4cqi;
+  background: var(--accent); color: var(--accent-ink);
+}
+[data-template="deck"] .kn-chrome-note {
+  font-weight: 500; letter-spacing: .005em; opacity: .9;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-template="deck"] .kn-chrome-index {
+  font-family: var(--font-plex-mono), ui-monospace, monospace; opacity: .78; letter-spacing: .06em;
+}
+[data-template="deck"] .kn-frame {
+  padding: calc(7.2cqi + 5cqi) 6.5cqi 6cqi;
+  row-gap: 2.6cqi; justify-items: center; text-align: center;
+}
+[data-template="deck"] .kn-kicker {
+  font-size: clamp(11px, 1.45cqi, 18px); font-weight: 500;
+  color: var(--accent); letter-spacing: .01em;
+  display: flex; align-items: center; gap: .8em;
+}
+[data-template="deck"] .kn-kicker::before,
+[data-template="deck"] .kn-kicker::after {
+  content: ""; width: 2.6cqi; height: 2px; background: var(--accent); opacity: .5;
+}
+[data-template="deck"] .kn-title {
+  font-weight: 600; font-size: clamp(22px, 4.1cqi, 52px);
+  line-height: 1.08; letter-spacing: -.022em; max-width: 22ch;
+}
+[data-template="deck"] .kn-sub {
+  font-size: clamp(12px, 1.75cqi, 22px); line-height: 1.5; max-width: 50ch; font-weight: 400;
+}
+[data-template="deck"] .kn-bullets {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5cqi; width: 100%; text-align: left;
+}
+[data-template="deck"] .kn-bullets li {
+  display: grid; grid-template-columns: auto 1fr; column-gap: 1.4cqi;
+  align-items: start;
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent); border-radius: 12px;
+  padding: 2.1cqi 2.4cqi;
+}
+[data-template="deck"] .kn-b-mark {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: clamp(10px, 1.25cqi, 15px); padding-top: .25em;
+}
+[data-template="deck"] .kn-b-mark--icon { font-size: clamp(14px, 1.9cqi, 22px); padding-top: .1em; }
+[data-template="deck"] .kn-chrome-ico { color: var(--accent-ink); font-size: clamp(14px, 1.9cqi, 22px); }
+[data-template="deck"] .kn-b-text {
+  font-size: clamp(11px, 1.62cqi, 20px); line-height: 1.42;
+}
+[data-template="deck"] .kn-b-text b { font-weight: 600; }
+[data-template="deck"] .kn-bullets--single { grid-template-columns: minmax(0, 1fr); }
+
+/* ═══════════════════ MẪU 3 — BỆNH ÁN (clinical) ═════════════════════════ */
+/* Tờ phiếu đọc phim: cột nhãn mono bên trái, hàng kẻ ngang, canh trên, dày đặc. */
+[data-template="clinical"] .kn-slide { background: var(--surface); }
+[data-template="clinical"] .kn-chrome {
+  top: 0; left: 0; right: 0; height: 6.4cqi; min-height: 30px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4cqi;
+  border-bottom: 1px solid var(--line2);
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  letter-spacing: .02em; color: var(--muted);
+}
+[data-template="clinical"] .kn-chrome-index { color: var(--accent); }
+[data-template="clinical"] .kn-frame {
+  padding: calc(6.4cqi + 4.2cqi) 4cqi 4.6cqi;
+  grid-template-columns: minmax(84px, 19%) minmax(0, 1fr);
+  column-gap: 3.2cqi; row-gap: 1.5cqi;
+  align-content: start;
+}
+[data-template="clinical"] .kn-frame > * { grid-column: 2; }
+[data-template="clinical"] .kn-kicker {
+  grid-column: 1; grid-row: 1 / span 2;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: clamp(9px, 1.15cqi, 13px); line-height: 1.5;
+  color: var(--faint); letter-spacing: .01em;
+  border-top: 2px solid var(--accent); padding-top: .9cqi;
+}
+[data-template="clinical"] .kn-title {
+  font-weight: 600; font-size: clamp(16px, 2.6cqi, 34px);
+  line-height: 1.16; letter-spacing: -.016em;
+  padding-bottom: 1.4cqi; border-bottom: 1px solid var(--line2);
+}
+[data-template="clinical"] .kn-sub {
+  font-size: clamp(11px, 1.5cqi, 19px); line-height: 1.55; max-width: 52ch;
+}
+[data-template="clinical"] .kn-bullets { display: grid; border-top: 0; }
+[data-template="clinical"] .kn-bullets li {
+  display: grid; grid-template-columns: 4.6cqi 1fr; column-gap: 1.2cqi;
+  align-items: baseline;
+  padding: 1.25cqi 0; border-bottom: 1px solid var(--line);
+}
+[data-template="clinical"] .kn-bullets li:first-child { padding-top: 0; }
+[data-template="clinical"] .kn-b-mark {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: clamp(9px, 1.15cqi, 13px); color: var(--muted);
+}
+[data-template="clinical"] .kn-b-text {
+  font-size: clamp(11px, 1.55cqi, 19px); line-height: 1.44;
+}
+[data-template="clinical"] .kn-b-mark--icon { font-size: clamp(13px, 1.65cqi, 19px); }
+[data-template="clinical"] .kn-chrome-ico { font-size: clamp(13px, 1.65cqi, 18px); }
+[data-template="clinical"] .kn-chrome-lead { gap: .8em; }
+[data-template="clinical"] .kn-b-text b { font-weight: 600; color: var(--text); }
+
+/* ── Layout: title / end ──────────────────────────────────────────────────── */
+[data-layout="title"] .kn-frame,
+[data-layout="end"] .kn-frame { align-content: center; }
+[data-template="clinical"] [data-layout="title"] .kn-frame,
+[data-template="clinical"] [data-layout="end"] .kn-frame { align-content: center; }
+[data-template="editorial"] [data-layout="title"] .kn-title { max-width: 15ch; font-size: clamp(30px, 6.4cqi, 80px); }
+[data-template="deck"] [data-layout="title"] .kn-title { font-size: clamp(26px, 5cqi, 62px); }
+
+/* ── Layout: section ──────────────────────────────────────────────────────── */
+.kn-sec-index { display: block; color: var(--accent); }
+[data-template="editorial"] [data-layout="section"] .kn-frame { align-content: center; row-gap: 1.4cqi; }
+[data-template="editorial"] .kn-sec-index {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: clamp(12px, 1.5cqi, 18px); letter-spacing: .14em;
+}
+[data-template="editorial"] [data-layout="section"] .kn-title { max-width: 13ch; }
+[data-template="deck"] [data-layout="section"] .kn-frame { align-content: center; row-gap: 2cqi; }
+[data-template="deck"] .kn-sec-index {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: clamp(30px, 7.5cqi, 96px); line-height: 1; font-weight: 500;
+  /* màu nhạt bằng color-mix, không dùng opacity: animation `both` sẽ ghi đè opacity */
+  color: color-mix(in srgb, var(--accent) 34%, transparent);
+}
+[data-template="clinical"] [data-layout="section"] .kn-frame,
+[data-template="clinical"] [data-layout="stat"] .kn-frame,
+[data-template="clinical"] [data-layout="quote"] .kn-frame { align-content: center; }
+[data-template="clinical"] .kn-sec-index {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: clamp(11px, 1.3cqi, 15px); letter-spacing: .12em; margin-bottom: .8cqi;
+}
+[data-template="clinical"] [data-layout="section"] .kn-title {
+  border-bottom: 0; border-top: 2px solid var(--accent); padding: 1.4cqi 0 0;
+}
+
+/* ── Layout: two-col ──────────────────────────────────────────────────────── */
+.kn-cols { display: grid; gap: 3cqi; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.kn-col-head { margin: 0 0 1.2cqi; color: var(--text); }
+[data-template="editorial"] .kn-col-head {
+  font-family: var(--font-source-serif), Georgia, serif; font-weight: 600; font-style: italic;
+  font-size: clamp(13px, 2cqi, 24px);
+  padding-bottom: .8cqi; border-bottom: 1px solid var(--line2);
+}
+[data-template="editorial"] .kn-cols .kn-bullets { row-gap: 1.3cqi; max-width: none; }
+[data-template="deck"] .kn-cols { gap: 1.8cqi; }
+[data-template="deck"] .kn-col {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 2.4cqi 2.6cqi; text-align: left;
+}
+[data-template="deck"] .kn-col-head {
+  font-size: clamp(12px, 1.75cqi, 21px); font-weight: 600; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: .7em;
+}
+[data-template="deck"] .kn-col-head::before {
+  content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); flex: none;
+}
+[data-template="deck"] .kn-cols .kn-bullets { grid-template-columns: minmax(0, 1fr); gap: 1cqi; }
+[data-template="deck"] .kn-cols .kn-bullets li {
+  background: none; border: 0; border-left: 0; padding: 0;
+  grid-template-columns: auto 1fr; column-gap: 1cqi;
+}
+[data-template="deck"] .kn-cols .kn-b-mark { color: var(--accent); }
+[data-template="clinical"] .kn-cols { gap: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+[data-template="clinical"] .kn-col { padding-right: 2.4cqi; }
+[data-template="clinical"] .kn-col + .kn-col {
+  border-left: 1px solid var(--line2); padding-left: 2.4cqi; padding-right: 0;
+}
+[data-template="clinical"] .kn-col-head {
+  font-family: var(--font-plex-mono), ui-monospace, monospace; font-weight: 500;
+  font-size: clamp(10px, 1.25cqi, 14px); letter-spacing: .02em; color: var(--accent);
+  padding-bottom: .9cqi; border-bottom: 1px solid var(--line);
+}
+
+/* ── Layout: image (phim luôn là nền tối — đúng tinh thần phim X-quang) ───── */
+.kn-media { display: grid; gap: 2.6cqi; grid-template-columns: 1.18fr 1fr; align-items: start; }
+.kn-film {
+  margin: 0; border-radius: 10px; overflow: hidden;
+  background: var(--kn-film-bg); border: 1px solid var(--kn-film-line);
+}
+.kn-film img { display: block; width: 100%; height: auto; }
+/* Ảnh đã bị xoá khỏi ghi chú: ô phim vẫn còn, slide không vỡ. */
+.kn-film-missing {
+  display: grid; place-items: center; min-height: 18cqi; padding: 3cqi;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: clamp(9px, 1.15cqi, 13px); line-height: 1.5; text-align: center;
+  color: rgba(255, 255, 255, .62);
+}
+.kn-cap { color: var(--muted); }
+[data-template="editorial"] .kn-cap {
+  font-family: var(--font-source-serif), Georgia, serif; font-style: italic;
+  font-size: clamp(11px, 1.45cqi, 18px); line-height: 1.45; margin-top: 1.2cqi;
+}
+[data-template="editorial"] .kn-media .kn-bullets { row-gap: 1.3cqi; }
+[data-template="deck"] .kn-media { text-align: left; }
+[data-template="deck"] .kn-media .kn-bullets { grid-template-columns: minmax(0, 1fr); gap: 1.2cqi; }
+[data-template="deck"] .kn-cap {
+  font-size: clamp(10px, 1.3cqi, 16px); margin-top: 1.1cqi; line-height: 1.45;
+}
+[data-template="clinical"] .kn-media { grid-template-columns: 1fr 1fr; gap: 2.4cqi; }
+[data-template="clinical"] .kn-cap {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: clamp(9px, 1.1cqi, 13px); line-height: 1.5; margin-top: 1cqi;
+  border-top: 1px solid var(--line); padding-top: .9cqi;
+}
+
+/* ── Layout: quote ────────────────────────────────────────────────────────── */
+.kn-quote { margin: 0; display: grid; row-gap: 2cqi; }
+.kn-q-text { margin: 0; color: var(--text); text-wrap: balance; }
+.kn-q-at { color: var(--muted); }
+[data-template="editorial"] .kn-quote { border-left: 2px solid var(--accent); padding-left: 3cqi; }
+[data-template="editorial"] .kn-q-text {
+  font-family: var(--font-source-serif), Georgia, serif; font-size: clamp(18px, 3.5cqi, 44px);
+  line-height: 1.22; letter-spacing: -.018em; max-width: 24ch;
+}
+[data-template="editorial"] .kn-q-at {
+  font-family: var(--font-source-serif), Georgia, serif; font-style: italic;
+  font-size: clamp(12px, 1.6cqi, 20px);
+}
+[data-template="deck"] .kn-quote { justify-items: center; text-align: center; }
+[data-template="deck"] .kn-q-text {
+  font-family: var(--font-source-serif), Georgia, serif; font-weight: 400;
+  font-size: clamp(17px, 3.3cqi, 42px); line-height: 1.26; max-width: 26ch;
+  letter-spacing: -.012em;
+}
+[data-template="deck"] .kn-q-at {
+  font-size: clamp(11px, 1.4cqi, 17px); font-weight: 500;
+  padding-top: 1.4cqi; border-top: 2px solid var(--accent);
+}
+[data-template="clinical"] .kn-q-text {
+  font-family: var(--font-source-serif), Georgia, serif; font-size: clamp(15px, 2.5cqi, 32px);
+  line-height: 1.3; max-width: 28ch;
+  padding: 1.6cqi 0; border-top: 1px solid var(--line2); border-bottom: 1px solid var(--line2);
+}
+[data-template="clinical"] .kn-q-at {
+  font-family: var(--font-plex-mono), ui-monospace, monospace; font-size: clamp(9px, 1.15cqi, 13px);
+}
+
+/* ── Layout: stat ─────────────────────────────────────────────────────────── */
+.kn-stat { display: grid; row-gap: 1.2cqi; }
+.kn-stat-value { line-height: .92; color: var(--accent); letter-spacing: -.03em; }
+.kn-stat-label { color: var(--text); }
+.kn-stat-support { margin: 0; color: var(--muted); }
+[data-template="editorial"] .kn-stat-value {
+  font-family: var(--font-source-serif), Georgia, serif; font-weight: 600; font-size: clamp(56px, 15cqi, 190px);
+}
+[data-template="editorial"] .kn-stat-label {
+  font-family: var(--font-source-serif), Georgia, serif; font-size: clamp(15px, 2.4cqi, 30px);
+  max-width: 24ch; line-height: 1.25;
+}
+[data-template="editorial"] .kn-stat-support {
+  font-family: var(--font-source-serif), Georgia, serif; font-size: clamp(12px, 1.65cqi, 20px);
+  max-width: 46ch; line-height: 1.5; color: var(--muted);
+}
+[data-template="deck"] .kn-stat { justify-items: center; text-align: center; }
+[data-template="deck"] .kn-stat-value {
+  font-weight: 600; font-size: clamp(50px, 13cqi, 168px);
+}
+[data-template="deck"] .kn-stat-label {
+  font-size: clamp(14px, 2.1cqi, 26px); font-weight: 600; letter-spacing: -.01em; max-width: 24ch;
+}
+[data-template="deck"] .kn-stat-support {
+  font-size: clamp(11px, 1.5cqi, 18px); max-width: 46ch; line-height: 1.5;
+}
+[data-template="clinical"] .kn-stat {
+  grid-template-columns: auto minmax(0, 1fr); column-gap: 3cqi; align-items: center;
+}
+[data-template="clinical"] .kn-stat-value {
+  font-family: var(--font-plex-mono), ui-monospace, monospace; font-weight: 500;
+  font-size: clamp(38px, 9cqi, 112px); grid-row: 1 / span 2;
+  padding-right: 3cqi; border-right: 1px solid var(--line2);
+}
+[data-template="clinical"] .kn-stat-label {
+  font-size: clamp(13px, 1.9cqi, 24px); font-weight: 600; max-width: 24ch;
+}
+[data-template="clinical"] .kn-stat-support {
+  font-size: clamp(10px, 1.4cqi, 17px); max-width: 44ch; line-height: 1.5;
+}
+
+/* ══ CHUYỂN ĐỘNG ══════════════════════════════════════════════════════════ */
+.kn-slide > * { animation: none; }
+.kn-slide [data-anim] {
+  animation: knPartIn .52s var(--ease) both;
+  animation-delay: calc(var(--d, 0) * 72ms + 130ms);
+}
+@keyframes knPartIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Biên tập — trang giở lên */
+[data-template="editorial"] .kn-slide.kn-enter { animation: knEdIn .44s var(--ease) both; }
+[data-template="editorial"] .kn-slide.kn-leaving { animation: knEdOut .3s ease-in both; }
+@keyframes knEdIn  { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes knEdOut { to   { opacity: 0; transform: translateY(-14px); } }
+
+/* Thuyết trình — đẩy ngang */
+[data-template="deck"] .kn-slide.kn-enter { animation: knDkIn .44s var(--ease) both; }
+[data-template="deck"] .kn-slide.kn-leaving { animation: knDkOut .3s cubic-bezier(.4, 0, 1, 1) both; }
+@keyframes knDkIn  { from { opacity: 0; transform: translateX(calc(var(--dir, 1) * 7%)) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes knDkOut { to   { opacity: 0; transform: translateX(calc(var(--dir, 1) * -5%)) scale(.985); } }
+[data-template="deck"] .kn-slide [data-anim] { animation-duration: .44s; }
+
+/* Bệnh án — phiếu in ra, không trượt */
+[data-template="clinical"] .kn-slide.kn-enter { animation: knClIn .4s var(--ease) both; }
+[data-template="clinical"] .kn-slide.kn-leaving { animation: knClOut .22s linear both; }
+@keyframes knClIn  { from { opacity: 0; clip-path: inset(0 0 14% 0); } to { opacity: 1; clip-path: inset(0 0 0 0); } }
+@keyframes knClOut { to { opacity: 0; } }
+[data-template="clinical"] .kn-slide [data-anim] {
+  animation-name: knRowIn; animation-duration: .36s;
+  animation-delay: calc(var(--d, 0) * 52ms + 90ms);
+}
+@keyframes knRowIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* ── Nhịp vào riêng cho từng layout — chỉ ở mức "Đầy đủ" ─────────────────── */
+/* Kỷ luật chung: ≤ .44s, một easing duy nhất, không nảy, không xoay. */
+[data-motion="full"] [data-layout="stat"] .kn-stat-value[data-anim] {
+  animation-name: knStatIn; animation-duration: .42s;
+}
+[data-motion="full"] [data-layout="image"] .kn-film[data-anim] {
+  animation-name: knFilmIn; animation-duration: .44s;
+}
+/* two-col: cột phải vào lệch pha sau cột trái */
+[data-motion="full"] [data-layout="two-col"] .kn-cols > .kn-col:last-child[data-anim],
+[data-motion="full"] [data-layout="two-col"] .kn-cols > .kn-col:last-child [data-anim] {
+  animation-delay: calc(var(--d, 0) * 72ms + 260ms);
+}
+/* quote: chữ hiện dần theo dòng đọc */
+[data-motion="full"] [data-layout="quote"] .kn-q-text[data-anim] {
+  animation-name: none; opacity: 1;
+}
+[data-motion="full"] .kn-q-text .kn-w {
+  display: inline-block;
+  animation: knWordIn .34s var(--ease) both;
+  animation-delay: calc(var(--w, 0) * 24ms + 140ms);
+}
+@keyframes knStatIn { from { opacity: 0; transform: scale(.955); } to { opacity: 1; transform: none; } }
+@keyframes knFilmIn { from { opacity: 0; clip-path: inset(0 0 72% 0); } to { opacity: 1; clip-path: inset(0 0 0 0); } }
+@keyframes knWordIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+
+/* ── Mức "Nhẹ": chỉ mờ dần, không dịch chuyển ───────────────────────────── */
+[data-motion="subtle"] .kn-slide.kn-enter,
+[data-motion="subtle"] .kn-slide [data-anim] {
+  animation-name: knRowIn !important; animation-duration: .32s !important;
+}
+[data-motion="subtle"] .kn-slide.kn-leaving { animation-name: knClOut !important; }
+[data-motion="subtle"] .kn-q-text .kn-w { animation: none !important; opacity: 1 !important; }
+
+/* ── Mức "Tắt" ──────────────────────────────────────────────────────────── */
+[data-motion="none"] .kn-slide,
+[data-motion="none"] .kn-slide *,
+[data-motion="none"] .kn-bg,
+[data-motion="none"] .kn-bg::after {
+  animation: none !important; opacity: 1 !important;
+  transform: none !important; clip-path: none !important;
+}
+[data-motion="none"] .kn-slide.kn-leaving { display: none; }
+
+/* ══ THANH ĐIỀU KHIỂN ═════════════════════════════════════════════════════ */
+.kn-bar {
+  position: relative;
+  /* Phải lớn hơn mọi z-index bên trong sân khấu (`.kn-frame` 1, `.kn-chrome` 2,
+     `.kn-stage-progress` 4): `backdrop-filter` dưới đây tạo một stacking
+     context riêng, nên bảng tuỳ chọn nằm trong thanh này chỉ nổi lên được khi
+     chính thanh nổi lên. Thiếu dòng này, chữ của slide in đè lên mặt bảng. */
+  z-index: 5;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 22px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  transition: opacity .3s ease, transform .3s ease;
+}
+.kn-present[data-idle="true"] .kn-bar { opacity: 0; transform: translateY(6px); pointer-events: none; }
+
+.kn-counter {
+  font-family: var(--font-plex-mono), ui-monospace, monospace; font-size: 13px;
+  letter-spacing: .04em; color: var(--faint); padding: 0 6px;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.kn-counter b { color: var(--text); font-weight: 500; }
+
+/* Nút tròn chọn bộ màu: nửa nền / nửa accent của chính bộ đó. */
+.kn-kit {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 1px solid var(--line2); position: relative;
+  display: grid; place-items: center; overflow: hidden; padding: 0;
+  background: none; cursor: pointer;
+}
+.kn-kit i {
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--k-canvas) 0 50%, var(--k-accent) 50% 100%);
+}
+.kn-kit[aria-pressed="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+.kn-kit[data-kit="mint"]     { --k-canvas: #f6f6f3; --k-accent: #17756b; }
+.kn-kit[data-kit="midnight"] { --k-canvas: #eef0f6; --k-accent: #3a44a0; }
+.kn-kit[data-kit="paper"]    { --k-canvas: #f2ece1; --k-accent: #221f1a; }
+.kn-kit[data-kit="clinic"]   { --k-canvas: #edf1f3; --k-accent: #0f6c9c; }
+
+/* Ô xem trước của 20 nền: `container-type` để `cqi` thu nhỏ theo ô, nhờ vậy
+   đúng một bộ CSS vẽ cả nền thật lẫn ô xem trước. */
+.kn-bg-swatch {
+  position: relative; container-type: inline-size;
+  aspect-ratio: 16 / 9; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface);
+  padding: 0; cursor: pointer;
+}
+.kn-bg-swatch[aria-pressed="true"] { border-color: var(--accent); outline: 1px solid var(--accent); }
+
+/* Thanh dưới 1280px đã chật: bỏ dòng gợi ý phím, giữ lại nút. */
+@media (width < 1280px) { .kn-hint { display: none; } }
+
+/* ══ DƯỚI 820px — breakpoint duy nhất của app ════════════════════════════ */
+@media (width < 820px) {
+  .kn-stage-wrap { padding: 12px 12px 0; align-items: stretch; }
+  .kn-stage {
+    aspect-ratio: auto; height: 100%; max-width: none;
+    border-radius: 12px;
+  }
+  [data-template="editorial"] .kn-frame { padding: 7cqi 6cqi 7cqi calc(11.5cqi + 4cqi); }
+  [data-template="deck"] .kn-frame { padding: calc(7.2cqi + 6cqi) 5cqi 6cqi; }
+  [data-template="deck"] .kn-bullets { grid-template-columns: minmax(0, 1fr); }
+  [data-template="clinical"] .kn-frame {
+    grid-template-columns: minmax(0, 1fr); row-gap: 2.4cqi;
+    padding: calc(6.4cqi + 5cqi) 5cqi 5cqi;
+  }
+  [data-template="clinical"] .kn-frame > * { grid-column: 1; }
+  [data-template="clinical"] .kn-kicker { grid-row: auto; border-top-width: 2px; }
+  [data-template="clinical"] .kn-stat { grid-template-columns: minmax(0, 1fr); row-gap: 1.6cqi; }
+  [data-template="clinical"] .kn-stat-value { grid-row: auto; border-right: 0; padding-right: 0; }
+  .kn-cols, .kn-media { grid-template-columns: minmax(0, 1fr) !important; gap: 3.4cqi; }
+  [data-template="clinical"] .kn-col + .kn-col {
+    border-left: 0; border-top: 1px solid var(--line2);
+    padding-left: 0; padding-top: 2.4cqi;
+  }
+  :is([data-layout="bullets"], [data-layout="two-col"], [data-layout="image"]) .kn-frame {
+    align-content: start;
+  }
+  .kn-bar { padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); gap: 8px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kn-present *,
+  .kn-present *::before,
+  .kn-present *::after {
+    animation-duration: .001ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: .001ms !important;
+  }
+  .kn-slide [data-anim],
+  .kn-slide.kn-enter,
+  .kn-q-text .kn-w {
+    opacity: 1 !important; transform: none !important; clip-path: none !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HAI MƯƠI NỀN
+   ──────────────────────────────────────────────────────────────────────────
+   • Không hard-code mã màu. Mọi màu suy ra từ `--text` / `--accent` qua
+     `color-mix(in oklab, …)` — nền tự đổi theo bộ màu và theme.
+   • Thang độ đậm `--t1…--t4` (chữ) và `--a1…--a3` (accent) khai báo một lần ở
+     `.kn-bg`, HẠ XUỐNG ~60% trong dark mode.
+   • SVG inline (data-URI) chỉ làm MẶT NẠ luminance: hình trắng/đen, màu thật
+     vẫn lấy từ token. Không animation, không ảnh raster, không nguồn ngoài.
+   • Chữ là số một: hầu hết mẫu có mặt nạ gradient làm sạch vùng giữa.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.kn-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  --t1: color-mix(in oklab, var(--text) 4%,  transparent);
+  --t2: color-mix(in oklab, var(--text) 7%,  transparent);
+  --t3: color-mix(in oklab, var(--text) 11%, transparent);
+  --t4: color-mix(in oklab, var(--text) 16%, transparent);
+  --a1: color-mix(in oklab, var(--accent) 7%,  transparent);
+  --a2: color-mix(in oklab, var(--accent) 13%, transparent);
+  --a3: color-mix(in oklab, var(--accent) 22%, transparent);
+}
+.kn-bg::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+
+/* Dark: nền tối khuếch đại mọi vệt sáng → hạ toàn thang xuống ~60%. */
+[data-theme="dark"] .kn-bg {
+  --t1: color-mix(in oklab, var(--text) 2.5%, transparent);
+  --t2: color-mix(in oklab, var(--text) 4.5%, transparent);
+  --t3: color-mix(in oklab, var(--text) 7%,   transparent);
+  --t4: color-mix(in oklab, var(--text) 10%,  transparent);
+  --a1: color-mix(in oklab, var(--accent) 5%,  transparent);
+  --a2: color-mix(in oklab, var(--accent) 9%,  transparent);
+  --a3: color-mix(in oklab, var(--accent) 15%, transparent);
+}
+
+/* ════════════════ NHÓM A — CHỈ CHẠM Ở RÌA (8 mẫu) ════════════════════════ */
+
+/* 1 · corner-brackets — bốn dấu ngoặc góc kiểu dấu cắt nhà in. */
+.kn-bg[data-pattern="corner-brackets"] {
+  background-image:
+    linear-gradient(var(--t3), var(--t3)), linear-gradient(var(--t3), var(--t3)),
+    linear-gradient(var(--t3), var(--t3)), linear-gradient(var(--t3), var(--t3)),
+    linear-gradient(var(--t3), var(--t3)), linear-gradient(var(--t3), var(--t3)),
+    linear-gradient(var(--t3), var(--t3)), linear-gradient(var(--t3), var(--t3));
+  background-size:
+    6.5cqi 1px, 1px 6.5cqi, 6.5cqi 1px, 1px 6.5cqi,
+    6.5cqi 1px, 1px 6.5cqi, 6.5cqi 1px, 1px 6.5cqi;
+  background-position:
+    left 3.6cqi top 3.6cqi, left 3.6cqi top 3.6cqi,
+    right 3.6cqi top 3.6cqi, right 3.6cqi top 3.6cqi,
+    left 3.6cqi bottom 3.6cqi, left 3.6cqi bottom 3.6cqi,
+    right 3.6cqi bottom 3.6cqi, right 3.6cqi bottom 3.6cqi;
+  background-repeat: no-repeat;
+}
+/* Một chấm accent nhỏ ở góc trên-trái: điểm neo mắt, không chen vào chữ. */
+.kn-bg[data-pattern="corner-brackets"]::after {
+  background-image: radial-gradient(circle at 3.6cqi 3.6cqi, var(--a3) 0 .5cqi, transparent .55cqi);
+  background-repeat: no-repeat;
+}
+
+/* 2 · edge-ticks — thước chia vạch chạy sát mép trên và mép dưới. */
+.kn-bg[data-pattern="edge-ticks"] {
+  background-image:
+    repeating-linear-gradient(to right, var(--t3) 0 1px, transparent 1px 1.25cqi),
+    repeating-linear-gradient(to right, var(--t4) 0 1px, transparent 1px 6.25cqi),
+    repeating-linear-gradient(to right, var(--t3) 0 1px, transparent 1px 1.25cqi),
+    repeating-linear-gradient(to right, var(--t4) 0 1px, transparent 1px 6.25cqi);
+  background-size: 100% 1.3cqi, 100% 2.9cqi, 100% 1.3cqi, 100% 2.9cqi;
+  background-position: 0 0, 0 0, 0 100%, 0 100%;
+  background-repeat: no-repeat;
+}
+
+/* 3 · margin-rule — lề sổ tay: hai nét dọc bên trái, một nét chân trang. */
+.kn-bg[data-pattern="margin-rule"] {
+  background-image:
+    linear-gradient(var(--a3), var(--a3)),
+    linear-gradient(var(--t2), var(--t2)),
+    linear-gradient(var(--t2), var(--t2));
+  background-size: 1px 100%, 1px 100%, 100% 1px;
+  background-position: 9.2cqi 0, 10.1cqi 0, 0 calc(100% - 4.4cqi);
+  background-repeat: no-repeat;
+}
+
+/* 4 · frame-inset — khung chỉ mảnh thụt vào, bốn góc có ô vuông accent. */
+.kn-bg[data-pattern="frame-inset"] {
+  background-image:
+    linear-gradient(var(--t3), var(--t3)), linear-gradient(var(--t3), var(--t3)),
+    linear-gradient(var(--t3), var(--t3)), linear-gradient(var(--t3), var(--t3));
+  background-size: calc(100% - 7cqi) 1px, calc(100% - 7cqi) 1px, 1px calc(100% - 7cqi), 1px calc(100% - 7cqi);
+  background-position: 3.5cqi 3.5cqi, 3.5cqi calc(100% - 3.5cqi), 3.5cqi 3.5cqi, calc(100% - 3.5cqi) 3.5cqi;
+  background-repeat: no-repeat;
+}
+.kn-bg[data-pattern="frame-inset"]::after {
+  background-image:
+    radial-gradient(circle at 3.5cqi 3.5cqi, var(--a3) 0 .45cqi, transparent .5cqi),
+    radial-gradient(circle at calc(100% - 3.5cqi) 3.5cqi, var(--a3) 0 .45cqi, transparent .5cqi),
+    radial-gradient(circle at 3.5cqi calc(100% - 3.5cqi), var(--a3) 0 .45cqi, transparent .5cqi),
+    radial-gradient(circle at calc(100% - 3.5cqi) calc(100% - 3.5cqi), var(--a3) 0 .45cqi, transparent .5cqi);
+  background-repeat: no-repeat;
+}
+
+/* 5 · corner-contour — đường bình độ dồn ở góc dưới-phải, tan dần vào trang. */
+.kn-bg[data-pattern="corner-contour"] {
+  background: var(--t4);
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'%3E%3Crect width='240' height='240'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.4'%3E%3Cpath id='c' d='M-20 236C34 202 22 152 74 128S154 134 190 92 240 32 266 22'/%3E%3Cuse href='%23c' y='-27'/%3E%3Cuse href='%23c' y='-54'/%3E%3Cuse href='%23c' y='-81'/%3E%3Cuse href='%23c' y='-108'/%3E%3Cuse href='%23c' y='-135'/%3E%3Cuse href='%23c' y='-162'/%3E%3C/g%3E%3C/svg%3E"),
+    radial-gradient(circle at 100% 100%, #000 0 26%, transparent 62%);
+  mask-mode: luminance, alpha;
+  mask-repeat: no-repeat, no-repeat;
+  mask-size: 62cqi 62cqi, 100% 100%;
+  mask-position: right -4cqi bottom -4cqi, 0 0;
+  mask-composite: intersect;
+}
+
+/* 6 · corner-fan — nan quạt tia mảnh toả từ góc trên-trái, nhạt dần. */
+.kn-bg[data-pattern="corner-fan"] {
+  background-image: repeating-conic-gradient(from -1deg at -2% -3%,
+    var(--t4) 0 .3deg, transparent .3deg 3.2deg);
+  mask-image: radial-gradient(circle at 0 0, #000 0 18%, transparent 56%);
+}
+
+/* 7 · side-pinstripe — mành kẻ dọc rất mảnh ở hai bên, mờ hẳn vào giữa. */
+.kn-bg[data-pattern="side-pinstripe"] {
+  background-image: repeating-linear-gradient(to right, var(--t3) 0 1px, transparent 1px 7px);
+  mask-image: linear-gradient(to right, #000 0, transparent 20%, transparent 80%, #000 100%);
+}
+
+/* 8 · edge-weave — vân dệt chéo rất nhỏ thành dải ở mép trên và mép dưới. */
+.kn-bg[data-pattern="edge-weave"] {
+  background-image:
+    repeating-linear-gradient(45deg,  var(--t2) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(-45deg, var(--t2) 0 1px, transparent 1px 6px);
+  mask-image: linear-gradient(to bottom, #000 0, transparent 24%, transparent 76%, #000 100%);
+}
+
+/* ═══════════ NHÓM B — VÂN PHỦ TOÀN TRANG, LÀM SẠCH VÙNG GIỮA (12 mẫu) ════ */
+
+/* 9 · paper-fiber — sớ giấy dó: nhiễu mịn, vignette ngược để giữa trang sạch.
+   Nhiễu luminance trung bình chỉ ~50% nên màu gốc phải đậm hơn thang chung. */
+.kn-bg[data-pattern="paper-fiber"] {
+  background: color-mix(in oklab, var(--text) 30%, transparent);
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.45' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23f)'/%3E%3C/svg%3E"),
+    radial-gradient(116% 106% at 50% 46%, transparent 0 20%, #000 72%);
+  mask-mode: luminance, alpha;
+  mask-repeat: repeat, no-repeat;
+  mask-size: 140px 140px, 100% 100%;
+  mask-composite: intersect;
+}
+/* Nhiễu sáng trên nền tối "cháy" mạnh hơn nhiều → hạ còn khoảng một phần ba. */
+[data-theme="dark"] .kn-bg[data-pattern="paper-fiber"] {
+  background: color-mix(in oklab, var(--text) 11%, transparent);
+}
+
+/* 10 · linen-weave — sớ vải lanh: lưới dệt siêu mịn, độ dày không đều. */
+.kn-bg[data-pattern="linen-weave"] {
+  background-image:
+    repeating-linear-gradient(to bottom, var(--t4) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(to right,  var(--t3) 0 1px, transparent 1px 3px);
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.03' numOctaves='3'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23f)'/%3E%3C/svg%3E"),
+    radial-gradient(118% 108% at 50% 50%, transparent 0 18%, #000 74%);
+  mask-mode: luminance, alpha;
+  mask-repeat: repeat, no-repeat;
+  mask-size: 70cqi 70cqi, 100% 100%;
+  mask-composite: intersect;
+}
+
+/* 11 · terrain-contour — "đảo" bình độ đồng tâm lệch về phải, như bản đồ địa hình. */
+.kn-bg[data-pattern="terrain-contour"] {
+  background: var(--t4);
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'%3E%3Crect width='300' height='300'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.6' transform='translate(150 150) rotate(-16)'%3E%3Cellipse rx='20' ry='13'/%3E%3Cellipse rx='38' ry='26'/%3E%3Cellipse rx='57' ry='40'/%3E%3Cellipse rx='78' ry='55'/%3E%3Cellipse rx='101' ry='72'/%3E%3Cellipse rx='126' ry='90'/%3E%3Cellipse rx='153' ry='110'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(to left, #000 0, transparent 68%);
+  mask-mode: luminance, alpha;
+  mask-repeat: no-repeat, no-repeat;
+  mask-size: 78cqi 78cqi, 100% 100%;
+  mask-position: right -16cqi center, 0 0;
+  mask-composite: intersect;
+}
+
+/* 12 · wave-field — chồng sóng mảnh ở nửa dưới, như mặt nước rất tĩnh. */
+.kn-bg[data-pattern="wave-field"] {
+  background: var(--t4);
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 120'%3E%3Crect width='180' height='120'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='1.3'%3E%3Cpath id='w' d='M0 16q15-12 30 0t30 0t30 0t30 0t30 0t30 0'/%3E%3Cuse href='%23w' y='17'/%3E%3Cuse href='%23w' y='34'/%3E%3Cuse href='%23w' y='51'/%3E%3Cuse href='%23w' y='68'/%3E%3Cuse href='%23w' y='85'/%3E%3C/g%3E%3C/svg%3E"),
+    linear-gradient(to bottom, transparent 0 58%, #000 97%);
+  mask-mode: luminance, alpha;
+  mask-repeat: repeat-x, no-repeat;
+  mask-size: 56cqi 32cqi, 100% 100%;
+  mask-position: 0 100%, 0 0;
+  mask-composite: intersect;
+}
+
+/* 13 · ecg-baseline — một đường điện tim accent chạy thấp, hai đầu tan vào lề. */
+.kn-bg[data-pattern="ecg-baseline"] {
+  background: var(--a3);
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 100'%3E%3Crect width='300' height='100'/%3E%3Cpath d='M0 50h60q6-9 12 0h14l5 12 6-42 6 36 5-6h12q10-16 20 0h160' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E"),
+    linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%);
+  mask-mode: luminance, alpha;
+  mask-repeat: repeat-x, no-repeat;
+  mask-size: 46cqi 15cqi, 100% 100%;
+  mask-position: 0 82%, 0 0;
+  mask-composite: intersect;
+}
+/* Nét kẻ chân rất mờ chạy hết chiều ngang, neo đường điện tim vào trang. */
+.kn-bg[data-pattern="ecg-baseline"]::after {
+  background-image: linear-gradient(var(--t1), var(--t1));
+  background-size: 100% 1px;
+  background-position: 0 calc(82% + 7.5cqi);
+  background-repeat: no-repeat;
+}
+
+/* 14 · concentric-arc — vòng tròn đồng tâm tâm ngoài mép phải, mờ dần về giữa. */
+.kn-bg[data-pattern="concentric-arc"] {
+  background-image: repeating-radial-gradient(circle at 106% 50%,
+    transparent 0 3.4cqi, var(--t3) 3.4cqi calc(3.4cqi + 1px));
+  mask-image: linear-gradient(to left, #000 0, transparent 66%);
+}
+
+/* 15 · halftone-drift — chấm bán sắc thưa dần: dày ở góc dưới-phải, sạch ở trên-trái. */
+.kn-bg[data-pattern="halftone-drift"] {
+  background-image: radial-gradient(var(--t3) 1.5px, transparent 1.7px);
+  background-size: 15px 15px;
+  mask-image: linear-gradient(142deg, transparent 0 48%, #000 100%);
+}
+/* Lớp chấm to hơn chỉ nằm sát góc → cảm giác chuyển sắc, không phải lưới đều. */
+.kn-bg[data-pattern="halftone-drift"]::after {
+  background-image: radial-gradient(var(--t2) 2.6px, transparent 2.9px);
+  background-size: 29px 29px;
+  mask-image: radial-gradient(circle at 104% 108%, #000 0 22%, transparent 56%);
+}
+
+/* 16 · mesh-wash — gradient mesh dịu: ba vệt màu rất nhạt ở ba góc, giữa trống. */
+.kn-bg[data-pattern="mesh-wash"] {
+  background-image:
+    radial-gradient(62cqi 46cqi at 6% 2%,   var(--a2) 0, transparent 72%),
+    radial-gradient(54cqi 42cqi at 98% 12%, var(--t2) 0, transparent 72%),
+    radial-gradient(76cqi 52cqi at 46% 116%, var(--a1) 0, transparent 70%);
+}
+
+/* 17 · color-block — một khối accent lớn rất nhạt chéo góc dưới-phải, viền chỉ mảnh. */
+.kn-bg[data-pattern="color-block"] {
+  background-image:
+    linear-gradient(116deg, transparent 0 61.8%, var(--a3) 61.8% 62%, transparent 62%),
+    linear-gradient(116deg, transparent 0 62%, var(--a1) 62% 100%);
+}
+
+/* 18 · radiograph-grid — lưới toạ độ kiểu phim X-quang: ô nhỏ + ô lớn, bốn góc tối. */
+.kn-bg[data-pattern="radiograph-grid"] {
+  background-image:
+    repeating-linear-gradient(to right,  var(--t2) 0 1px, transparent 1px 2.6cqi),
+    repeating-linear-gradient(to bottom, var(--t2) 0 1px, transparent 1px 2.6cqi),
+    repeating-linear-gradient(to right,  var(--t4) 0 1px, transparent 1px 13cqi),
+    repeating-linear-gradient(to bottom, var(--t4) 0 1px, transparent 1px 13cqi);
+  mask-image: radial-gradient(126% 114% at 50% 50%, transparent 0 26%, #000 80%);
+}
+/* Vignette ngược: bốn góc đậm nhẹ, giữa trang hoàn toàn sạch. */
+.kn-bg[data-pattern="radiograph-grid"]::after {
+  background-image: radial-gradient(130% 118% at 50% 50%, transparent 0 42%, var(--t2) 100%);
+}
+
+/* 19 · stone-vein — vân đá mài: mảng loang lớn, rất mờ, không có hoạ tiết lặp.
+   feComponentTransfer gamma kéo giãn tương phản để thành vân, không thành nhiễu phẳng. */
+.kn-bg[data-pattern="stone-vein"] {
+  background: color-mix(in oklab, var(--text) 34%, transparent);
+  mask-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.008 .035' numOctaves='3' seed='7'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='gamma' exponent='3'/%3E%3CfeFuncG type='gamma' exponent='3'/%3E%3CfeFuncB type='gamma' exponent='3'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23f)'/%3E%3C/svg%3E"),
+    radial-gradient(122% 110% at 50% 50%, transparent 0 20%, #000 78%);
+  mask-mode: luminance, alpha;
+  mask-repeat: no-repeat, no-repeat;
+  mask-size: 160% 160%, 100% 100%;
+  mask-position: center, center;
+  mask-composite: intersect;
+}
+[data-theme="dark"] .kn-bg[data-pattern="stone-vein"] {
+  background: color-mix(in oklab, var(--text) 15%, transparent);
+}
+
+/* 20 · bokeh-soft — vài vòng sáng rất nhoè nằm ở rìa, chưa bao giờ chạm vùng chữ. */
+.kn-bg[data-pattern="bokeh-soft"] {
+  background-image:
+    radial-gradient(circle 15cqi at 8% 88%,  var(--a2) 0 54%, transparent 74%),
+    radial-gradient(circle 9cqi  at 25% 101%, var(--t3) 0 56%, transparent 76%),
+    radial-gradient(circle 19cqi at 96% 10%, var(--a1) 0 56%, transparent 78%),
+    radial-gradient(circle 7cqi  at 78% 1%,  var(--t2) 0 56%, transparent 76%),
+    radial-gradient(circle 11cqi at 101% 72%, var(--t2) 0 54%, transparent 76%);
+}

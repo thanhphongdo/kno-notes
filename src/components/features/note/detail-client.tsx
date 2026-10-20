@@ -4,11 +4,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import {
-  HighlightPopup, ImageGrid, Lightbox, PriorityPill, Prose, SectionLabel, TagChip, VersionBanner,
+  HighlightPopup, ImageGrid, Lightbox, PresentationCta, PresentationViewer, PriorityPill, Prose,
+  SectionLabel, TagChip, VersionBanner,
 } from '@/components/shared';
 import { Icon, useToast } from '@/components/ui';
 import { QuizController } from '@/components/features/quiz/quiz-controller';
+import { useTheme } from '@/components/providers/theme-provider';
 import { useHighlight } from '@/hooks/use-highlight';
+import { hasSlides } from '@/lib/presentation/view';
+import { countUsableQuestions } from '@/lib/quiz/lengths';
 import { fmt, rel } from '@/lib/text';
 import type { Note, NoteImage } from '@/lib/types';
 import { buildDashboardHref, dashboardPath, notePath } from '@/lib/nav/paths';
@@ -18,6 +22,11 @@ import { DetailRail } from './detail-rail';
 
 export interface DetailViewData {
   note: Note;
+  /**
+   * Lựa chọn trình chiếu của người xem lưu trong `localStorage`, và máy này có
+   * thể có nhiều người đăng nhập lần lượt — nên khoá phải scope theo userId.
+   */
+  userId: string;
   /** The selected version's content when `?v=` points at an old one, else `note.content`. */
   shownContent: string;
   viewingOld: boolean;
@@ -29,11 +38,16 @@ const INLINE_IMAGE_LABEL = 'Ảnh trong nội dung';
 
 /** Prototype lines 342-419 — the detail screen's article column. */
 export function DetailClient({ data }: { data: DetailViewData }) {
-  const { note, shownContent, viewingOld, selectedVersion, latestVersion } = data;
+  const { note, userId, shownContent, viewingOld, selectedVersion, latestVersion } = data;
   const router = useRouter();
   const { flash } = useToast();
   const [lightbox, setLightbox] = useState<{ images: NoteImage[]; index: number } | null>(null);
   const [quiz, setQuiz] = useState<{ reviewId: string | null } | null>(null);
+  const [presenting, setPresenting] = useState(false);
+  const { theme, setTheme } = useTheme();
+  // `undefined` (ghi chú tạo trước tính năng) và `null` (từng có rồi bị xoá)
+  // hiển thị như nhau: không có lối vào trình chiếu.
+  const presentation = hasSlides(note.presentation) ? note.presentation : null;
   const highlight = useHighlight({ noteId: note.id, content: shownContent, disabled: viewingOld });
 
   const selected = note.versions.find((v) => v.v === selectedVersion);
@@ -115,7 +129,15 @@ export function DetailClient({ data }: { data: DetailViewData }) {
             versionLabel={`v${latestVersion}`}
             disabled={viewingOld}
             onStartQuiz={() => setQuiz({ reviewId: null })}
+            onPresent={presentation ? () => setPresenting(true) : undefined}
           />
+
+          {presentation && !viewingOld ? (
+            <PresentationCta
+              slideCount={presentation.slides.length}
+              onStart={() => setPresenting(true)}
+            />
+          ) : null}
 
           {viewingOld && selected ? (
             <VersionBanner
@@ -169,7 +191,20 @@ export function DetailClient({ data }: { data: DetailViewData }) {
           noteTitle={note.title}
           attempts={note.quizzes}
           reviewAttemptId={quiz.reviewId}
+          questionTotal={countUsableQuestions(note.questions)}
           onClose={() => setQuiz(null)}
+        />
+      ) : null}
+
+      {presenting && presentation ? (
+        <PresentationViewer
+          presentation={presentation}
+          noteTitle={note.title}
+          images={note.images}
+          userId={userId}
+          theme={theme}
+          onThemeChange={setTheme}
+          onClose={() => setPresenting(false)}
         />
       ) : null}
 

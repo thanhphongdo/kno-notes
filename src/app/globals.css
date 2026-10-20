@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./presentation.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -79,6 +80,9 @@
   --z-highlight-popup: 80;
   --z-toast: 90;
   --z-quiz: 95;
+  --z-present: 96;
+  --z-present-backdrop: 97;
+  --z-present-panel: 98;
   --z-lightbox: 100;
 }
 

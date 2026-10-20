@@ -18,6 +18,11 @@ export interface DetailActionsProps {
   /** True while an old version is displayed: every mutation is off. */
   disabled: boolean;
   onStartQuiz: () => void;
+  /**
+   * Chỉ truyền khi ghi chú CÓ bộ slide. Thiếu nó là thiếu luôn cái nút — đúng
+   * yêu cầu "lối vào chỉ hiện khi ghi chú có bộ slide".
+   */
+  onPresent?: () => void;
 }
 
 /**
@@ -25,7 +30,7 @@ export interface DetailActionsProps {
  * four actions on the right) plus the inline delete confirmation underneath it.
  */
 export function DetailActions({
-  noteId, fav: initialFav, updatedLabel, versionLabel, disabled, onStartQuiz,
+  noteId, fav: initialFav, updatedLabel, versionLabel, disabled, onStartQuiz, onPresent,
 }: DetailActionsProps) {
   const router = useRouter();
   const { flash } = useToast();
@@ -85,6 +90,17 @@ export function DetailActions({
             disabled={disabled}
             onClick={() => setConfirming(true)}
           />
+          {onPresent ? (
+            <Button
+              variant="secondary"
+              onClick={onPresent}
+              disabled={disabled}
+              className="hover:border-accent hover:text-accent"
+            >
+              <Icon name="present" size={15} />
+              Trình chiếu
+            </Button>
+          ) : null}
           <Button
             variant="secondary"
             onClick={onStartQuiz}

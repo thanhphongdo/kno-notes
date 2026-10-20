@@ -10,8 +10,14 @@ export interface PopoverProps {
   children: ReactNode;
   /** `start` = left-0, `end` = right-0. */
   align?: 'start' | 'end';
-  /** Panel `top` in px. */
+  /** Khoảng cách từ trigger tới panel, tính bằng px. */
   offset?: number;
+  /**
+   * `below` = panel treo dưới trigger (`top: offset`) · `above` = treo trên
+   * (`bottom: offset`). Thanh điều khiển của chế độ trình chiếu nằm sát đáy
+   * màn hình nên bảng tuỳ chọn của nó chỉ có đường mở lên.
+   */
+  placement?: 'below' | 'above';
   width?: number;
   minWidth?: number;
   panelClassName?: string;
@@ -29,7 +35,7 @@ export interface PopoverProps {
  * prototype's exact `top: 48px; right: 0` offsets and z-index pairs.
  */
 export function Popover({
-  open, onOpenChange, trigger, children, align = 'end', offset = 48,
+  open, onOpenChange, trigger, children, align = 'end', offset = 48, placement = 'below',
   width, minWidth, panelClassName, backdropZ, panelZ, panelLabel, wrapperClassName,
 }: PopoverProps) {
   useEffect(() => {
@@ -64,7 +70,12 @@ export function Popover({
               align === 'end' ? 'right-0' : 'left-0',
               panelClassName,
             )}
-            style={{ top: offset, zIndex: panelZ, width, minWidth }}
+            style={{
+              ...(placement === 'above' ? { bottom: offset } : { top: offset }),
+              zIndex: panelZ,
+              width,
+              minWidth,
+            }}
           >
             {children}
           </div>

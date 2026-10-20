@@ -60,6 +60,7 @@ export default async function NoteDetailPage({ params, searchParams }: Params & 
     <DetailClient
       data={{
         note,
+        userId: session.id,
         shownContent: viewingOld && picked ? picked.content : note.content,
         viewingOld,
         selectedVersion: viewingOld && picked ? picked.v : latestVersion,

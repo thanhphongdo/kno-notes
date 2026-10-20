@@ -16,6 +16,10 @@ export const Z = {
   highlightPopup: 80,
   toast: 90,
   quiz: 95,
+  /** Chế độ trình chiếu: toàn màn hình, trên mọi chrome của app. */
+  present: 96,
+  presentBackdrop: 97,
+  presentPanel: 98,
   lightbox: 100,
 } as const;
 

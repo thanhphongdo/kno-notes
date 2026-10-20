@@ -37,6 +37,19 @@ export {
 } from './priority';
 export { NoteBriefRow, type NoteBriefRowProps } from './note-brief-row';
 export { OfflineStatus, offlineSummary, OFFLINE_TITLE, OFFLINE_SYNC_ACTION, type OfflineStatusProps } from './offline-status';
+export {
+  PresentationBar, type PresentationBarProps,
+} from './presentation-bar';
+export {
+  PresentationCta, PRESENTATION_CTA_ACTION, PRESENTATION_CTA_TITLE,
+  type PresentationCtaProps,
+} from './presentation-cta';
+export {
+  PresentationSlide, SLIDE_ICON, type PresentationSlideProps,
+} from './presentation-slide';
+export {
+  PresentationViewer, type PresentationViewerProps,
+} from './presentation-viewer';
 export { PromptBar, type PromptBarProps } from './prompt-bar';
 export { Prose, type ProseProps } from './prose';
 export { QuizFeedback, type QuizFeedbackProps } from './quiz-feedback';
