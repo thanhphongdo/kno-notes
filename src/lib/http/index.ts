@@ -13,6 +13,18 @@ export class HttpError extends Error {
   }
 }
 
+/**
+ * Lỗi này có đúng nghĩa "không có bản ghi" không?
+ *
+ * Dùng ở những nơi muốn biến 404 thành trang trống. Mọi lỗi KHÁC phải được ném
+ * tiếp: nuốt một lỗi đọc file rồi hiện "không tìm thấy ghi chú" là báo cho
+ * người dùng rằng bài của họ đã mất, trong khi nó vẫn còn nguyên — và nó cũng
+ * giấu luôn stack trace, thứ duy nhất cho biết hỏng ở đâu.
+ */
+export function isNotFound(e: unknown): boolean {
+  return e instanceof HttpError && e.status === 404;
+}
+
 /** Vỏ lỗi JSON dùng chung cho cả API nội bộ và `/api/v1`. */
 export function jsonError(status: number, code: string, message: string): Response {
   return Response.json({ error: { code, message } }, { status });

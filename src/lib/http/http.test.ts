@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { HttpError, jsonError, handle } from './index';
+import { HttpError, isNotFound, jsonError, handle } from './index';
 
 describe('jsonError', () => {
   it('uses the shared envelope and status', async () => {
@@ -59,5 +59,31 @@ describe('handle', () => {
     const body = await res.json();
     expect(body.error.code).toBe('INTERNAL');
     expect(body.error.message).not.toContain('hunter2');
+  });
+});
+
+describe('isNotFound', () => {
+  it('recognises the 404 a service throws when a record is absent', () => {
+    expect(isNotFound(new HttpError(404, 'NOT_FOUND', 'Không tìm thấy ghi chú.'))).toBe(true);
+  });
+
+  /**
+   * Đây mới là lý do hàm này tồn tại. Một trang nuốt mọi lỗi rồi hiện "không
+   * tìm thấy" là nói với người dùng rằng bài của họ không còn, trong khi thật
+   * ra bài vẫn nằm nguyên đó và chỉ là máy chủ đọc không được.
+   */
+  it('does NOT treat a storage or server failure as a missing record', () => {
+    expect(isNotFound(new Error('GitHub returned no content for data/users/u/notes/n1.json'))).toBe(
+      false,
+    );
+    expect(isNotFound(new HttpError(500, 'INTERNAL', 'Đã có lỗi xảy ra.'))).toBe(false);
+    expect(isNotFound(new HttpError(403, 'FORBIDDEN', 'Không có quyền.'))).toBe(false);
+  });
+
+  it('survives rubbish without throwing', () => {
+    expect(isNotFound(null)).toBe(false);
+    expect(isNotFound(undefined)).toBe(false);
+    expect(isNotFound('not found')).toBe(false);
+    expect(isNotFound({ status: 404 })).toBe(false);
   });
 });
