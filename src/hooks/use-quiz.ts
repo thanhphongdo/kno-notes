@@ -1,11 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import {
-  avoidFrom, initialQuizState, quizReducer, scoreOf, type QuizState,
+  avoidFrom, choosingQuizState, initialQuizState, quizReducer, scoreOf, type QuizState,
 } from '@/components/features/quiz/quiz-reducer';
 import { useToast } from '@/components/ui';
+import { quizLengthOptions, type QuizLengthOption } from '@/lib/quiz/lengths';
 import { fmt } from '@/lib/text';
 import type { Question, Quiz, QuizSource } from '@/lib/types';
 
@@ -19,11 +20,16 @@ export interface UseQuizOptions {
   attempts: readonly Quiz[];
   /** Non-null opens that attempt in review mode and records nothing. */
   reviewAttemptId: string | null;
+  /** Số câu dùng được trong bộ câu hỏi soạn sẵn của ghi chú. */
+  questionTotal?: number;
   onClose: () => void;
 }
 
 export interface UseQuizResult extends QuizState {
   completedAtLabel: string | undefined;
+  /** Rỗng khi bộ đề nhỏ quá, không đáng hỏi. */
+  lengthOptions: readonly QuizLengthOption[];
+  choose: (count: number) => void;
   pick: (index: number) => void;
   next: () => void;
   retry: () => void;
@@ -46,11 +52,20 @@ function completedAt(attempt: Quiz | null): string | undefined {
  * increasing token; closing the modal bumps the token, so a response that
  * arrives after the close is dropped — nothing renders and nothing is saved.
  */
-export function useQuiz({ noteId, attempts, reviewAttemptId, onClose }: UseQuizOptions): UseQuizResult {
+export function useQuiz({
+  noteId, attempts, reviewAttemptId, questionTotal = 0, onClose,
+}: UseQuizOptions): UseQuizResult {
   const router = useRouter();
   const { flash } = useToast();
-  const [state, dispatch] = useReducer(quizReducer, initialQuizState);
+  const lengthOptions = useMemo(() => quizLengthOptions(questionTotal), [questionTotal]);
+  // Ôn lại bài cũ thì số câu đã cố định từ lần làm trước, không hỏi lại.
+  const asksLength = !reviewAttemptId && lengthOptions.length > 0;
+  const [state, dispatch] = useReducer(quizReducer, undefined, () =>
+    asksLength ? choosingQuizState : initialQuizState,
+  );
   const token = useRef(0);
+  // Số câu đã chọn, để "làm bộ câu hỏi mới" giữ nguyên độ dài người dùng muốn.
+  const count = useRef<number | undefined>(undefined);
   // Read inside async work only, so a new attempts array never restarts a run.
   const attemptsRef = useRef(attempts);
   attemptsRef.current = attempts;
@@ -68,7 +83,10 @@ export function useQuiz({ noteId, attempts, reviewAttemptId, onClose }: UseQuizO
       const res = await fetch(`/api/notes/${encodeURIComponent(noteId)}/quiz/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avoid: avoidFrom(attemptsRef.current) }),
+        body: JSON.stringify({
+          avoid: avoidFrom(attemptsRef.current),
+          ...(count.current === undefined ? {} : { count: count.current }),
+        }),
       });
       if (token.current !== mine) return; // closed while loading: drop the result
       if (!res.ok) {
@@ -100,8 +118,17 @@ export function useQuiz({ noteId, attempts, reviewAttemptId, onClose }: UseQuizO
       dispatch({ type: 'openReview', attempt: stored });
       return;
     }
+    if (asksLength) return; // chờ người dùng chọn số câu
     void generate();
-  }, [generate, reviewAttemptId]);
+  }, [asksLength, generate, reviewAttemptId]);
+
+  const choose = useCallback(
+    (picked: number) => {
+      count.current = picked;
+      void generate();
+    },
+    [generate],
+  );
 
   const close = useCallback(() => {
     token.current += 1;
@@ -162,5 +189,14 @@ export function useQuiz({ noteId, attempts, reviewAttemptId, onClose }: UseQuizO
     void generate();
   }, [generate]);
 
-  return { ...state, completedAtLabel: completedAt(state.attempt), pick, next, retry, close };
+  return {
+    ...state,
+    completedAtLabel: completedAt(state.attempt),
+    lengthOptions,
+    choose,
+    pick,
+    next,
+    retry,
+    close,
+  };
 }

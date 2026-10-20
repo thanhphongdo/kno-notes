@@ -129,6 +129,32 @@ describe('QuizModal', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
+  it('chào các mốc số câu rồi báo mốc được chọn', async () => {
+    const onChooseLength = vi.fn();
+    renderModal({
+      status: 'choosing',
+      questions: [],
+      picks: [],
+      lengthOptions: [
+        { value: 5, label: '5 câu' },
+        { value: 10, label: '10 câu' },
+        { value: 15, label: 'Toàn bộ (15 câu)' },
+      ],
+      onChooseLength,
+    });
+    expect(screen.getByText('Chọn số câu')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /câu/ })).toHaveLength(3);
+    await userEvent.click(screen.getByRole('button', { name: 'Toàn bộ (15 câu)' }));
+    expect(onChooseLength).toHaveBeenCalledWith(15);
+  });
+
+  it('đóng được màn hình chọn số câu bằng Escape', async () => {
+    const onClose = vi.fn();
+    renderModal({ status: 'choosing', questions: [], picks: [], onClose, lengthOptions: [{ value: 5, label: '5 câu' }] });
+    await userEvent.keyboard('{Escape}');
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the result view when done', () => {
     renderModal({ status: 'done', picks: [1, 0] });
     expect(screen.getByText('2/2')).toBeInTheDocument();

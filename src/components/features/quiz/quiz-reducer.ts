@@ -1,6 +1,6 @@
 import type { Question, Quiz, QuizSource } from '@/lib/types';
 
-export type QuizStatus = 'loading' | 'asking' | 'done';
+export type QuizStatus = 'choosing' | 'loading' | 'asking' | 'done';
 
 export interface QuizState {
   status: QuizStatus;
@@ -31,6 +31,12 @@ export const initialQuizState: QuizState = {
   review: false,
   attempt: null,
 };
+
+/**
+ * Bộ đề lớn thì hỏi số câu trước khi soạn: đó là trạng thái đầu, không phải
+ * một bước thêm vào giữa — người dùng chưa chọn thì chưa có gì để tải.
+ */
+export const choosingQuizState: QuizState = { ...initialQuizState, status: 'choosing' };
 
 export function quizReducer(state: QuizState, action: QuizAction): QuizState {
   switch (action.type) {

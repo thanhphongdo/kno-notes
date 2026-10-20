@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { Question, Quiz } from '@/lib/types';
-import { avoidFrom, initialQuizState, quizReducer, scoreOf } from './quiz-reducer';
+import {
+  avoidFrom, choosingQuizState, initialQuizState, quizReducer, scoreOf,
+} from './quiz-reducer';
 
 const qs: Question[] = [
   { q: 'Q1', options: ['a', 'b', 'c', 'd'], answer: 0, explain: 'e1' },
@@ -11,6 +13,21 @@ const attempt: Quiz = {
   id: 'q1', date: '2026-09-01T00:00:00.000Z', score: 1, total: 2,
   questions: qs, picks: [0, 1], source: 'offline',
 };
+
+describe('màn hình chọn số câu', () => {
+  it('bắt đầu ở trạng thái chọn, chưa có câu nào', () => {
+    expect(choosingQuizState).toEqual({ ...initialQuizState, status: 'choosing' });
+  });
+
+  it('không nhận lựa chọn đáp án khi còn đang chọn số câu', () => {
+    expect(quizReducer(choosingQuizState, { type: 'pick', index: 1 })).toBe(choosingQuizState);
+    expect(quizReducer(choosingQuizState, { type: 'next' })).toBe(choosingQuizState);
+  });
+
+  it('chọn xong thì về loading để đi soạn đề', () => {
+    expect(quizReducer(choosingQuizState, { type: 'restart' }).status).toBe('loading');
+  });
+});
 
 describe('quizReducer', () => {
   it('moves from loading to asking with an empty pick slot per question', () => {

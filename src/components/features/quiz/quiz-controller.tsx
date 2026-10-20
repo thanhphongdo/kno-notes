@@ -12,15 +12,17 @@ export interface QuizControllerProps {
   attempts: readonly Quiz[];
   /** Non-null opens that attempt in review mode and records nothing. */
   reviewAttemptId: string | null;
+  /** Số câu dùng được trong bộ câu hỏi soạn sẵn của ghi chú. */
+  questionTotal?: number;
   onClose: () => void;
 }
 
 /** State and API wiring for `QuizModal`, which renders all three states. */
 export function QuizController({
-  noteId, noteTitle, attempts, reviewAttemptId, onClose,
+  noteId, noteTitle, attempts, reviewAttemptId, questionTotal, onClose,
 }: QuizControllerProps) {
   const isMobile = useIsMobile();
-  const quiz = useQuiz({ noteId, attempts, reviewAttemptId, onClose });
+  const quiz = useQuiz({ noteId, attempts, reviewAttemptId, questionTotal, onClose });
 
   return (
     <QuizModal
@@ -34,6 +36,8 @@ export function QuizController({
       isMobile={isMobile}
       completedAtLabel={quiz.completedAtLabel}
       source={quiz.source}
+      lengthOptions={quiz.lengthOptions}
+      onChooseLength={quiz.choose}
       onPick={quiz.pick}
       onNext={quiz.next}
       onRetry={quiz.retry}

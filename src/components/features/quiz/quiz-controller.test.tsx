@@ -146,6 +146,70 @@ describe('QuizController', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
+  it('hỏi số câu trước khi soạn đề khi bộ câu hỏi đủ lớn', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okQuestions());
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    setup({ questionTotal: 15 });
+
+    expect(screen.getByText('Chọn số câu')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Toàn bộ (15 câu)' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '20 câu' })).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: '10 câu' }));
+    await screen.findByText('Câu 1');
+    const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string) as {
+      count: number;
+    };
+    expect(body.count).toBe(10);
+  });
+
+  it('vào thẳng bài khi bộ câu hỏi quá nhỏ để chia', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(okQuestions());
+    vi.stubGlobal('fetch', fetchMock);
+    setup({ questionTotal: 5 });
+    expect(screen.queryByText('Chọn số câu')).toBeNull();
+    await screen.findByText('Câu 1');
+    const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string) as {
+      count?: number;
+    };
+    expect(body.count).toBeUndefined();
+  });
+
+  it('ôn lại bài cũ thì không hỏi số câu', async () => {
+    vi.stubGlobal('fetch', vi.fn());
+    setup({ attempts: [stored], reviewAttemptId: 'a1', questionTotal: 15 });
+    await waitFor(() => expect(screen.getByText('Lần làm bài')).toBeInTheDocument());
+    expect(screen.queryByText('Chọn số câu')).toBeNull();
+  });
+
+  it('làm bộ mới giữ nguyên số câu đã chọn', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(okQuestions())
+      .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ quiz: stored }) })
+      .mockResolvedValueOnce(okQuestions());
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    setup({ questionTotal: 15 });
+
+    await user.click(screen.getByRole('button', { name: '10 câu' }));
+    await screen.findByText('Câu 1');
+    await user.keyboard('1');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Câu 2');
+    await user.keyboard('1');
+    await user.keyboard('{Enter}');
+
+    await user.click(await screen.findByRole('button', { name: 'Làm bộ câu hỏi mới' }));
+    await screen.findByText('Câu 1');
+    const last = JSON.parse((fetchMock.mock.calls.at(-1)![1] as RequestInit).body as string) as {
+      count: number;
+    };
+    expect(last.count).toBe(10);
+  });
+
   it('regenerates a fresh set from the result screen', async () => {
     const fetchMock = vi
       .fn()

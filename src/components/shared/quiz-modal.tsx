@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { IconButton } from '@/components/ui/icon-button';
 import { Skeleton, SkeletonGroup } from '@/components/ui/skeleton';
+import type { QuizLengthOption } from '@/lib/quiz/lengths';
 import { QuizFeedback } from './quiz-feedback';
 import { QUIZ_LETTERS, QuizOption, quizOptionState, type QuizQuestion } from './quiz-option';
 import type { QuizSource } from '@/lib/types';
 import { QuizResult } from './quiz-result';
 
-export type QuizStatus = 'loading' | 'asking' | 'done';
+export type QuizStatus = 'choosing' | 'loading' | 'asking' | 'done';
 
 export interface QuizModalProps {
   open: boolean;
@@ -26,6 +27,9 @@ export interface QuizModalProps {
   completedAtLabel?: string;
   /** Đề này lấy từ đâu — hiện ở màn hình kết quả. */
   source?: QuizSource | null;
+  /** Các mốc số câu để chào ở trạng thái `choosing`. */
+  lengthOptions?: readonly QuizLengthOption[];
+  onChooseLength?: (count: number) => void;
   onPick: (optionIndex: number) => void;
   onNext: () => void;
   onRetry: () => void;
@@ -35,7 +39,7 @@ export interface QuizModalProps {
 /** Full-screen: fixed inset-0 · --bg · z95. Header 64, progress 3px, body max 760. */
 export function QuizModal({
   open, noteTitle, review, status, questions, picks, index, isMobile,
-  completedAtLabel, source, onPick, onNext, onRetry, onClose,
+  completedAtLabel, source, lengthOptions, onChooseLength, onPick, onNext, onRetry, onClose,
 }: QuizModalProps) {
   const total = questions.length;
   const question = questions[index];
@@ -111,6 +115,29 @@ export function QuizModal({
           className="mx-auto flex w-full max-w-760 flex-col gap-28 pb-64"
           style={{ paddingTop: padTop, paddingLeft: padX, paddingRight: padX }}
         >
+          {status === 'choosing' ? (
+            <div className="flex flex-col gap-18 pt-24">
+              <div className="font-serif text-26 font-semibold tracking-[-.01em]">Chọn số câu</div>
+              <div className="text-15 leading-[1.6] text-muted">
+                Ghi chú này có nhiều câu hỏi hơn một lần ôn. Lần này bạn làm bao nhiêu câu?
+              </div>
+              <div className="mt-4 flex flex-col gap-10">
+                {(lengthOptions ?? []).map((option) => (
+                  <Button
+                    key={option.value}
+                    variant="secondary"
+                    size="46"
+                    fullWidth
+                    className="justify-start"
+                    onClick={() => onChooseLength?.(option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {status === 'loading' ? (
             <div className="flex flex-col gap-18 pt-24">
               <div className="font-serif text-26 font-semibold tracking-[-.01em]">Đang soạn câu hỏi…</div>

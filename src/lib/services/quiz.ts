@@ -4,6 +4,12 @@ import { and, eq, ne } from 'drizzle-orm';
 import { db, noteIndex } from '@/lib/db';
 import { HttpError } from '@/lib/http';
 import { getStorage } from '@/lib/storage';
+import {
+  QUIZ_LENGTH,
+  clampQuizCount,
+  countUsableQuestions,
+  isUsableQuestion,
+} from '@/lib/quiz/lengths';
 import { clip, shuffle } from '@/lib/text';
 import { sections, stripHtml } from '@/lib/text/server';
 import type { Note, Question, QuizSource } from '@/lib/types';
@@ -11,25 +17,13 @@ import { getNote } from './notes';
 
 export const GEMINI_MODEL = 'gemini-2.0-flash';
 
-/** Số câu mỗi lần làm bài. */
-export const QUIZ_LENGTH = 5;
+// Định nghĩa đã dọn sang module thuần để màn hình chọn số câu dùng lại được;
+// vẫn xuất lại ở đây vì phía server quen gọi qua service này.
+export { QUIZ_LENGTH, isUsableQuestion };
 
-/**
- * Một câu hỏi chỉ dùng được khi nó thật sự hỏi được: có đề, đúng 4 lựa chọn,
- * và chỉ số đáp án nằm trong 4 lựa chọn đó. Bộ câu hỏi soạn sẵn đến từ API
- * nên phải coi là dữ liệu lạ cho tới khi kiểm.
- */
-export function isUsableQuestion(q: Question | undefined | null): q is Question {
-  return (
-    Boolean(q) &&
-    typeof q!.q === 'string' &&
-    q!.q.trim().length > 0 &&
-    Array.isArray(q!.options) &&
-    q!.options.length === 4 &&
-    Number.isInteger(q!.answer) &&
-    q!.answer >= 0 &&
-    q!.answer < 4
-  );
+/** Số câu xin được, đọc thành số nguyên ≥ 1; số rác về mặc định. */
+function asCount(count: number): number {
+  return Number.isFinite(count) ? Math.max(1, Math.floor(count)) : QUIZ_LENGTH;
 }
 
 /**
@@ -51,18 +45,18 @@ export function shuffleQuestion(q: Question): Question {
  * Một đề lấy từ bộ câu hỏi soạn sẵn của ghi chú.
  *
  * Soạn sẵn không có nghĩa là lần nào cũng y hệt: thứ tự câu được xáo, bộ nào
- * nhiều hơn 5 câu thì mỗi lần rút một tổ hợp khác, và bốn lựa chọn của mỗi câu
- * luôn được đảo. Nội dung câu hỏi thì không đổi — đó chính là điểm của việc
- * soạn trước.
+ * nhiều hơn số câu cần thì mỗi lần rút một tổ hợp khác, và bốn lựa chọn của
+ * mỗi câu luôn được đảo. Nội dung câu hỏi thì không đổi — đó chính là điểm
+ * của việc soạn trước.
  */
-export function bankQuiz(note: Note): Question[] {
+export function bankQuiz(note: Note, count: number = QUIZ_LENGTH): Question[] {
   const bank = (note.questions ?? []).filter(isUsableQuestion);
   if (!bank.length) return [];
-  return shuffle(bank).slice(0, QUIZ_LENGTH).map(shuffleQuestion);
+  return shuffle(bank).slice(0, clampQuizCount(count, bank.length)).map(shuffleQuestion);
 }
 
 /** Bộ sinh quiz offline — port NGUYÊN VĂN `offlineQuiz()` của prototype. */
-export function offlineQuiz(n: Note, all: Note[]): Question[] {
+export function offlineQuiz(n: Note, all: Note[], count: number = QUIZ_LENGTH): Question[] {
   const secs = sections(n.content);
   const qs: Question[] = [];
 
@@ -102,7 +96,7 @@ export function offlineQuiz(n: Note, all: Note[]): Question[] {
     });
   }
 
-  return qs.slice(0, 5);
+  return qs.slice(0, asCount(count));
 }
 
 /**
@@ -110,12 +104,14 @@ export function offlineQuiz(n: Note, all: Note[]): Question[] {
  * `avoid` do client truyền thêm (part-0 §3.6) được gộp với lịch sử của note,
  * khử trùng lặp, rồi lấy 10 câu gần nhất.
  */
-export function buildPrompt(n: Note, avoid: string[] = []): string {
+export function buildPrompt(n: Note, avoid: string[] = [], count: number = QUIZ_LENGTH): string {
   const text = stripHtml(n.content);
   const history = (n.quizzes || []).flatMap((z) => z.questions.map((q) => q.q));
   const prev = [...new Set([...history, ...avoid])].slice(-10);
   return (
-    'Bạn là giảng viên y khoa. Chỉ dựa vào ghi chú dưới đây, tạo 5 câu hỏi trắc nghiệm bằng tiếng Việt để bác sĩ tự ôn tập. ' +
+    'Bạn là giảng viên y khoa. Chỉ dựa vào ghi chú dưới đây, tạo ' +
+    asCount(count) +
+    ' câu hỏi trắc nghiệm bằng tiếng Việt để bác sĩ tự ôn tập. ' +
     'Mỗi câu có đúng 4 lựa chọn ngắn gọn, 1 đáp án đúng, các phương án sai phải hợp lý. Xáo trộn vị trí đáp án đúng. ' +
     (prev.length ? 'Tránh lặp lại các câu: ' + prev.join(' | ') + '. ' : '') +
     'Chỉ trả về JSON array, không thêm chữ nào khác: ' +
@@ -140,7 +136,7 @@ interface RawQuestion {
  * Trích + kiểm tra JSON từ câu trả lời của LLM.
  * Trả null nếu còn dưới 3 câu hợp lệ => caller rơi về offline.
  */
-export function parseAiQuestions(text: string): Question[] | null {
+export function parseAiQuestions(text: string, count: number = QUIZ_LENGTH): Question[] | null {
   const match = (text || '').match(/\[[\s\S]*\]/);
   if (!match) return null;
 
@@ -173,7 +169,7 @@ export function parseAiQuestions(text: string): Question[] | null {
     }));
 
   if (valid.length < 3) return null;
-  return valid.slice(0, 5);
+  return valid.slice(0, asCount(count));
 }
 
 /** Nguồn câu hỏi sai cho quiz offline: các note khác của CHÍNH user này. */
@@ -189,16 +185,24 @@ async function otherNotes(userId: string, noteId: string): Promise<Note[]> {
   return loaded.filter((n): n is Note => n !== null);
 }
 
-async function tryGemini(note: Note, avoid: string[]): Promise<Question[] | null> {
+async function tryGemini(
+  note: Note,
+  avoid: string[],
+  count: number = QUIZ_LENGTH,
+): Promise<Question[] | null> {
   const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!key) return null;
   try {
     const model = new GoogleGenerativeAI(key).getGenerativeModel({ model: GEMINI_MODEL });
     const res = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: buildPrompt(note, avoid) }] }],
-      generationConfig: { maxOutputTokens: 2500, temperature: 0.7 },
+      contents: [{ role: 'user', parts: [{ text: buildPrompt(note, avoid, count) }] }],
+      // Đề dài cần thêm chỗ để trả lời, nếu không JSON bị cắt giữa câu.
+      generationConfig: {
+        maxOutputTokens: Math.min(8192, Math.max(2500, 500 * asCount(count))),
+        temperature: 0.7,
+      },
     });
-    return parseAiQuestions(res.response.text());
+    return parseAiQuestions(res.response.text(), count);
   } catch (e) {
     // Quota, network, safety block — all become "use the offline generator".
     console.warn('[quiz] gemini failed, falling back to offline:', (e as Error).message);
@@ -222,17 +226,26 @@ export async function generateQuiz(
   userId: string,
   noteId: string,
   avoid: string[] = [],
+  count?: number,
 ): Promise<{ questions: Question[]; source: QuizSource }> {
   const note = await getNote(userId, noteId);
 
-  const ai = await tryGemini(note, avoid);
+  /*
+   * Màn hình chọn số câu chỉ chào tối đa bằng bộ câu hỏi soạn sẵn, nên trần ở
+   * đây cũng là bộ đó — client gửi số to hơn thì không kéo nổi Gemini hay bộ
+   * sinh tự động chạy quá cỡ. Ghi chú chưa soạn câu hỏi thì trần là mặc định.
+   */
+  const limit = Math.max(countUsableQuestions(note.questions), QUIZ_LENGTH);
+  const n = clampQuizCount(count ?? QUIZ_LENGTH, limit);
+
+  const ai = await tryGemini(note, avoid, n);
   if (ai) return { questions: ai, source: 'ai' };
 
-  const bank = bankQuiz(note);
+  const bank = bankQuiz(note, n);
   if (bank.length) return { questions: bank, source: 'bank' };
 
   const all = [note, ...(await otherNotes(userId, noteId))];
-  const questions = offlineQuiz(note, all);
+  const questions = offlineQuiz(note, all, n);
   if (!questions.length) {
     // part-0 §3.6: the UI turns this into the toast
     // "Ghi chú chưa đủ nội dung để tạo câu hỏi".

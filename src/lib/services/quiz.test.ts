@@ -423,6 +423,31 @@ describe('generateQuiz without an API key', () => {
   it('404s for a note the user does not own', async () => {
     await expect(generateQuiz(uid, 'n-does-not-exist')).rejects.toMatchObject({ status: 404 });
   });
+
+  it('honours the requested number of questions, and clamps a silly one', async () => {
+    const bank = Array.from({ length: 12 }, (_, i) => ({
+      q: `Câu soạn sẵn ${i}?`,
+      options: ['a', 'b', 'c', 'd'],
+      answer: 0,
+      explain: '',
+    }));
+    const { note: n } = await createNote(uid, {
+      title: 'Có bộ câu hỏi',
+      desc: '',
+      tags: ['Tim mạch'],
+      priority: 'medium',
+      content: '<h2>A</h2><ul><li>một</li><li>hai</li><li>ba</li></ul>',
+      images: [],
+      questions: bank,
+    });
+
+    expect((await generateQuiz(uid, n.id, [], 10)).questions).toHaveLength(10);
+    // Mặc định vẫn là 5 câu như trước khi có màn hình chọn.
+    expect((await generateQuiz(uid, n.id)).questions).toHaveLength(QUIZ_LENGTH);
+    // Client gửi số vượt bộ đề thì server tự kẹp, không tin con số gửi lên.
+    expect((await generateQuiz(uid, n.id, [], 999)).questions).toHaveLength(12);
+    expect((await generateQuiz(uid, n.id, [], 0)).questions).toHaveLength(1);
+  });
 });
 
 describe('bộ câu hỏi soạn sẵn', () => {
@@ -510,5 +535,43 @@ describe('bộ câu hỏi soạn sẵn', () => {
       for (let i = 0; i < 60; i += 1) seen.add(bankQuiz(withBank(bank))[0]!.options.join('|'));
       expect(seen.size).toBeGreaterThan(1);
     });
+  });
+});
+
+describe('số câu theo yêu cầu', () => {
+  const q = (n: number): Question => ({
+    q: `Câu ${n}?`,
+    options: [`${n}A`, `${n}B`, `${n}C`, `${n}D`],
+    answer: 1,
+    explain: '',
+  });
+
+  it('bankQuiz rút đúng số câu được xin, và không quá bộ đề', () => {
+    const bank = Array.from({ length: 15 }, (_, i) => q(i));
+    expect(bankQuiz(note({ id: 'n1', questions: bank }), 10)).toHaveLength(10);
+    expect(bankQuiz(note({ id: 'n1', questions: bank }), 15)).toHaveLength(15);
+    expect(bankQuiz(note({ id: 'n1', questions: bank.slice(0, 3) }), 10)).toHaveLength(3);
+  });
+
+  it('offlineQuiz cắt theo số câu được xin', () => {
+    expect(offlineQuiz(rich, [rich, ...others], 1)).toHaveLength(1);
+    expect(offlineQuiz(rich, [rich, ...others], 2)).toHaveLength(2);
+  });
+
+  it('prompt xin đúng số câu', () => {
+    const n = note({ id: 'n1', content: '<h2>A</h2><p>x</p>' });
+    expect(buildPrompt(n, [], 20)).toContain('tạo 20 câu hỏi trắc nghiệm bằng tiếng Việt');
+    expect(buildPrompt(n)).toContain(`tạo ${QUIZ_LENGTH} câu hỏi trắc nghiệm bằng tiếng Việt`);
+  });
+
+  it('parseAiQuestions giữ tới số câu được xin', () => {
+    const arr = Array.from({ length: 9 }, (_, i) => ({
+      q: `Câu ${i}?`,
+      options: ['a', 'b', 'c', 'd'],
+      answer: 0,
+      explain: '',
+    }));
+    expect(parseAiQuestions(JSON.stringify(arr), 9)).toHaveLength(9);
+    expect(parseAiQuestions(JSON.stringify(arr))).toHaveLength(QUIZ_LENGTH);
   });
 });
