@@ -34,6 +34,8 @@ describe('tool registry', () => {
       'get_quiz_questions',
       'create_quiz',
       'list_quizzes',
+      'set_presentation',
+      'get_presentation',
     ]);
   });
 

@@ -1,0 +1,1 @@
+ALTER TABLE "note_index" ADD COLUMN "slide_count" integer DEFAULT 0 NOT NULL;

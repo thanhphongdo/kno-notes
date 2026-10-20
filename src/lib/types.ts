@@ -2,6 +2,19 @@
 // Domain types — tên trường giữ NGUYÊN của prototype (`n.desc`, `n.fav`, `v.v`,
 // `q.explain`) để logic port sang đọc y hệt.
 
+import type { Presentation } from '@/lib/presentation/schema';
+
+export type {
+  Bullet,
+  IconName,
+  Presentation,
+  PresentationMotion,
+  PresentationPattern,
+  Slide,
+  SlideColumn,
+  SlideLayout,
+} from '@/lib/presentation/schema';
+
 /** Ưu tiên của ghi chú. Thứ tự sắp xếp: high → medium → low. */
 export type Priority = 'high' | 'medium' | 'low';
 
@@ -101,6 +114,13 @@ export interface Note {
    * file JSON; mọi nơi đọc đều phải chịu được `undefined`.
    */
   questions?: Question[];
+  /**
+   * Bộ slide của chế độ "xem dạng trình chiếu". `undefined` = ghi chú tạo
+   * trước tính năng này (không có trường trong file JSON), `null` = đã từng có
+   * rồi bị xoá. Hai trạng thái đó hiển thị như nhau, nên mọi nơi đọc chỉ cần
+   * chịu được cả hai.
+   */
+  presentation?: Presentation | null;
 }
 
 /**
@@ -122,6 +142,12 @@ export interface NoteSummary {
   imageCount: number;
   commentCount: number;
   quizCount: number;
+  /**
+   * Số slide; 0 = chưa có trình chiếu. Đọc từ `note_index`, không mở file ghi
+   * chú. Tuỳ chọn vì bản tóm tắt đã cache offline từ trước tính năng này
+   * không có trường đó — nơi đọc coi `undefined` như 0.
+   */
+  slideCount?: number;
 }
 
 /** Một hàng của bảng `note_index` trong Postgres. */
@@ -149,6 +175,8 @@ export interface NoteIndexRow {
   imageCount: number;
   commentCount: number;
   quizCount: number;
+  /** Số slide của bộ trình chiếu; 0 nếu ghi chú chưa có. */
+  slideCount: number;
   /** Băm ngữ nghĩa của nội dung; null khi chưa ghi lần nào. */
   contentSha: string | null;
 }
@@ -236,6 +264,8 @@ export interface CreateNoteInput {
   images: NoteImage[];
   /** Bộ câu hỏi soạn sẵn. Bỏ trống thì ghi chú chưa có câu hỏi nào. */
   questions?: Question[];
+  /** Bộ slide. Bỏ trống thì ghi chú chưa có trình chiếu. */
+  presentation?: Presentation | null;
   /** Rỗng => "Tạo ghi chú". */
   changeNote?: string;
 }
@@ -253,6 +283,11 @@ export interface UpdateNoteInput {
    * `undefined` mà bị hiểu thành `[]` thì mỗi lần sửa bài là mất bộ câu hỏi.
    */
   questions?: Question[];
+  /**
+   * Bộ slide. `undefined` = KHÔNG ĐỤNG TỚI, `null` = xoá trình chiếu. Cùng cái
+   * bẫy như `questions`: trình soạn thảo không gửi trường này.
+   */
+  presentation?: Presentation | null;
   /** Rỗng => "Cập nhật nội dung". */
   changeNote?: string;
 }

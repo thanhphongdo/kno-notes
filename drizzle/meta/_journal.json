@@ -29,6 +29,13 @@
       "when": 1790491882917,
       "tag": "0003_oauth_clients_and_codes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792476811842,
+      "tag": "0004_note_index_slide_count",
+      "breakpoints": true
     }
   ]
 }

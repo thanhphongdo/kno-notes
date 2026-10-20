@@ -3,6 +3,7 @@
 // nên test được mà không cần transport, và đổi transport chỉ sửa route.ts.
 import { z } from 'zod';
 import { PrioritySchema, QuestionSchema } from '@/lib/api/schemas';
+import { MAX_SLIDES, PresentationSchema } from '@/lib/presentation/schema';
 import { HttpError } from '@/lib/http';
 import {
   addQuizRecord,
@@ -10,12 +11,19 @@ import {
   deleteNote,
   getNote,
   listNotes,
+  setPresentation,
   setQuestions,
   updateNote,
 } from '@/lib/services/notes';
 import { generateQuiz } from '@/lib/services/quiz';
 import { listTags } from '@/lib/services/tags';
-import { DEFAULT_PAGE_SIZE, type Priority, type Question, type SortKey } from '@/lib/types';
+import {
+  DEFAULT_PAGE_SIZE,
+  type Presentation,
+  type Priority,
+  type Question,
+  type SortKey,
+} from '@/lib/types';
 
 export interface McpTool<S extends z.ZodTypeAny = z.ZodTypeAny> {
   name: string;
@@ -56,6 +64,77 @@ const QuestionsShape = {
     .optional()
     .describe(
       'Bộ câu hỏi trắc nghiệm soạn sẵn cho ghi chú. Mỗi câu: {q, options (đúng 4), answer (chỉ số 0-3 của đáp án đúng), explain}. Đây là nguồn chính của bài trắc nghiệm; người làm bài sẽ thấy bốn lựa chọn bị đảo thứ tự. Bỏ trống nghĩa là giữ nguyên bộ hiện có.',
+    ),
+};
+
+/**
+ * Mô tả bộ slide cho LLM. Viết một lần ở đây vì ba tool cùng nhận trường này —
+ * mô tả lệch nhau là cách nhanh nhất để tác nhân AI gửi JSON sai luật.
+ */
+const PRESENTATION_GUIDE =
+  'Bộ slide cho chế độ "xem dạng trình chiếu" của ghi chú (app CHỈ xem trong app, không xuất PowerPoint). ' +
+  'Gồm {template, brandKit, pattern?, motion?, slides}.\n' +
+  'template: "editorial" | "deck" | "clinical". brandKit: "mint" | "midnight" | "paper" | "clinic".\n' +
+  'pattern (hoa văn nền, tuỳ chọn — thiếu thì template tự quyết). "none" là không hoa văn. ' +
+  'Hai mươi mẫu còn lại chia làm hai nhóm; mô tả ngắn sau mỗi tên là hình nó trông thế nào:\n' +
+  'Nhóm "rìa" (hoa văn chỉ ở mép và góc, giữa trang trống hoàn toàn — an toàn cho slide nhiều chữ):\n' +
+  '- "corner-brackets" = ngoặc vuông bốn góc\n' +
+  '- "edge-ticks" = vạch chia nhỏ dọc mép\n' +
+  '- "margin-rule" = một kẻ dọc lề\n' +
+  '- "frame-inset" = khung mảnh thụt vào\n' +
+  '- "corner-contour" = bình độ dồn ở góc\n' +
+  '- "corner-fan" = nan quạt xoè từ góc\n' +
+  '- "side-pinstripe" = sọc kim mảnh một bên\n' +
+  '- "edge-weave" = nan đan thưa ở mép\n' +
+  'Nhóm "phủ" (trải khắp trang, có mặt nạ moi rỗng vùng chữ):\n' +
+  '- "paper-fiber" = sớ giấy dó\n' +
+  '- "linen-weave" = thớ vải lanh\n' +
+  '- "terrain-contour" = bình độ địa hình\n' +
+  '- "wave-field" = sóng mềm trải rộng\n' +
+  '- "ecg-baseline" = đường điện tim chạy thấp\n' +
+  '- "concentric-arc" = cung tròn đồng tâm\n' +
+  '- "halftone-drift" = hạt tram thưa dần\n' +
+  '- "mesh-wash" = lưới mờ loang nhẹ\n' +
+  '- "color-block" = khối màu lớn\n' +
+  '- "radiograph-grid" = lưới phim X-quang\n' +
+  '- "stone-vein" = vân đá mờ\n' +
+  '- "bokeh-soft" = đốm sáng nhoè\n' +
+  'CHỌN NỀN: nền chỉ là lớp nhấn nhẹ, không phải nhân vật chính. Bài nhiều chữ thì chọn nhóm "rìa" ' +
+  'để không có gì chạy dưới đoạn văn; "color-block" là mẫu đậm nhất nên dùng dè, hợp slide chỉ có một câu hoặc một con số.\n' +
+  'motion (mức chuyển động khi lật slide, tuỳ chọn — thiếu là "full"): "full" | "subtle" | "none".\n' +
+  'Nội dung slide phải CÔ ĐỌNG HƠN bài gốc nhưng không được bỏ mất trọng tâm: mỗi slide một ý, ' +
+  'gạch đầu dòng là câu ngắn chứ không phải đoạn văn copy từ bài, còn con số và ngưỡng quan trọng thì giữ nguyên chính xác. ' +
+  `Tối thiểu 1 và tối đa ${MAX_SLIDES} slide.\n` +
+  'Tám layout, phân biệt bằng trường "layout":\n' +
+  '- "title": {title, subtitle?, kicker?, icon?} — slide mở đầu.\n' +
+  '- "section": {title, icon?} — vách ngăn giữa các phần.\n' +
+  '- "bullets": {title, bullets: 1-8 dòng, icon?}.\n' +
+  '- "two-col": {title, left, right}, mỗi cột là {heading?, bullets: 1-6 dòng} — dùng để so sánh.\n' +
+  '- "image": {title?, imageId, caption?, bullets?} — imageId PHẢI là id của một ảnh đã có trong ghi chú (xem note.images).\n' +
+  '- "quote": {text (tối đa 600 ký tự), attribution?} — câu trích hoặc khuyến cáo.\n' +
+  '- "stat": {value (tối đa 24 ký tự), label, support?, icon?} — một con số lớn duy nhất.\n' +
+  '- "end": {title, subtitle?, icon?} — slide kết.\n' +
+  'MỘT GẠCH ĐẦU DÒNG VIẾT ĐƯỢC HAI CÁCH, trộn lẫn trong cùng một mảng cũng được: ' +
+  'chuỗi trần "Nhịp thở ≥ 30" (cách thường dùng), hoặc object { text: "Nhịp thở ≥ 30", icon: "alert" } khi dòng đó cần một điểm nhấn. ' +
+  'Mỗi dòng tối đa 300 ký tự. Luật này áp cho bullets của layout "bullets", của từng cột trong "two-col", và của "image".\n' +
+  'icon (tuỳ chọn, ở cấp slide cho "title" | "section" | "bullets" | "stat" | "end", và ở cấp từng gạch đầu dòng) ' +
+  'chỉ nhận đúng 18 tên sau: "alert", "check", "info", "question", "target", "clock", "chart", "compare", "layers", ' +
+  '"list", "book", "idea", "heart", "lungs", "bone", "scan", "stethoscope", "pill". Tên khác sẽ bị từ chối.\n' +
+  'DÙNG ICON CHO THƯA: icon là điểm nhấn, không phải trang trí mọi dòng. Gắn icon cho dòng quan trọng nhất ' +
+  '(cảnh báo, kết luận, con số chốt) và để các dòng còn lại là chuỗi trần; một slide gắn icon cho mọi dòng đọc rối hơn là không gắn gì.\n' +
+  'Ví dụ một bộ slide ngắn:\n' +
+  '{"template":"clinical","brandKit":"midnight","pattern":"ecg-baseline","motion":"subtle","slides":[' +
+  '{"layout":"title","title":"Viêm phổi cộng đồng","subtitle":"Tiếp cận ban đầu","icon":"lungs"},' +
+  '{"layout":"bullets","title":"Dấu hiệu nặng","bullets":["Nhịp thở ≥ 30 lần/phút",{"text":"SpO2 < 92% khí trời","icon":"alert"}]},' +
+  '{"layout":"stat","value":"48 giờ","label":"Đánh giá lại sau khi dùng kháng sinh","icon":"clock"},' +
+  '{"layout":"end","title":"Cảm ơn"}]}';
+
+const PresentationShape = {
+  presentation: PresentationSchema.nullable()
+    .optional()
+    .describe(
+      PRESENTATION_GUIDE +
+        '\nBỏ trống nghĩa là GIỮ NGUYÊN bộ hiện có; gửi null để xoá trình chiếu.',
     ),
 };
 
@@ -101,6 +180,7 @@ const createNoteTool: McpTool = {
     priority: PrioritySchema.optional().describe('Mặc định "medium".'),
     content: z.string().max(400_000).optional().describe('Nội dung HTML.'),
     ...QuestionsShape,
+    ...PresentationShape,
     changeNote: z.string().max(200).optional().describe('Ghi chú thay đổi. Mặc định "Tạo ghi chú".'),
   }),
   run: (userId, input) => {
@@ -113,6 +193,7 @@ const createNoteTool: McpTool = {
       content: (i.content as string) ?? '',
       images: [],
       questions: (i.questions as Question[] | undefined) ?? [],
+      presentation: (i.presentation as Presentation | null | undefined) ?? null,
       changeNote: i.changeNote as string | undefined,
     });
   },
@@ -130,6 +211,7 @@ const updateNoteTool: McpTool = {
     priority: PrioritySchema.optional(),
     content: z.string().max(400_000).optional(),
     ...QuestionsShape,
+    ...PresentationShape,
     changeNote: z.string().max(200).optional().describe('Mặc định "Cập nhật nội dung".'),
   }),
   run: async (userId, input) => {
@@ -144,6 +226,9 @@ const updateNoteTool: McpTool = {
       content: (i.content as string) ?? current.content,
       images: current.images,
       questions: i.questions as Question[] | undefined,
+      // Giữ nguyên `undefined`: service hiểu đó là "không đụng tới", còn
+      // `null` mới là lệnh xoá trình chiếu.
+      presentation: i.presentation as Presentation | null | undefined,
       changeNote: i.changeNote as string | undefined,
     });
   },
@@ -228,6 +313,35 @@ const listQuizzesTool: McpTool = {
   }),
 };
 
+const setPresentationTool: McpTool = {
+  name: 'set_presentation',
+  description:
+    'Thay TOÀN BỘ bộ slide trình chiếu của một ghi chú đã có. Thao tác này KHÔNG tạo phiên bản mới và KHÔNG sửa nội dung bài — dùng khi muốn sinh trình chiếu cho ghi chú vừa đẩy lên. Gửi presentation = null để xoá. ' +
+    PRESENTATION_GUIDE,
+  inputSchema: z.object({
+    ...IdShape,
+    presentation: PresentationSchema.nullable().describe(
+      'Bộ slide đầy đủ. Danh sách này THAY THẾ bộ cũ, không cộng dồn. null = xoá trình chiếu.',
+    ),
+  }),
+  run: async (userId, input) => {
+    const i = input as { id: string; presentation: Presentation | null };
+    const { slideCount } = await setPresentation(userId, i.id, i.presentation);
+    return { ok: true, slideCount };
+  },
+};
+
+const getPresentationTool: McpTool = {
+  name: 'get_presentation',
+  description:
+    'Lấy bộ slide trình chiếu hiện có của một ghi chú, hoặc null nếu chưa có. Gọi trước set_presentation khi muốn sửa hoặc bổ sung thay vì thay mới, vì set_presentation ghi đè toàn bộ.',
+  inputSchema: z.object(IdShape),
+  run: async (userId, input) => {
+    const note = await getNote(userId, (input as { id: string }).id);
+    return { presentation: note.presentation ?? null };
+  },
+};
+
 /** Thứ tự đúng theo SPEC §2.4. */
 export const TOOLS: readonly McpTool[] = [
   listNotesTool,
@@ -241,6 +355,8 @@ export const TOOLS: readonly McpTool[] = [
   getQuizQuestionsTool,
   createQuizTool,
   listQuizzesTool,
+  setPresentationTool,
+  getPresentationTool,
 ];
 
 export function findTool(name: string): McpTool | undefined {

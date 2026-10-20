@@ -13,6 +13,7 @@ import {
   type NoteFilters,
   type NoteListResult,
   type NoteSummary,
+  type Presentation,
   type Question,
   type Quiz,
   type SessionUser,
@@ -184,6 +185,7 @@ export async function createNote(
     ],
     quizzes: [],
     questions: input.questions ?? [],
+    presentation: input.presentation ?? null,
   };
 
   await getStorage().writeNote(userId, note);
@@ -220,6 +222,10 @@ export async function updateNote(
     images: input.images ?? [],
     // `undefined` = không đụng tới. Xem chú thích ở `UpdateNoteInput`.
     questions: input.questions ?? existing.questions ?? [],
+    // KHÔNG dùng `??` được: `null` ở đây là lệnh xoá có thật, còn `undefined`
+    // mới là "không đụng tới" — `??` sẽ biến lệnh xoá thành giữ nguyên.
+    presentation:
+      input.presentation === undefined ? (existing.presentation ?? null) : input.presentation,
     content,
     updated: now,
     versions: changed
@@ -371,6 +377,22 @@ export async function setQuestions(
   const note: Note = { ...existing, questions };
   await persist(userId, note);
   return { note, count: questions.length };
+}
+
+/**
+ * Thay bộ slide trình chiếu. KHÔNG tạo phiên bản mới, cùng lý do như
+ * `setQuestions`: trình chiếu là thứ gắn kèm ghi chú, không phải nội dung bài.
+ * `null` = xoá trình chiếu.
+ */
+export async function setPresentation(
+  userId: string,
+  noteId: string,
+  presentation: Presentation | null,
+): Promise<{ note: Note; slideCount: number }> {
+  const existing = await getNote(userId, noteId);
+  const note: Note = { ...existing, presentation };
+  await persist(userId, note);
+  return { note, slideCount: presentation?.slides.length ?? 0 };
 }
 
 /** Lịch sử quiz — mới nhất ở ĐẦU mảng, đúng như prototype. */

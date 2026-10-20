@@ -20,6 +20,7 @@ export function rowToSummary(row: NoteIndexDbRow): NoteSummary {
     imageCount: row.imageCount,
     commentCount: row.commentCount,
     quizCount: row.quizCount,
+    slideCount: row.slideCount,
   };
 }
 
@@ -53,6 +54,9 @@ export function derivedIndexValues(note: Note) {
     imageCount: note.images.length,
     commentCount: note.comments.length,
     quizCount: note.quizzes.length,
+    // 0 có hai nghĩa gộp lại: chưa bao giờ có, và đã xoá. Danh sách ghi chú
+    // chỉ cần biết "có xem được dạng trình chiếu không", nên gộp là đủ.
+    slideCount: note.presentation?.slides.length ?? 0,
     contentSha: computeContentSha(note),
     // Đánh dấu KHÔNG làm đổi contentSha (embedding vẫn hợp lệ) nhưng PHẢI làm
     // đổi cột này, nếu không đoạn vừa bôi sẽ không tìm được cho tới lần sửa

@@ -79,6 +79,11 @@ export const noteIndex = pgTable(
     imageCount: integer('image_count').notNull().default(0),
     commentCount: integer('comment_count').notNull().default(0),
     quizCount: integer('quiz_count').notNull().default(0),
+    /**
+     * Số slide của bộ trình chiếu, 0 nếu chưa có. Denormalise để danh sách ghi
+     * chú biết bài nào xem được dạng trình chiếu mà không phải mở từng file.
+     */
+    slideCount: integer('slide_count').notNull().default(0),
     /** Semantic sha256 of the note; invalidates the client's cached embedding. */
     contentSha: text('content_sha'),
     /**

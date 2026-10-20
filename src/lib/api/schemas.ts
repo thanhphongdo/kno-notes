@@ -1,6 +1,7 @@
 // src/lib/api/schemas.ts
 // Một nơi duy nhất cho mọi shape body, dùng chung bởi API nội bộ, `/api/v1` và MCP.
 import { z } from 'zod';
+import { PresentationSchema } from '@/lib/presentation/schema';
 
 export const PrioritySchema = z.enum(['high', 'medium', 'low']);
 
@@ -38,7 +39,21 @@ export const NoteWriteSchema = z.object({
    * nên mặc định thành `[]` sẽ xoá bộ câu hỏi mỗi lần người dùng sửa bài.
    */
   questions: z.array(QuestionSchema).max(50).optional(),
+  /**
+   * Cùng luật như `questions`: bỏ trống = "không đụng tới". Khác một điều —
+   * `null` là lệnh XOÁ trình chiếu, nên trường này nullable chứ không chỉ
+   * optional.
+   */
+  presentation: PresentationSchema.nullable().optional(),
   changeNote: z.string().max(200).optional(),
+});
+
+/**
+ * Bộ slide gửi riêng qua `PUT /api/v1/notes/{id}/presentation` hoặc
+ * `PUT /api/notes/{id}/presentation`. `null` = xoá trình chiếu.
+ */
+export const PresentationBodySchema = z.object({
+  presentation: PresentationSchema.nullable(),
 });
 
 export const CommentSchema = z.object({ text: z.string().min(1).max(4000) });
