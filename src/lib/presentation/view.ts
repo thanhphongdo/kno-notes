@@ -10,7 +10,7 @@
 // tên bịa, hoặc không có. UI phải chịu được cả ba mà không trang trắng, nên nó
 // tự giữ danh sách tên mình vẽ được và coi mọi thứ ngoài danh sách là "thiếu".
 
-import type { BrandKit, Presentation, PresentationMotion, PresentationTemplate, SlideLayout } from './schema';
+import type { BrandKit, Presentation, PresentationMotion, PresentationTemplate } from './schema';
 import { META_PREFIX, scopePrefix } from '@/lib/offline/keys';
 
 /* ══ Nền ═══════════════════════════════════════════════════════════════════ */
@@ -123,18 +123,6 @@ export const MOTION_LABEL: Record<PresentationMotion, string> = {
 
 export const MOTIONS = ['full', 'subtle', 'none'] as const;
 export const BRAND_KITS_UI = ['mint', 'midnight', 'paper', 'clinic'] as const;
-
-/** Nhãn cột trái của mẫu "Bệnh án" — một nhãn phiếu cho mỗi dạng slide. */
-export const SHEET_LABEL: Record<SlideLayout, string> = {
-  title: 'Phiếu đọc · Tiêu đề',
-  section: 'Phần',
-  bullets: 'Nội dung',
-  'two-col': 'Đối chiếu',
-  image: 'Hình ảnh',
-  quote: 'Ghi chú',
-  stat: 'Chỉ số',
-  end: 'Kết thúc',
-};
 
 /* ══ Chỉ số slide ═════════════════════════════════════════════════════════ */
 

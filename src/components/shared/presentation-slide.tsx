@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Icon, type IconName as UiIconName } from '@/components/ui/icon';
 import {
@@ -8,7 +8,7 @@ import {
   type PresentationTemplate, type Slide, type SlideColumn,
 } from '@/lib/presentation/schema';
 import {
-  SHEET_LABEL, slideNumber, splitBoldRuns, type BackgroundName,
+  slideNumber, splitBoldRuns, type BackgroundName,
 } from '@/lib/presentation/view';
 import type { NoteImage } from '@/lib/types';
 
@@ -237,9 +237,12 @@ function Frame({
           <p className="kn-q-text" {...seq()}>
             {/* Từng từ một: ở mức "Đầy đủ" chữ hiện dần theo dòng đọc. */}
             {slide.text.split(' ').map((word, i) => (
-              <span key={i} className="kn-w" style={{ '--w': i } as CSSProperties}>
-                {i === 0 ? word : ` ${word}`}
-              </span>
+              <Fragment key={i}>
+                {i === 0 ? null : ' '}
+                <span className="kn-w" style={{ '--w': i } as CSSProperties}>
+                  {word}
+                </span>
+              </Fragment>
             ))}
           </p>
           {slide.attribution ? (
@@ -292,9 +295,6 @@ export function PresentationSlide({
 }: PresentationSlideProps) {
   const seq = animSeq();
   const n = slideNumber(index);
-  const sheetLabel = template === 'clinical' && slide.layout !== 'title'
-    ? SHEET_LABEL[slide.layout]
-    : null;
   const icon = 'icon' in slide ? slide.icon : undefined;
 
   return (
@@ -314,13 +314,6 @@ export function PresentationSlide({
       </div>
 
       <div className="kn-frame">
-        {sheetLabel ? (
-          <p className="kn-kicker">
-            {sheetLabel}
-            <br />
-            {`${n} / ${total}`}
-          </p>
-        ) : null}
         <Frame slide={slide} seq={seq} images={images} sectionIndex={sectionIndex} motion={motion} />
       </div>
     </article>

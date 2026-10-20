@@ -125,13 +125,35 @@ describe('PresentationSlide', () => {
     expect(container.querySelector('.kn-cap')).toHaveTextContent('Phim thẳng.');
   });
 
-  it('mẫu "Bệnh án" thêm nhãn phiếu cho mọi dạng slide trừ `title`', () => {
+  /** Nhãn lề của mẫu "Bệnh án" đã bỏ: nó chiếm một cột mà phần lớn slide để trống. */
+  it('không mẫu nào còn cột nhãn ở lề', () => {
+    for (const template of ['clinical', 'editorial', 'deck'] as const) {
+      const { container } = renderSlide(
+        { layout: 'bullets', title: 'RIPE', bullets: ['Xoay.'] },
+        { template },
+      );
+      expect(container.querySelector('.kn-kicker')).toBeNull();
+    }
+  });
+
+  /** `kicker` do người soạn viết thì vẫn phải hiện — nó khác nhãn lề. */
+  it('vẫn giữ kicker của slide tiêu đề', () => {
     const { container } = renderSlide(
-      { layout: 'bullets', title: 'RIPE', bullets: ['Xoay.'] },
+      { layout: 'title', title: 'X quang xương', kicker: 'Chẩn đoán hình ảnh' },
       { template: 'clinical' },
     );
-    expect(container.querySelector('.kn-kicker')).toHaveTextContent('Nội dung');
-    expect(container.querySelector('.kn-kicker')).toHaveTextContent('03 / 11');
+    expect(container.querySelector('.kn-kicker')).toHaveTextContent('Chẩn đoán hình ảnh');
+  });
+
+  /**
+   * Mỗi từ của câu trích được bọc một span để hiện dần. Khoảng trắng đứng ĐẦU
+   * một `inline-block` bị nuốt, nên nếu dấu cách nằm trong span thì cả câu
+   * dính liền thành một khối chữ không đọc được — đã xảy ra thật.
+   */
+  it('câu trích giữ nguyên dấu cách giữa các từ', () => {
+    const text = 'Thoái hóa khớp và thống phong không gây loãng xương.';
+    const { container } = renderSlide({ layout: 'quote', text }, { template: 'clinical' });
+    expect(container.querySelector('.kn-q-text')?.textContent).toBe(text);
   });
 
   it('mẫu "Thuyết trình" ghi cả tổng số slide ở chrome; hai mẫu kia chỉ ghi số hiện tại', () => {

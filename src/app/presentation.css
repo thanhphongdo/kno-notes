@@ -327,13 +327,11 @@
 [data-template="clinical"] .kn-chrome-index { color: var(--accent); }
 [data-template="clinical"] .kn-frame {
   padding: calc(6.4cqi + 4.2cqi) 4cqi 4.6cqi;
-  grid-template-columns: minmax(84px, 19%) minmax(0, 1fr);
-  column-gap: 3.2cqi; row-gap: 1.5cqi;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 1.5cqi;
   align-content: start;
 }
-[data-template="clinical"] .kn-frame > * { grid-column: 2; }
 [data-template="clinical"] .kn-kicker {
-  grid-column: 1; grid-row: 1 / span 2;
   font-family: var(--font-plex-mono), ui-monospace, monospace;
   font-size: clamp(9px, 1.15cqi, 13px); line-height: 1.5;
   color: var(--faint); letter-spacing: .01em;
@@ -687,11 +685,16 @@
   [data-template="deck"] .kn-frame { padding: calc(7.2cqi + 6cqi) 5cqi 6cqi; }
   [data-template="deck"] .kn-bullets { grid-template-columns: minmax(0, 1fr); }
   [data-template="clinical"] .kn-frame {
-    grid-template-columns: minmax(0, 1fr); row-gap: 2.4cqi;
+    row-gap: 2.4cqi;
     padding: calc(6.4cqi + 5cqi) 5cqi 5cqi;
   }
-  [data-template="clinical"] .kn-frame > * { grid-column: 1; }
-  [data-template="clinical"] .kn-kicker { grid-row: auto; border-top-width: 2px; }
+  /*
+   * Đo dòng tính bằng `ch` được cân cho khổ lớn. Ở bề ngang điện thoại, cỡ chữ
+   * đã chạm sàn của `clamp()` nên 24-28ch chỉ còn hơn nửa màn hình: chữ dồn
+   * sang trái, bỏ trống hẳn bên phải. Hẹp màn hình thì chính bề ngang màn hình
+   * đã là đo dòng.
+   */
+  [data-template] .kn-q-text { max-width: none; }
   [data-template="clinical"] .kn-stat { grid-template-columns: minmax(0, 1fr); row-gap: 1.6cqi; }
   [data-template="clinical"] .kn-stat-value { grid-row: auto; border-right: 0; padding-right: 0; }
   .kn-cols, .kn-media { grid-template-columns: minmax(0, 1fr) !important; gap: 3.4cqi; }
